@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v0.5) -->
+<!-- Single-file app. Show/hide div nav. Trip Wizard now models a full round trip with -->
+<!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
+<!-- Return Flight leg + Uber Home. Setup/Dashboard/In-Flight/Media unchanged from v0.4. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Crosswind</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Michroma&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-page: #10161f; --bg-panel: #0a1018; --bg-card: #0d1622; --bg-input: #091019;
+    --line: #1e3345; --line-soft: #16283a; --cyan: #4dd8ff; --cyan-dim: #2b8fb0;
+    --amber: #f0a832; --green: #4de88a; --red: #e85a4d; --text: #e8f0f5;
+    --text-dim: #7a8a99; --text-faint: #4a5a68; --glow-cyan: 0 0 8px rgba(77, 216, 255, 0.35);
+    --font-display: 'Michroma', 'Chakra Petch', sans-serif; --font-body: 'Chakra Petch', -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; min-height: 100%; background: var(--bg-page); color: var(--text); font-family: var(--font-body); }
+  .panel { background: linear-gradient(rgba(30, 51, 69, 0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(30, 51, 69, 0.12) 1px, transparent 1px), var(--bg-panel); background-size: 28px 28px, 28px 28px, auto; border: 1px solid var(--line); border-radius: 14px; padding: 14px; max-width: 760px; margin: 0 auto; }
+  header { text-align: center; padding: 14px 0 10px; }
+  .logo-mark { font-size: 1.5rem; line-height: 1; letter-spacing: 2px; }
+  .logo-word { font-family: var(--font-display); font-size: 1.15rem; letter-spacing: 0.35em; margin-top: 4px; text-indent: 0.35em; }
+  nav#devNav { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; padding: 0 10px 12px; }
+  nav#devNav button { background: var(--bg-card); color: var(--text-dim); border: 1px solid var(--line-soft); border-radius: 8px; padding: 6px 10px; font-family: var(--font-body); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
+  nav#devNav button.active { color: var(--cyan); border-color: var(--cyan-dim); box-shadow: var(--glow-cyan); }
+  .screen { display: none; padding: 0 10px 24px; }
+  .screen.active { display: block; }
+  .card { background: var(--bg-card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+  .card-title { font-weight: 700; font-size: 0.85rem; letter-spacing: 0.12em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .card-title::before { content: ""; display: inline-block; width: 4px; height: 14px; background: var(--cyan); border-radius: 2px; box-shadow: var(--glow-cyan); }
+  .card-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .card-title-row .card-title { margin-bottom: 0; }
+  .card-sub { font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); margin: 12px 0 6px; }
+  label.fld { display: block; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin: 10px 0 3px; }
+  input[type="text"], input[type="date"], select, textarea { width: 100%; background: var(--bg-input); color: var(--text); border: none; border-bottom: 1px solid var(--line); border-radius: 4px 4px 0 0; padding: 8px 6px; font-family: var(--font-body); font-size: 0.95rem; outline: none; }
+  input:disabled { color: var(--text-faint); }
+  input:focus, select:focus, textarea:focus { border-bottom-color: var(--cyan); }
+  .fld-note { font-size: 0.62rem; color: var(--text-faint); margin-top: 2px; }
+  .fld-opt { color: var(--text-faint); text-transform: none; letter-spacing: 0; font-size: 0.62rem; }
+  select.mini-select { width: auto; background: var(--bg-input); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font-size: 0.72rem; color: var(--cyan); }
+  .chip { display: inline-block; background: var(--bg-input); border: 1px solid var(--line); border-radius: 8px; color: var(--text-dim); font-size: 0.78rem; padding: 6px 10px; margin: 3px 3px 0 0; cursor: pointer; }
+  .chip.on { color: var(--cyan); border-color: var(--cyan-dim); box-shadow: var(--glow-cyan); }
+  .chip.add { color: var(--cyan); border-style: dashed; }
+  .badge { font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border-radius: 4px; }
+  .badge.ok { color: var(--green); border: 1px solid var(--green); }
+  .btn-row { display: flex; gap: 8px; max-width: 760px; margin: 12px auto 0; }
+  .btn { font-family: var(--font-body); font-weight: 600; font-size: 0.85rem; letter-spacing: 0.05em; border-radius: 10px; padding: 12px 14px; cursor: pointer; border: 1px solid var(--line); background: var(--bg-card); color: var(--text); }
+  .btn.primary { border-color: var(--cyan-dim); color: var(--cyan); box-shadow: var(--glow-cyan); }
+  .btn.ghost { color: var(--text-dim); }
+  .btn.grow { flex: 1; }
+  .btn.small { padding: 8px 12px; font-size: 0.76rem; }
+  .unit-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
+  .unit-row:last-child { border-bottom: none; }
+  .unit-row .ul { font-size: 0.82rem; color: var(--text); }
+  .unit-switch { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .unit-switch button { background: var(--bg-input); color: var(--text-dim); border: none; font-family: var(--font-body); font-size: 0.72rem; padding: 6px 10px; cursor: pointer; letter-spacing: 0.04em; }
+  .unit-switch button.on { background: var(--cyan-dim); color: #04151c; font-weight: 700; }
+  #verifyAddrBtn { float: right; background: var(--bg-input); border: 1px solid var(--cyan-dim); color: var(--cyan); border-radius: 8px; font-size: 0.72rem; padding: 6px 10px; cursor: pointer; }
+  .suggest-btn { background: var(--bg-input); border: 1px solid var(--cyan-dim); color: var(--cyan); border-radius: 6px; font-size: 0.68rem; padding: 5px 9px; cursor: pointer; margin-top: 4px; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(4, 8, 12, 0.78); align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+  .modal-overlay.open { display: flex; }
+  .modal-card { background: var(--bg-panel); border: 1px solid var(--cyan-dim); border-radius: 14px; box-shadow: var(--glow-cyan); padding: 16px; max-width: 420px; width: 100%; max-height: 88vh; overflow-y: auto; }
+  .modal-title { font-weight: 700; font-size: 0.9rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cyan); margin-bottom: 12px; }
+  .type-btn-row { display: flex; gap: 6px; margin-bottom: 12px; }
+  .type-btn { flex: 1; background: var(--bg-input); border: 1px solid var(--line); color: var(--text-dim); border-radius: 8px; padding: 9px 6px; font-family: var(--font-body); font-size: 0.78rem; cursor: pointer; }
+  .type-btn.on { color: var(--cyan); border-color: var(--cyan-dim); box-shadow: var(--glow-cyan); }
+  .existing-table-wrap { max-height: 110px; overflow-y: auto; border: 1px solid var(--line-soft); border-radius: 8px; margin-bottom: 4px; }
+  table.existing-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
+  table.existing-table td { padding: 6px 8px; border-bottom: 1px solid var(--line-soft); color: var(--text-dim); }
+  table.existing-table tr:last-child td { border-bottom: none; }
+  table.existing-table td.pname { color: var(--text); }
+  .empty-row { padding: 10px; text-align: center; color: var(--text-faint); font-size: 0.74rem; }
+  .dup-warning { background: rgba(232, 90, 77, 0.12); border: 1px solid var(--red); color: var(--red); border-radius: 8px; padding: 8px 10px; font-size: 0.74rem; margin-top: 10px; }
+  .tsa-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  .tsa-col-left .fld:first-child { margin-top: 0; }
+  .tsa-col-right .fld { margin-top: 0; }
+  .airline-list { max-height: 100px; overflow-y: auto; border: 1px solid var(--line-soft); border-radius: 8px; }
+  .airline-list.tall { max-height: 90px; }
+  .airline-row { display: flex; align-items: center; gap: 6px; padding: 0 8px; height: 30px; box-sizing: border-box; font-size: 0.78rem; color: var(--text-dim); border-bottom: 1px solid var(--line-soft); cursor: pointer; }
+  .airline-row:last-child { border-bottom: none; }
+  .airline-row .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; }
+  .airline-row.touchless { color: var(--green); }
+  .airline-row.touchless .dot { background: var(--green); box-shadow: 0 0 6px rgba(77,232,138,0.6); }
+  .loyalty-columns { column-count: 3; column-gap: 14px; }
+  .loyalty-group-header { font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cyan-dim); margin: 10px 0 4px; break-after: avoid-column; break-inside: avoid-column; }
+  .loyalty-group-header:first-child { margin-top: 0; }
+  .loyalty-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--line-soft); break-inside: avoid-column; font-size: 0.8rem; }
+  .loyalty-row .lname { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .loyalty-row .ledit { background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.85rem; padding: 0; }
+  .loyalty-row .ledit:hover { color: var(--cyan); }
+  table.defaults-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  table.defaults-table th { text-align: left; font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); padding: 0 6px 6px; font-weight: 600; }
+  table.defaults-table td { padding: 5px 6px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+  table.defaults-table tr:last-child td { border-bottom: none; }
+  table.defaults-table .sysname { color: var(--text-dim); white-space: nowrap; }
+  table.defaults-table input[type="text"] { padding: 6px; font-size: 0.82rem; }
+  table.defaults-table .icon-input { width: 100%; text-align: center; font-size: 1.1rem; padding: 4px; }
+  .proj-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--line-soft); cursor: pointer; }
+  .proj-row:last-child { border-bottom: none; }
+  .proj-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--text-faint); flex-shrink: 0; }
+  .proj-row.selected .proj-dot { border-color: var(--cyan); background: var(--cyan); box-shadow: var(--glow-cyan); }
+  .proj-name { flex: 1; min-width: 0; }
+  .proj-name .nm { font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .proj-row.selected .nm { color: var(--cyan); }
+  .proj-name .dt { font-size: 0.68rem; color: var(--text-dim); }
+  .proj-bar { width: 90px; height: 4px; background: var(--line-soft); border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+  .proj-bar i { display: block; height: 100%; background: var(--cyan); }
+  .proj-bar.amber i { background: var(--amber); }
+  .pipeline-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .cal-nav { background: var(--bg-input); border: 1px solid var(--line); color: var(--cyan); border-radius: 6px; padding: 4px 12px; font-size: 1rem; cursor: pointer; }
+  .cal-title { font-weight: 700; font-size: 0.85rem; letter-spacing: 0.06em; color: var(--text); }
+  .cal-weekdays { display: grid; grid-template-columns: repeat(7,1fr); text-align: center; font-size: 0.6rem; color: var(--text-dim); letter-spacing: 0.05em; margin-bottom: 4px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+  .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; border-radius: 6px; cursor: pointer; color: var(--text); background: var(--bg-input); border: 1px solid transparent; }
+  .cal-day.blank { visibility: hidden; cursor: default; }
+  .cal-day.in-range { background: rgba(77,216,255,0.14); color: var(--cyan); border-radius: 0; }
+  .cal-day.endpoint { background: var(--cyan-dim); color: #04151c; font-weight: 700; box-shadow: var(--glow-cyan); }
+  .cal-day.today-marker { border-color: var(--amber); }
+  .node-track { display: flex; align-items: flex-start; overflow-x: auto; padding: 10px 2px 6px; gap: 0; }
+  .node { display: flex; flex-direction: column; align-items: center; min-width: 68px; position: relative; cursor: pointer; }
+  .node::before { content: ""; position: absolute; top: 8px; left: -50%; width: 100%; height: 2px; background: var(--line); z-index: 0; }
+  .node:first-child::before { display: none; }
+  .node .nd { width: 16px; height: 16px; border-radius: 50%; background: var(--bg-panel); border: 2px solid var(--text-faint); z-index: 1; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; }
+  .node.optional .nd { border-style: dashed; }
+  .node.done .nd { border-color: var(--amber); background: var(--amber); }
+  .node.done::before { background: var(--amber); }
+  .node.current .nd { border-color: var(--cyan); background: var(--cyan); box-shadow: var(--glow-cyan); }
+  .node.current::before { background: var(--amber); }
+  .node .nl { font-size: 0.56rem; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-dim); margin-top: 5px; text-align: center; line-height: 1.25; display: flex; align-items: center; gap: 3px; white-space: nowrap; max-width: 92px; overflow: hidden; text-overflow: ellipsis; }
+  .node.current .nl { color: var(--cyan); }
+  .node.done .nl { color: var(--amber); }
+  .node .edit-pin { font-size: 0.6rem; opacity: 0.5; cursor: pointer; border: none; background: transparent; color: var(--text-dim); padding: 0; flex-shrink: 0; }
+  .node .edit-pin:hover, .node .edit-pin.editing { opacity: 1; color: var(--cyan); }
+  #stepFormContainer { margin-top: 4px; }
+  .step-head { color: var(--cyan); font-weight: 700; font-size: 0.85rem; letter-spacing: 0.1em; margin: 12px 0 2px; }
+  .fld-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .flight-row3 { display: flex; gap: 10px; margin-top: 10px; }
+  .flight-row3 .fnum { flex: 0 0 22%; }
+  .flight-row3 .fconf { flex: 0 0 42%; }
+  .flight-row3 .fseat { flex: 0 0 20%; }
+  .autofill-box { margin-top: 12px; border: 1px dashed var(--line); border-radius: 8px; padding: 10px; }
+  .autofill-box .af-label { font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cyan-dim); margin-bottom: 6px; }
+  .parser-btn { width: 100%; margin-top: 12px; background: var(--bg-input); border: 1px solid var(--cyan-dim); color: var(--cyan); border-radius: 8px; padding: 10px; font-family: var(--font-body); font-size: 0.8rem; letter-spacing: 0.06em; cursor: pointer; }
+  .parser-btn small { display: block; color: var(--text-dim); font-size: 0.6rem; letter-spacing: 0.1em; margin-top: 2px; }
+  .add-flight-btn { width: 100%; margin-top: 12px; background: var(--bg-input); border: 1px dashed var(--amber); color: var(--amber); border-radius: 8px; padding: 10px; font-family: var(--font-body); font-size: 0.8rem; letter-spacing: 0.06em; cursor: pointer; }
+  .layover-strip { margin-top: 4px; background: var(--bg-input); border: 1px solid var(--line-soft); border-radius: 8px; padding: 8px 10px; font-size: 0.76rem; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+  .layover-strip b { color: var(--amber); }
+  .home-note { font-size: 0.8rem; color: var(--text-dim); margin-top: 8px; }
+  .return-ref { background: var(--bg-input); border: 1px solid var(--line-soft); border-radius: 8px; padding: 10px 12px; font-size: 0.84rem; color: var(--text); margin-top: 4px; }
+  .return-ref .rr-sub { font-size: 0.68rem; color: var(--text-dim); margin-top: 3px; }
+  .dash-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 2px 10px; color: var(--text); }
+  .dash-head .hd-l::before { content: "📍 "; }
+  .dash-head .hd-r { color: var(--text-dim); white-space: nowrap; }
+  .dash-head .hd-r b { color: var(--text); }
+  .state-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 2px 12px; }
+  .st { display: flex; align-items: center; flex: 1; }
+  .st .ic { font-size: 0.95rem; opacity: 0.35; padding: 4px 5px; border-radius: 8px; border: 1px solid transparent; cursor: pointer; }
+  .st.optional .ic { opacity: 0.2; }
+  .st.active .ic { opacity: 1; border-color: var(--cyan-dim); box-shadow: var(--glow-cyan); }
+  .st .ln { flex: 1; height: 2px; background: var(--line); margin: 0 1px; min-width: 6px; }
+  .st:last-child .ln { display: none; }
+  .st.active .tag { font-size: 0.55rem; color: var(--cyan); letter-spacing: 0.08em; margin-left: 2px; white-space: nowrap; }
+  .quick-card { border: 1px solid var(--cyan-dim); border-radius: 12px; box-shadow: var(--glow-cyan), inset 0 0 30px rgba(77, 216, 255, 0.04); padding: 14px; text-align: center; margin-bottom: 10px; background: var(--bg-card); }
+  .qc-title { font-family: var(--font-display); font-size: 1.05rem; letter-spacing: 0.08em; border-bottom: 2px solid var(--cyan); display: inline-block; padding-bottom: 4px; margin-bottom: 10px; }
+  .qc-route { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+  .qc-route .apt { color: var(--text); }
+  .qc-route .arr { color: var(--cyan); padding: 0 8px; }
+  .qc-route small { font-weight: 400; font-size: 0.7rem; color: var(--text-dim); }
+  .qc-line { font-size: 0.82rem; color: var(--text-dim); margin: 4px 0; letter-spacing: 0.04em; }
+  .qc-line b { color: var(--amber); font-weight: 600; }
+  .qc-line .wt { color: var(--text); }
+  .telem-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; text-align: left; }
+  .telem-col .t-lab { font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cyan); margin-bottom: 2px; }
+  .telem-col .t-val { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+  .telem-col .t-val .unit-pill { font-size: 0.62rem; font-weight: 600; color: var(--text-dim); border: 1px solid var(--line); border-radius: 10px; padding: 2px 6px; margin-left: 4px; cursor: pointer; vertical-align: middle; }
+  .telem-col .t-val .unit-pill:hover { color: var(--cyan); border-color: var(--cyan-dim); }
+  .telem-col .t-sub { font-size: 0.66rem; color: var(--text-dim); margin-bottom: 8px; }
+  .telem-col.right { text-align: right; }
+  .compass { width: 104px; height: 104px; border: 2px solid var(--cyan-dim); border-radius: 50%; position: relative; box-shadow: var(--glow-cyan), inset 0 0 20px rgba(77, 216, 255, 0.08); flex-shrink: 0; }
+  .compass .needle { position: absolute; top: 50%; left: 50%; font-size: 2rem; color: var(--cyan); transform: translate(-50%, -55%) rotate(38deg); text-shadow: var(--glow-cyan); }
+  .compass .cd { position: absolute; font-size: 0.52rem; color: var(--text-dim); }
+  .compass .n { top: 4px; left: 50%; transform: translateX(-50%); }
+  .compass .e { right: 6px; top: 50%; transform: translateY(-50%); }
+  .compass .s { bottom: 4px; left: 50%; transform: translateX(-50%); }
+  .compass .w { left: 6px; top: 50%; transform: translateY(-50%); }
+  .logs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dock { display: flex; gap: 8px; max-width: 760px; margin: 0 auto; }
+  .dock .btn { flex: 1; font-size: 0.78rem; }
+  .dock .btn small { display: block; font-weight: 400; font-size: 0.58rem; color: var(--text-dim); letter-spacing: 0.08em; margin-top: 2px; }
+  .dock .btn.copied { border-color: var(--green); color: var(--green); }
+  #stateToggle { display: block; margin: 10px auto 0; background: transparent; border: 1px dashed var(--text-faint); color: var(--text-faint); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+  #lastUsedBtn { width: 100%; background: var(--bg-input); color: var(--text-dim); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font-family: var(--font-body); font-size: 0.8rem; text-align: left; margin-bottom: 10px; cursor: pointer; }
+  .req-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .req-btn { background: var(--bg-input); border: 1px solid var(--line); border-radius: 10px; color: var(--text); font-family: var(--font-body); padding: 12px 6px; cursor: pointer; text-align: center; }
+  .req-btn:active { border-color: var(--cyan-dim); }
+  .req-btn .ri { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+  .req-btn .rl { font-size: 0.68rem; letter-spacing: 0.04em; color: var(--text-dim); }
+  .req-btn.fav-empty { border-style: dashed; border-color: var(--cyan-dim); color: var(--cyan); display: flex; align-items: center; justify-content: center; }
+  .req-btn.fav-empty .ri { font-size: 1.3rem; margin-bottom: 0; }
+  .req-btn.fav-filled { position: relative; }
+  .fav-edit-pin { position: absolute; top: 4px; right: 4px; background: var(--bg-panel); border: 1px solid var(--line); color: var(--text-dim); border-radius: 6px; width: 20px; height: 20px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .fav-edit-pin:hover { color: var(--cyan); border-color: var(--cyan-dim); }
+  #reqText { min-height: 64px; border: 1px solid var(--line); border-radius: 8px; margin-top: 10px; resize: vertical; padding: 10px; }
+  #reqText:focus { border-color: var(--cyan-dim); }
+  #reqDisplay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; align-items: center; justify-content: center; overflow: hidden; z-index: 50; }
+  #reqDisplayText { color: #fff; text-align: center; white-space: pre-wrap; line-height: 1.05; max-width: 96vw; max-height: 96vh; padding: 0 2vw; font-family: var(--font-body); font-weight: 600; }
+  #reqBackBtn { position: absolute; bottom: 14px; right: 14px; background: transparent; border: 1px solid #3a3a3a; color: #5a4a5a; border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; z-index: 60; padding: 0; cursor: pointer; }
+  #rotateOverlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; color: #777; align-items: center; justify-content: center; flex-direction: column; text-align: center; z-index: 70; font-size: 1.3rem; padding: 20px; }
+  #rotateOverlay .icon { font-size: 3rem; margin-bottom: 14px; }
+  .mp-art { width: 150px; height: 150px; margin: 6px auto 12px; background: var(--bg-input); border: 1px solid var(--line); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 3rem; opacity: 0.5; }
+  .mp-meta { text-align: center; margin-bottom: 14px; }
+  .mp-meta .ttl { font-weight: 700; font-size: 1.05rem; }
+  .mp-meta .art { font-size: 0.8rem; color: var(--text-dim); margin-top: 2px; }
+  .mp-controls { display: flex; gap: 8px; justify-content: center; }
+  .mp-btn { background: var(--bg-input); border: 1px solid var(--line); border-radius: 12px; color: var(--text); font-size: 1.6rem; cursor: pointer; width: 84px; height: 84px; display: flex; align-items: center; justify-content: center; }
+  .mp-btn.play { border-color: var(--cyan-dim); color: var(--cyan); box-shadow: var(--glow-cyan); width: 104px; height: 104px; border-radius: 50%; }
+  .mp-note { text-align: center; font-size: 0.68rem; color: var(--text-faint); margin-top: 14px; letter-spacing: 0.06em; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">🌬️🧭💨</div>
+  <div class="logo-word">CROSSWIND</div>
+</header>
+
+<nav id="devNav">
+  <button data-screen="screenSetup" class="active">Setup</button>
+  <button data-screen="screenWizard">Trip Wizard</button>
+  <button data-screen="screenDash">Dashboard</button>
+  <button data-screen="screenRequest">In-Flight</button>
+  <button data-screen="screenMedia">Media</button>
+</nav>
+
+<!-- ================= SCREEN 1: SETUP ================= -->
+<div class="screen active" id="screenSetup">
+  <div class="panel">
+    <div class="card">
+      <button id="verifyAddrBtn">🏠 Verify Address (USPS)</button>
+      <div class="card-title">Home Base</div>
+      <label class="fld" for="addrInput">Address</label>
+      <input type="text" id="addrInput" value="123 N MAIN ST, EXCELSIOR SPRINGS, MO">
+      <div style="margin-top:6px;"><span class="badge ok">CASS Validated</span></div>
+      <label class="fld" for="homeAirportInput">Home Airport</label>
+      <input type="text" id="homeAirportInput" placeholder="Not set">
+      <button class="suggest-btn" id="suggestAirportBtn">📍 Suggest Nearest Airport</button>
+      <div class="fld-note">Fake suggestion for now — real lookup comes in a later pass</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title-row">
+        <div class="card-title">Loyalty Programs</div>
+        <select class="mini-select" id="loyaltyFilter">
+          <option value="all">All</option><option value="airline">Airline</option><option value="rental">Rental</option><option value="hotel">Hotel</option>
+        </select>
+      </div>
+      <div id="loyaltyList" class="loyalty-columns"></div>
+      <div style="margin-top:8px;"><span class="chip add" id="addProgramBtn">+ Add Program</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">TSA PreCheck</div>
+      <div class="tsa-grid-2col">
+        <div class="tsa-col-left">
+          <label class="fld">KTN</label>
+          <input type="text" id="ktnInput" placeholder="8 char" maxlength="8">
+          <label class="fld">Expiration</label>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <input type="text" id="ktnExp" placeholder="e.g. T+1825, 12/17">
+            <button class="suggest-btn" id="ktnExpCalBtn" style="margin-top:0;">📅</button>
+          </div>
+        </div>
+        <div class="tsa-col-right">
+          <label class="fld">Touchless</label>
+          <div class="airline-list tall" id="tsaAirlineList"></div>
+          <div class="fld-note">Touch Airline to mark as Touchless... (🤔)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Units</div>
+      <div class="unit-row"><span class="ul">Speed</span><div class="unit-switch" data-unit-group="speed"><button class="on" data-val="mph">MPH</button><button data-val="kph">KPH</button></div></div>
+      <div class="unit-row"><span class="ul">Temperature</span><div class="unit-switch" data-unit-group="temp"><button class="on" data-val="f">°F</button><button data-val="c">°C</button></div></div>
+      <div class="unit-row"><span class="ul">Distance</span><div class="unit-switch" data-unit-group="dist"><button class="on" data-val="mi">Miles</button><button data-val="km">KM</button></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Trip Step Defaults</div>
+      <div class="fld-note" style="margin-bottom:8px;">Your defaults for every new trip. Override per-trip anytime with the ✎ pin in the Itinerary Wizard.</div>
+      <table class="defaults-table" id="defaultsTable"><thead><tr><th>Step</th><th>Your Name</th><th style="width:56px;">Icon</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn ghost">Back</button>
+    <button class="btn grow">Save Profile</button>
+    <button class="btn primary grow" data-goto="screenWizard">Continue to Trip Planning</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="programModal">
+  <div class="modal-card">
+    <div class="modal-title" id="programModalTitle">Add Loyalty Program</div>
+    <div class="type-btn-row" id="typeBtnRow">
+      <button class="type-btn" data-type="airline">Airline</button><button class="type-btn" data-type="rental">Rental</button><button class="type-btn" data-type="hotel">Hotel</button>
+    </div>
+    <div class="card-sub" id="existingLabel">Existing Programs</div>
+    <div class="existing-table-wrap"><table class="existing-table" id="existingTable"><tbody></tbody></table></div>
+    <label class="fld">Name</label>
+    <input list="programNames" id="programNameInput" type="text" placeholder="e.g. Southwest">
+    <datalist id="programNames"></datalist>
+    <label class="fld">Loyalty ID</label>
+    <input type="text" id="programIdInput" placeholder="Member / Loyalty #">
+    <div class="dup-warning" id="dupWarning" style="display:none;">⚠ Possible duplicate — a program with this name or ID already exists. You can still save if this is intentional.</div>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn ghost" id="programDeleteBtn" style="display:none; color: var(--red);">Delete</button>
+      <button class="btn ghost" id="programCancelBtn">Cancel</button>
+      <button class="btn ghost" id="programSaveNextBtn" style="color:var(--cyan); border-color:var(--cyan-dim);">Save &amp; Next</button>
+      <button class="btn primary grow" id="programSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= SCREEN 2: TRIP WIZARD ================= -->
+<div class="screen" id="screenWizard">
+  <div class="panel">
+    <div class="card">
+      <div class="card-title">Active Pipeline</div>
+      <div id="pipelineList">
+        <div class="proj-row selected">
+          <div class="proj-dot"></div>
+          <div class="proj-name"><div class="nm">Muckleshoot Go Live Support</div><div class="dt">Apr 27 – Sep 21, '25</div></div>
+          <div class="proj-bar"><i style="width:70%"></i></div>
+        </div>
+        <div class="proj-row">
+          <div class="proj-dot"></div>
+          <div class="proj-name"><div class="nm">Ray County Special Project</div><div class="dt">Nov 24, '25 – Jun 13, '26</div></div>
+          <div class="proj-bar amber"><i style="width:45%"></i></div>
+        </div>
+        <div class="proj-row">
+          <div class="proj-dot"></div>
+          <div class="proj-name"><div class="nm">Dallas System Upgrade</div><div class="dt">Nov 30, '25 – Jun 13, '26</div></div>
+          <div class="proj-bar"><i style="width:10%"></i></div>
+        </div>
+      </div>
+      <div class="pipeline-footer">
+        <span class="chip add" id="newProjectBtn">+ Create New Project</span>
+        <button class="btn primary small" id="whatsappReportBtn">📋 WhatsApp Report</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="color:var(--amber);">Muckleshoot Itinerary Wizard</div>
+      <div class="node-track" id="nodeTrack"></div>
+      <div class="fld-note" style="text-align:center; margin-top:2px;">✎ = override this step's name/icon for this trip only.</div>
+      <div id="stepFormContainer"></div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn ghost" data-goto="screenSetup">Back</button>
+    <button class="btn primary grow" data-goto="screenDash">Continue</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="projectModal">
+  <div class="modal-card">
+    <div class="modal-title">Create New Project</div>
+    <label class="fld">Trip Name</label>
+    <input type="text" id="projNameInput" placeholder="e.g. Ray County Special Project">
+    <div class="fld-grid" style="margin-top:4px;">
+      <div><label class="fld">Start Date</label><input type="text" id="projStartInput" placeholder="e.g. T+14"></div>
+      <div><label class="fld">End Date</label><input type="text" id="projEndInput" placeholder="e.g. T+21"></div>
+    </div>
+    <div class="fld-note" id="projDateNote" style="display:none;">End date cleared — must be on or after the start date</div>
+    <button class="suggest-btn" id="projCalBtn" style="margin-top:6px;">📅 Pick Date Range</button>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn ghost" id="projCancelBtn">Cancel</button>
+      <button class="btn primary grow" id="projSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Shared Calendar widget — single-date or range mode -->
+<div class="modal-overlay" id="calModal">
+  <div class="modal-card" style="max-width:340px;">
+    <div class="cal-header">
+      <button class="cal-nav" id="calPrev">‹</button>
+      <div class="cal-title" id="calMonthLabel">Month YYYY</div>
+      <button class="cal-nav" id="calNext">›</button>
+    </div>
+    <div class="cal-weekdays"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn ghost" id="calCancelBtn">Cancel</button>
+      <button class="btn primary grow" id="calConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= SCREEN 3: DASHBOARD ================= -->
+<div class="screen" id="screenDash">
+  <div class="panel">
+    <div class="dash-head"><div class="hd-l">Active: Muckleshoot Go Live Support</div><div class="hd-r">🏠 Distance to Home: <b>1,842 mi</b></div></div>
+    <div class="state-row">
+      <div class="st"><span class="ic">🏠</span><span class="ln"></span></div>
+      <div class="st"><span class="ic">🚙</span><span class="ln"></span></div>
+      <div class="st active"><span class="ic">🛫</span><span class="tag">ACTIVE</span><span class="ln"></span></div>
+      <div class="st optional"><span class="ic">🧳</span><span class="ln"></span></div>
+      <div class="st optional"><span class="ic">✈️</span><span class="ln"></span></div>
+      <div class="st"><span class="ic">🚗</span><span class="ln"></span></div>
+      <div class="st"><span class="ic">🏨</span><span class="ln"></span></div>
+      <div class="st"><span class="ic">🏥</span></div>
+    </div>
+    <div class="quick-card" id="cardGround">
+      <div class="qc-title">✈ FLIGHT SEGMENT: DEPARTURE</div>
+      <div class="qc-route"><span class="apt">SEA</span> <small>[Seattle-Tacoma]</small><span class="arr">⟶</span><span class="apt">MCI</span> <small>[Kansas City Int'l]</small></div>
+      <div class="qc-line">FLIGHT: <b>AS 402</b> | GATE: <b>D12</b> | BOARDING: <b>06:15 PM</b> | SEAT: <b>4C</b></div>
+      <div class="qc-line">CONFIRMATION: <b>NZ82X1</b> | STATUS: <b>ON TIME</b></div>
+      <div class="qc-line">TSA PRECHECK: <span class="wt">K10J82392</span></div>
+    </div>
+    <div class="quick-card" id="cardAir" style="display:none;">
+      <div class="telem-grid">
+        <div class="telem-col">
+          <div class="t-lab">Cockpit Telemetry</div><div class="t-val">504 <small style="font-size:0.7rem;">KTS</small></div>
+          <div class="t-sub">ALTITUDE: 34,000 FT<br>STATUS: GPS-DERIVED (OFFLINE)</div>
+          <div class="t-lab">Ground Speed Calc</div><div class="t-val" id="groundSpeedVal"></div>
+        </div>
+        <div class="compass"><span class="cd n">N</span><span class="cd e">E</span><span class="cd s">S</span><span class="cd w">W</span><span class="needle">➤</span></div>
+        <div class="telem-col right">
+          <div class="t-lab">Flight Log (3D GPS)</div><div class="t-val">+2h 15m</div>
+          <div class="t-sub">ETA MCI: 08:30 PM (LCL)</div>
+          <div class="t-lab">Distance to Target</div><div class="t-val">980 <small style="font-size:0.7rem;">MI</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="card"><div class="card-title">Live Transit Logs</div><div class="logs-grid"><input type="text" placeholder="Room #____"><input type="text" placeholder="Plate #________"></div></div>
+  </div>
+  <div class="dock" style="margin-top:12px;"><button class="btn primary grow" id="copyAddrBtn">[ Copy Address ]<small>Paste into your GPS app</small></button></div>
+  <button id="stateToggle">⇄ Dev: Toggle Ground / Airborne</button>
+</div>
+
+<!-- ================= SCREEN 4: IN-FLIGHT REQUEST ================= -->
+<div class="screen" id="screenRequest">
+  <div class="panel">
+    <button id="lastUsedBtn" style="display:none;"></button>
+    <div class="card">
+      <div class="card-title">Quick Requests</div>
+      <div class="req-grid">
+        <button class="req-btn" data-msg="Can I get a water, please?"><span class="ri">💧</span><span class="rl">Water</span></button>
+        <button class="req-btn" data-msg="Can I get some snacks, please?"><span class="ri">🥨</span><span class="rl">Snacks</span></button>
+        <button class="req-btn" data-msg="Can I get a blanket, please?"><span class="ri">🛏️</span><span class="rl">Blanket</span></button>
+        <button class="req-btn" data-msg="Can I get a pillow, please?"><span class="ri">💤</span><span class="rl">Pillow</span></button>
+        <button class="req-btn" data-msg="Can I get an eye mask and earplugs, please?"><span class="ri">😴</span><span class="rl">Eye Mask</span></button>
+        <button class="req-btn" data-msg="Is the Wi-Fi down?"><span class="ri">📶</span><span class="rl">Wi-Fi Down?</span></button>
+        <button class="req-btn" data-msg="I'm not feeling well."><span class="ri">🤢</span><span class="rl">Not Well</span></button>
+        <button class="req-btn" data-msg="Tight connection — can I deplane first, please?"><span class="ri">⏱️</span><span class="rl">Tight Connection</span></button>
+        <button class="req-btn" data-msg="Could I speak with you when you have a moment, please?"><span class="ri">🗣️</span><span class="rl">A Moment?</span></button>
+        <button class="req-btn" data-msg="Can I get a cup of ice, please?"><span class="ri">🧊</span><span class="rl">Cup of Ice</span></button>
+        <button class="req-btn" data-msg="Thank you so much!"><span class="ri">🙏</span><span class="rl">Thank You!</span></button>
+        <button class="req-btn" data-msg="Can I get a pain reliever, please?"><span class="ri">💊</span><span class="rl">Pain Reliever</span></button>
+      </div>
+      <div class="card-sub" style="margin-top:12px;">Your Favorites</div>
+      <div class="req-grid" id="favGrid"></div>
+      <textarea id="reqText" placeholder="Or type anything else here..."></textarea>
+      <div class="btn-row" style="margin-top:10px;"><button class="btn ghost" id="reqClearBtn">Clear</button><button class="btn primary grow" id="reqDisplayBtn">Display</button></div>
+    </div>
+  </div>
+</div>
+<div id="reqDisplay"><div id="reqDisplayText"></div><button id="reqBackBtn" aria-label="Back">&#8592;</button></div>
+<div id="rotateOverlay"><div class="icon">&#x21BB;</div><div>Rotate your phone to landscape</div></div>
+
+<!-- Favorite edit modal -->
+<div class="modal-overlay" id="favModal">
+  <div class="modal-card" style="max-width:360px;">
+    <div class="modal-title">Edit Favorite</div>
+    <div class="fld-grid">
+      <div><label class="fld">Icon</label><input type="text" id="favIconInput" maxlength="4" placeholder="☕"></div>
+      <div><label class="fld">Button Caption</label><input type="text" id="favCaptionInput" maxlength="16" placeholder="e.g. My Coffee"></div>
+    </div>
+    <label class="fld">Message</label>
+    <textarea id="favMessageInput" placeholder="e.g. Can I get a coffee, 2 creams, 1 sugar, please?" style="min-height:56px;"></textarea>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn ghost" id="favDeleteBtn" style="display:none; color: var(--red);">Clear</button>
+      <button class="btn ghost" id="favCancelBtn">Cancel</button>
+      <button class="btn primary grow" id="favSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= SCREEN 5: MEDIA PLAYER ================= -->
+<div class="screen" id="screenMedia">
+  <div class="panel">
+    <div class="card">
+      <div class="card-title">Wind-Shear Audio</div>
+      <div class="mp-art">🎵</div>
+      <div class="mp-meta"><div class="ttl">Track Title Placeholder</div><div class="art">Artist Name — Album</div></div>
+      <div class="mp-controls"><button class="mp-btn">⏮</button><button class="mp-btn play">▶</button><button class="mp-btn">⏭</button></div>
+      <div class="mp-note">LOCAL .MP3 — ID3 PARSING WIRED IN A LATER PASS</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ============ SCREEN NAV ============ */
+  const screens = document.querySelectorAll('.screen');
+  const navBtns = document.querySelectorAll('#devNav button');
+  function showScreen(id) {
+    screens.forEach(s => s.classList.toggle('active', s.id === id));
+    navBtns.forEach(b => b.classList.toggle('active', b.dataset.screen === id));
+    window.scrollTo(0, 0);
+  }
+  navBtns.forEach(b => b.addEventListener('click', () => showScreen(b.dataset.screen)));
+  document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showScreen(b.dataset.goto)));
+
+  /* ============ SETUP: unit toggles ============ */
+  document.querySelectorAll('.unit-switch').forEach(group => {
+    group.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => { group.querySelectorAll('button').forEach(b => b.classList.remove('on')); btn.classList.add('on'); });
+    });
+  });
+
+  document.getElementById('suggestAirportBtn').addEventListener('click', () => {
+    document.getElementById('homeAirportInput').value = 'Orlando (MCO)';
+  });
+
+  /* ============ SMART DATE/TIME PARSING ENGINE ============ */
+  function nearestFutureYearForMD(month, day, today) {
+    let y = today.getFullYear();
+    const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    let candidate = new Date(y, month - 1, day);
+    if (candidate < todayMid) y += 1;
+    return y;
+  }
+  function resolveTwoDigitYearNearestFuture(yy, month, day, today) {
+    const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const cand1900 = new Date(1900 + yy, month - 1, day);
+    const cand2000 = new Date(2000 + yy, month - 1, day);
+    const options = [cand1900, cand2000].filter(d => !isNaN(d));
+    const future = options.filter(d => d >= todayMid).sort((a, b) => a - b);
+    if (future.length) return future[0].getFullYear();
+    const past = options.sort((a, b) => b - a);
+    return past.length ? past[0].getFullYear() : today.getFullYear();
+  }
+  function parseSmartDate(raw, today) {
+    today = today || new Date();
+    const s = (raw || '').trim();
+    if (!s) return null;
+    let m = s.match(/^([TNWMY])\s*(\+\s*(\d+))?$/i);
+    if (m) {
+      const code = m[1].toUpperCase(), offset = m[3] ? parseInt(m[3], 10) : 0;
+      const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      if (code === 'T' || code === 'N') { base.setDate(base.getDate() + offset); return base; }
+      if (code === 'W') { base.setDate(base.getDate() + offset * 7); return base; }
+      if (code === 'M') { base.setMonth(base.getMonth() + offset); return base; }
+      if (code === 'Y') { base.setFullYear(base.getFullYear() + offset); return base; }
+    }
+    m = s.match(/^(\d{2})(\d{2})(\d{4})$/);
+    if (m) { const d = new Date(+m[3], +m[1] - 1, +m[2]); if (!isNaN(d)) return d; }
+    m = s.match(/^(\d{2})(\d{2})(\d{2})$/);
+    if (m) { const yr = resolveTwoDigitYearNearestFuture(+m[3], +m[1], +m[2], today); const d = new Date(yr, +m[1] - 1, +m[2]); if (!isNaN(d)) return d; }
+    m = s.match(/^(\d{2})(\d{2})$/);
+    if (m) { const yr = nearestFutureYearForMD(+m[1], +m[2], today); const d = new Date(yr, +m[1] - 1, +m[2]); if (!isNaN(d)) return d; }
+    m = s.match(/^(\d{1,2})\/(\d{1,2})$/);
+    if (m) { const yr = nearestFutureYearForMD(+m[1], +m[2], today); const d = new Date(yr, +m[1] - 1, +m[2]); if (!isNaN(d)) return d; }
+    return null;
+  }
+  function parseSmartTime(raw, now) {
+    now = now || new Date();
+    const s = (raw || '').trim();
+    if (!s) return null;
+    let m = s.match(/^([NH])\s*(\+\s*(\d+))?$/i);
+    if (m) {
+      const code = m[1].toUpperCase(), offset = m[3] ? parseInt(m[3], 10) : 0;
+      const base = new Date(now);
+      if (code === 'N') { base.setMinutes(base.getMinutes() + offset); return base; }
+      if (code === 'H') { base.setHours(base.getHours() + offset); return base; }
+    }
+    m = s.match(/^(\d{1,2}):?(\d{2})?\s*([ap])m?$/i);
+    if (m) {
+      let hh = +m[1]; const mm = m[2] ? +m[2] : 0; const ap = m[3].toLowerCase();
+      if (hh === 12) hh = 0;
+      if (ap === 'p') hh += 12;
+      const d = new Date(now); d.setHours(hh, mm, 0, 0); return d;
+    }
+    m = s.match(/^(\d{2})(\d{2})$/);
+    if (m) { const hh = +m[1], mm = +m[2]; if (hh < 24 && mm < 60) { const d = new Date(now); d.setHours(hh, mm, 0, 0); return d; } }
+    return null;
+  }
+  function fmtDate(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  function fmtTime(d) { return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
+  function wireSmartDateInput(el) {
+    el.addEventListener('blur', () => { const p = parseSmartDate(el.value, new Date()); if (p) el.value = fmtDate(p); });
+  }
+  function wireSmartTimeInput(el) {
+    el.addEventListener('blur', () => { const p = parseSmartTime(el.value, new Date()); if (p) el.value = fmtTime(p); });
+  }
+
+  /* ============ CALENDAR WIDGET (single-date or range mode) ============ */
+  const calModal = document.getElementById('calModal');
+  const calMonthLabel = document.getElementById('calMonthLabel');
+  const calGrid = document.getElementById('calGrid');
+  let calState = { mode: 'single', month: new Date(), rangeStart: null, rangeEnd: null, onConfirm: null };
+
+  function openCalendar(mode, initial, onConfirm) {
+    calState.mode = mode;
+    calState.onConfirm = onConfirm;
+    const base = (initial && initial.start) ? new Date(initial.start) : new Date();
+    calState.month = new Date(base.getFullYear(), base.getMonth(), 1);
+    calState.rangeStart = (initial && initial.start) ? new Date(initial.start) : null;
+    calState.rangeEnd = (initial && initial.end) ? new Date(initial.end) : (mode === 'single' ? calState.rangeStart : null);
+    renderCalendar();
+    calModal.classList.add('open');
+  }
+  function closeCalendar() { calModal.classList.remove('open'); }
+  function renderCalendar() {
+    const y = calState.month.getFullYear(), mo = calState.month.getMonth();
+    calMonthLabel.textContent = calState.month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    calGrid.innerHTML = '';
+    const firstDay = new Date(y, mo, 1).getDay();
+    const totalDays = new Date(y, mo + 1, 0).getDate();
+    const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
+    for (let i = 0; i < firstDay; i++) { const b = document.createElement('div'); b.className = 'cal-day blank'; calGrid.appendChild(b); }
+    for (let d = 1; d <= totalDays; d++) {
+      const cellDate = new Date(y, mo, d);
+      const btn = document.createElement('div');
+      btn.className = 'cal-day';
+      btn.textContent = d;
+      if (cellDate.getTime() === todayMid.getTime()) btn.classList.add('today-marker');
+      if (calState.rangeStart && cellDate.getTime() === new Date(calState.rangeStart.getFullYear(), calState.rangeStart.getMonth(), calState.rangeStart.getDate()).getTime()) btn.classList.add('endpoint');
+      if (calState.rangeEnd && cellDate.getTime() === new Date(calState.rangeEnd.getFullYear(), calState.rangeEnd.getMonth(), calState.rangeEnd.getDate()).getTime()) btn.classList.add('endpoint');
+      if (calState.rangeStart && calState.rangeEnd && cellDate > calState.rangeStart && cellDate < calState.rangeEnd) btn.classList.add('in-range');
+      btn.addEventListener('click', () => {
+        if (calState.mode === 'single') { calState.rangeStart = cellDate; calState.rangeEnd = cellDate; }
+        else {
+          if (!calState.rangeStart || (calState.rangeStart && calState.rangeEnd)) { calState.rangeStart = cellDate; calState.rangeEnd = null; }
+          else if (cellDate < calState.rangeStart) { calState.rangeEnd = calState.rangeStart; calState.rangeStart = cellDate; }
+          else { calState.rangeEnd = cellDate; }
+        }
+        renderCalendar();
+      });
+      calGrid.appendChild(btn);
+    }
+  }
+  document.getElementById('calPrev').addEventListener('click', () => { calState.month.setMonth(calState.month.getMonth() - 1); renderCalendar(); });
+  document.getElementById('calNext').addEventListener('click', () => { calState.month.setMonth(calState.month.getMonth() + 1); renderCalendar(); });
+  document.getElementById('calCancelBtn').addEventListener('click', closeCalendar);
+  document.getElementById('calConfirmBtn').addEventListener('click', () => { if (calState.onConfirm) calState.onConfirm(calState.rangeStart, calState.rangeEnd); closeCalendar(); });
+  calModal.addEventListener('click', (e) => { if (e.target === calModal) closeCalendar(); });
+
+  /* ============ WIRE: KTN Expiration (single-date smart field) ============ */
+  const ktnExpInput = document.getElementById('ktnExp');
+  wireSmartDateInput(ktnExpInput);
+  document.getElementById('ktnExpCalBtn').addEventListener('click', () => {
+    const parsed = parseSmartDate(ktnExpInput.value, new Date());
+    openCalendar('single', { start: parsed }, (start) => { if (start) ktnExpInput.value = fmtDate(start); });
+  });
+
+  /* ============ LOYALTY PROGRAMS + TSA AIRLINES: shared state ============ */
+  let programs = [
+    { type: 'airline', name: 'Southwest', id: 'A-List 12345' },
+    { type: 'rental',  name: 'National',  id: 'Emerald Club' },
+    { type: 'hotel',   name: 'Marriott',  id: 'Bonvoy Gold' }
+  ];
+  let touchless = { 'southwest': true };
+  const loyaltyList = document.getElementById('loyaltyList');
+  const loyaltyFilter = document.getElementById('loyaltyFilter');
+  const tsaAirlineList = document.getElementById('tsaAirlineList');
+  function typeLabel(t) { return t === 'airline' ? 'Airline' : t === 'rental' ? 'Rental' : 'Hotel'; }
+  function sortedByType(t) { return programs.filter(p => p.type === t).sort((a,b) => a.name.localeCompare(b.name)); }
+
+  function renderLoyaltyList() {
+    const filter = loyaltyFilter.value;
+    const types = filter === 'all' ? ['airline','rental','hotel'] : [filter];
+    loyaltyList.innerHTML = '';
+    types.forEach(t => {
+      const rows = sortedByType(t);
+      if (!rows.length) return;
+      const header = document.createElement('div');
+      header.className = 'loyalty-group-header';
+      header.textContent = typeLabel(t) + ' (' + rows.length + ')';
+      loyaltyList.appendChild(header);
+      rows.forEach(p => {
+        const idx = programs.indexOf(p);
+        const row = document.createElement('div');
+        row.className = 'loyalty-row';
+        row.innerHTML = '<span class="lname">' + p.name + '</span>';
+        const editBtn = document.createElement('button');
+        editBtn.className = 'ledit'; editBtn.textContent = '✎';
+        editBtn.addEventListener('click', () => openProgramModal(idx));
+        row.appendChild(editBtn);
+        loyaltyList.appendChild(row);
+      });
+    });
+  }
+
+  function renderTsaAirlines() {
+    const airlines = sortedByType('airline').sort((a, b) => {
+      const aOn = !!touchless[a.name.toLowerCase()], bOn = !!touchless[b.name.toLowerCase()];
+      if (aOn !== bOn) return aOn ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+    tsaAirlineList.innerHTML = '';
+    if (!airlines.length) { tsaAirlineList.innerHTML = '<div class="empty-row">No airline programs yet</div>'; return; }
+    airlines.forEach(a => {
+      const on = !!touchless[a.name.toLowerCase()];
+      const row = document.createElement('div');
+      row.className = 'airline-row' + (on ? ' touchless' : '');
+      row.innerHTML = '<span class="dot"></span>' + a.name;
+      row.addEventListener('click', () => { touchless[a.name.toLowerCase()] = !touchless[a.name.toLowerCase()]; renderTsaAirlines(); });
+      tsaAirlineList.appendChild(row);
+    });
+  }
+
+  function renderAll() { renderLoyaltyList(); renderTsaAirlines(); renderStepForm(); }
+  loyaltyFilter.addEventListener('change', renderLoyaltyList);
+
+  /* ============ ADD/EDIT PROGRAM MODAL ============ */
+  const modal = document.getElementById('programModal');
+  const modalTitle = document.getElementById('programModalTitle');
+  const typeBtnRow = document.getElementById('typeBtnRow');
+  const existingTable = document.getElementById('existingTable');
+  const existingLabel = document.getElementById('existingLabel');
+  const programNameInput = document.getElementById('programNameInput');
+  const programIdInput = document.getElementById('programIdInput');
+  const programNamesList = document.getElementById('programNames');
+  const dupWarning = document.getElementById('dupWarning');
+  const deleteBtn = document.getElementById('programDeleteBtn');
+  let modalType = 'airline', editingIndex = null;
+
+  function openProgramModal(idx) {
+    editingIndex = (typeof idx === 'number') ? idx : null;
+    if (editingIndex !== null) {
+      const p = programs[editingIndex];
+      modalTitle.textContent = 'Edit Loyalty Program'; deleteBtn.style.display = 'inline-block';
+      setModalType(p.type); programNameInput.value = p.name; programIdInput.value = p.id || '';
+    } else {
+      modalTitle.textContent = 'Add Loyalty Program'; deleteBtn.style.display = 'none';
+      setModalType('airline'); programNameInput.value = ''; programIdInput.value = '';
+    }
+    dupWarning.style.display = 'none';
+    modal.classList.add('open');
+  }
+  function closeProgramModal() { modal.classList.remove('open'); }
+  function setModalType(t) {
+    modalType = t;
+    typeBtnRow.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('on', b.dataset.type === t));
+    existingLabel.textContent = 'Existing ' + typeLabel(t) + ' Programs';
+    renderExistingTable(); renderNameDatalist(); checkDuplicate();
+  }
+  function renderExistingTable() {
+    const rows = sortedByType(modalType);
+    const tbody = document.createElement('tbody');
+    if (!rows.length) {
+      const tr = document.createElement('tr'); const td = document.createElement('td');
+      td.className = 'empty-row'; td.colSpan = 2; td.textContent = 'None added yet';
+      tr.appendChild(td); tbody.appendChild(tr);
+    } else {
+      rows.forEach(p => { const tr = document.createElement('tr'); tr.innerHTML = '<td class="pname">' + p.name + '</td><td>' + (p.id || '—') + '</td>'; tbody.appendChild(tr); });
+    }
+    existingTable.querySelector('tbody').replaceWith(tbody);
+  }
+  function renderNameDatalist() {
+    programNamesList.innerHTML = '';
+    const names = [...new Set(programs.filter(p => p.type === modalType).map(p => p.name))];
+    names.forEach(n => { const opt = document.createElement('option'); opt.value = n; opt.textContent = n; programNamesList.appendChild(opt); });
+  }
+  function checkDuplicate() {
+    const name = programNameInput.value.trim().toLowerCase(), id = programIdInput.value.trim().toLowerCase();
+    if (!name && !id) { dupWarning.style.display = 'none'; return; }
+    const match = programs.some((p, i) => i !== editingIndex && p.type === modalType && ((name && p.name.trim().toLowerCase() === name) || (id && p.id && p.id.trim().toLowerCase() === id)));
+    dupWarning.style.display = match ? 'block' : 'none';
+  }
+  typeBtnRow.querySelectorAll('.type-btn').forEach(b => b.addEventListener('click', () => setModalType(b.dataset.type)));
+  programNameInput.addEventListener('input', checkDuplicate);
+  programIdInput.addEventListener('input', checkDuplicate);
+  document.getElementById('addProgramBtn').addEventListener('click', () => openProgramModal(null));
+  document.getElementById('programCancelBtn').addEventListener('click', closeProgramModal);
+  deleteBtn.addEventListener('click', () => { if (editingIndex !== null) { programs.splice(editingIndex, 1); closeProgramModal(); renderAll(); } });
+
+  function commitProgramEntry() {
+    const name = programNameInput.value.trim();
+    if (!name) { programNameInput.focus(); return false; }
+    const id = programIdInput.value.trim();
+    if (editingIndex !== null) programs[editingIndex] = { type: modalType, name, id };
+    else programs.push({ type: modalType, name, id });
+    return true;
+  }
+  document.getElementById('programSaveBtn').addEventListener('click', () => {
+    if (!commitProgramEntry()) return;
+    closeProgramModal(); renderAll();
+  });
+  document.getElementById('programSaveNextBtn').addEventListener('click', () => {
+    if (!commitProgramEntry()) return;
+    editingIndex = null;
+    deleteBtn.style.display = 'none';
+    modalTitle.textContent = 'Add Loyalty Program';
+    programNameInput.value = ''; programIdInput.value = '';
+    dupWarning.style.display = 'none';
+    renderAll();
+    renderExistingTable(); renderNameDatalist();
+    programNameInput.focus();
+  });
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeProgramModal(); });
+
+  /* ============ TRIP STEP DEFAULTS ============ */
+  const stepDefaults = [
+    { sys: 'Home', name: 'Home', icon: '🏠' }, { sys: 'Uber', name: 'Uber', icon: '🚙' },
+    { sys: 'Flight (Initial)', name: 'Flight (Initial)', icon: '🛫' }, { sys: 'Layover', name: 'Layover', icon: '🧳' },
+    { sys: 'Connection', name: 'Connection', icon: '✈️' }, { sys: 'Flight (Final)', name: 'Flight (Final)', icon: '🛬' },
+    { sys: 'Rental', name: 'Rental', icon: '🚗' }, { sys: 'Hotel', name: 'Hotel', icon: '🏨' }, { sys: 'Objective / To', name: 'Objective / To', icon: '🏥' }
+  ];
+  const defaultsBody = document.querySelector('#defaultsTable tbody');
+  stepDefaults.forEach(step => {
+    const tr = document.createElement('tr');
+    const tdSys = document.createElement('td'); tdSys.className = 'sysname'; tdSys.textContent = step.sys;
+    const tdName = document.createElement('td'); const nameInput = document.createElement('input'); nameInput.type = 'text'; nameInput.value = step.name; tdName.appendChild(nameInput);
+    const tdIcon = document.createElement('td'); const iconInput = document.createElement('input'); iconInput.type = 'text'; iconInput.className = 'icon-input'; iconInput.value = step.icon; iconInput.maxLength = 4; tdIcon.appendChild(iconInput);
+    tr.appendChild(tdSys); tr.appendChild(tdName); tr.appendChild(tdIcon);
+    defaultsBody.appendChild(tr);
+  });
+
+  /* ============ PIPELINE FOOTER ============ */
+  const projectModal = document.getElementById('projectModal');
+  const pipelineList = document.getElementById('pipelineList');
+  const projStartInput = document.getElementById('projStartInput');
+  const projEndInput = document.getElementById('projEndInput');
+  const projDateNote = document.getElementById('projDateNote');
+
+  wireSmartDateInput(projStartInput);
+  wireSmartDateInput(projEndInput);
+  projStartInput.addEventListener('blur', () => {
+    const s = parseSmartDate(projStartInput.value, new Date());
+    const e = parseSmartDate(projEndInput.value, new Date());
+    if (s && e && e < s) { projEndInput.value = ''; projDateNote.style.display = 'block'; setTimeout(() => projDateNote.style.display = 'none', 3000); }
+  });
+  document.getElementById('projCalBtn').addEventListener('click', () => {
+    const s = parseSmartDate(projStartInput.value, new Date());
+    const e = parseSmartDate(projEndInput.value, new Date());
+    openCalendar('range', { start: s, end: e }, (start, end) => {
+      if (start) projStartInput.value = fmtDate(start);
+      if (end) projEndInput.value = fmtDate(end);
+    });
+  });
+
+  document.getElementById('newProjectBtn').addEventListener('click', () => {
+    document.getElementById('projNameInput').value = ''; projStartInput.value = ''; projEndInput.value = ''; projDateNote.style.display = 'none';
+    projectModal.classList.add('open');
+  });
+  document.getElementById('projCancelBtn').addEventListener('click', () => projectModal.classList.remove('open'));
+  projectModal.addEventListener('click', (e) => { if (e.target === projectModal) projectModal.classList.remove('open'); });
+  document.getElementById('projSaveBtn').addEventListener('click', () => {
+    const name = document.getElementById('projNameInput').value.trim();
+    if (!name) { document.getElementById('projNameInput').focus(); return; }
+    const start = projStartInput.value || '—', end = projEndInput.value || '—';
+    const row = document.createElement('div');
+    row.className = 'proj-row';
+    row.innerHTML = '<div class="proj-dot"></div><div class="proj-name"><div class="nm">' + name + '</div><div class="dt">' + start + ' – ' + end + '</div></div><div class="proj-bar"><i style="width:0%"></i></div>';
+    wirePipelineRowSelect(row);
+    pipelineList.appendChild(row);
+    projectModal.classList.remove('open');
+  });
+  document.getElementById('whatsappReportBtn').addEventListener('click', () => {
+    alert('WhatsApp Report layout/content is a Step 4 item — not designed yet.');
+  });
+
+  /* Tapping a pipeline row (dot or name) selects/highlights it — visual only for now */
+  function wirePipelineRowSelect(row) {
+    row.addEventListener('click', () => {
+      pipelineList.querySelectorAll('.proj-row').forEach(r => r.classList.remove('selected'));
+      row.classList.add('selected');
+    });
+  }
+  pipelineList.querySelectorAll('.proj-row').forEach(wirePipelineRowSelect);
+
+  /* ============ TRIP WIZARD: full round-trip, multi-stop state ============ */
+  function newStop() {
+    return {
+      destination: { name: '', address: '', contact: '', phone: '' },
+      flights: [ { airline: '', flightNum: '', conf: '', seat: '' } ],
+      rental: { company: '', cls: 'Economy', color: '', plate: '' },
+      hotel: { chain: '', name: '', address: '', room: '' }
+    };
+  }
+  const wizardState = {
+    selected: 'uber-out',
+    uberOut: { pickup: '', dropoff: '' },
+    stops: [ newStop() ],
+    returnFlights: [ { airline: '', flightNum: '', conf: '', seat: '' } ],
+    uberHome: { pickup: '', dropoff: '' },
+    editingPins: {}
+  };
+
+  function flightNodeMeta(flights, fi) {
+    const n = flights.length;
+    if (n === 1) return { icon: '🛫', base: 'Flight' };
+    if (fi === 0) return { icon: '🛫', base: 'Flight 1' };
+    if (fi === n - 1) return { icon: '🛬', base: 'Flight ' + (fi + 1) };
+    return { icon: '✈️', base: 'Flight ' + (fi + 1) };
+  }
+
+  function buildNodes() {
+    const nodes = [];
+    nodes.push({ key: 'home', icon: '🏠', label: 'Home', type: 'home' });
+    nodes.push({ key: 'uber-out', icon: '🚙', label: 'Uber', type: 'uberOut' });
+    const multi = wizardState.stops.length > 1;
+
+    wizardState.stops.forEach((stop, si) => {
+      const tag = stop.destination.name ? stop.destination.name : ('Stop ' + (si + 1));
+      stop.flights.forEach((f, fi) => {
+        const m = flightNodeMeta(stop.flights, fi);
+        const label = multi ? (m.base + ' — ' + tag) : m.base;
+        nodes.push({ key: 'stop' + si + '-flight-' + fi, icon: m.icon, label, type: 'flight', stopIndex: si, flightIndex: fi });
+        if (fi < stop.flights.length - 1) nodes.push({ key: 'stop' + si + '-layover-' + fi, icon: '🧳', label: 'Layover', type: 'layover', optional: true, stopIndex: si, betweenIndex: fi });
+      });
+      nodes.push({ key: 'stop' + si + '-rental', icon: '🚗', label: multi ? ('Rental — ' + tag) : 'Rental', type: 'rental', stopIndex: si });
+      nodes.push({ key: 'stop' + si + '-hotel', icon: '🏨', label: multi ? ('Hotel — ' + tag) : 'Hotel', type: 'hotel', stopIndex: si });
+      nodes.push({ key: 'stop' + si + '-destination', icon: '🏥', label: multi ? ('Destination ' + (si + 1)) : 'To', type: 'destination', stopIndex: si });
+      nodes.push({ key: 'stop' + si + '-rentalreturn', icon: '🚗', label: multi ? ('Return — ' + tag) : 'Rental Return', type: 'rentalReturn', stopIndex: si, optional: true });
+    });
+
+    wizardState.returnFlights.forEach((f, fi) => {
+      const m = flightNodeMeta(wizardState.returnFlights, fi);
+      nodes.push({ key: 'return-flight-' + fi, icon: m.icon, label: 'Return: ' + m.base, type: 'returnFlight', flightIndex: fi });
+      if (fi < wizardState.returnFlights.length - 1) nodes.push({ key: 'return-layover-' + fi, icon: '🧳', label: 'Layover', type: 'layover', optional: true, betweenIndex: fi, isReturn: true });
+    });
+
+    nodes.push({ key: 'uber-home', icon: '🚙', label: 'Uber Home', type: 'uberHome' });
+    return nodes;
+  }
+
+  const nodeTrack = document.getElementById('nodeTrack');
+  function renderNodeTrack() {
+    const nodes = buildNodes();
+    const selIdx = nodes.findIndex(n => n.key === wizardState.selected);
+    nodeTrack.innerHTML = '';
+    nodes.forEach((n, idx) => {
+      const div = document.createElement('div');
+      let cls = 'node';
+      if (n.optional) cls += ' optional';
+      if (idx < selIdx) cls += ' done'; else if (idx === selIdx) cls += ' current';
+      div.className = cls; div.dataset.key = n.key;
+      const pinEditing = wizardState.editingPins[n.key];
+      div.innerHTML = '<div class="nd">' + n.icon + '</div><div class="nl">' + n.label +
+        (n.type !== 'home' ? ' <button class="edit-pin' + (pinEditing ? ' editing' : '') + '" title="Rename / change icon">' + (pinEditing ? '✓' : '✎') + '</button>' : '') + '</div>';
+      div.addEventListener('click', () => { wizardState.selected = n.key; renderNodeTrack(); renderStepForm(); });
+      const pin = div.querySelector('.edit-pin');
+      if (pin) pin.addEventListener('click', (e) => { e.stopPropagation(); wizardState.editingPins[n.key] = !wizardState.editingPins[n.key]; renderNodeTrack(); });
+      nodeTrack.appendChild(div);
+    });
+  }
+
+  function parserButtonHTML(label) {
+    return '<button class="parser-btn" onclick="return false;">Text Clipboard Parser<small>Paste ' + label + ' confirmation — Pattern Matching / Regex</small></button>';
+  }
+
+  const stepFormContainer = document.getElementById('stepFormContainer');
+
+  function flightFormHTML(f, dateNote) {
+    const airlines = sortedByType('airline');
+    const airlineOpts = airlines.map(a => '<option' + (a.name === f.airline ? ' selected' : '') + '>' + a.name + '</option>').join('');
+    return '<div class="fld-grid">' +
+      '<div><label class="fld">Date</label><input type="text" value="' + dateNote.value + '" disabled><div class="fld-note">' + dateNote.note + '</div></div>' +
+      '<div><label class="fld">Airline</label><select id="wf-flight-airline">' + (airlineOpts || '<option>No airlines yet — add in Setup</option>') + '</select></div>' +
+      '</div>' +
+      '<div class="flight-row3">' +
+      '<div class="fnum"><label class="fld">Flight #</label><input type="text" id="wf-flight-num" placeholder="402" maxlength="6" value="' + f.flightNum + '"></div>' +
+      '<div class="fconf"><label class="fld">Confirmation #</label><input type="text" id="wf-flight-conf" placeholder="NZ82X1" maxlength="8" value="' + f.conf + '"></div>' +
+      '<div class="fseat"><label class="fld">Seat #</label><input type="text" id="wf-flight-seat" placeholder="4C" maxlength="3" value="' + f.seat + '"></div>' +
+      '</div>' +
+      '<div class="autofill-box"><div class="af-label">Auto-Filled via Flight Tracker API</div><div class="fld-grid">' +
+      '<div><label class="fld">Gate</label><input type="text" value="—" disabled></div>' +
+      '<div><label class="fld">Destination</label><input type="text" value="—" disabled></div>' +
+      '<div><label class="fld">Departure Time</label><input type="text" value="—" disabled></div>' +
+      '<div><label class="fld">Landing Time</label><input type="text" value="—" disabled></div></div></div>';
+  }
+
+  function renderStepForm() {
+    const nodes = buildNodes();
+    const node = nodes.find(n => n.key === wizardState.selected);
+    if (!node) return;
+    let html = '';
+
+    if (node.type === 'home') {
+      html = '<div class="step-head">HOME</div><div class="home-note">This is your saved Home Base from Setup. Edit it there if it needs to change.</div>';
+    }
+
+    else if (node.type === 'uberOut') {
+      html = '<div class="step-head">UBER</div>' +
+        '<label class="fld">Date</label><input type="text" value="Trip Start Date" disabled><div class="fld-note">Computed from Active Pipeline</div>' +
+        '<div class="fld-grid">' +
+        '<div><label class="fld">Pickup Time</label><input type="text" id="wf-uber-pickup" placeholder="e.g. 4:30 PM" value="' + wizardState.uberOut.pickup + '"></div>' +
+        '<div><label class="fld">Drop-off Time <span class="fld-opt">(optional)</span></label><input type="text" id="wf-uber-dropoff" placeholder="e.g. 5:10 PM" value="' + wizardState.uberOut.dropoff + '"></div>' +
+        '</div>' + parserButtonHTML('Uber');
+    }
+
+    else if (node.type === 'flight') {
+      const f = wizardState.stops[node.stopIndex].flights[node.flightIndex];
+      const isFirstStopFirstFlight = node.stopIndex === 0 && node.flightIndex === 0;
+      const dateNote = isFirstStopFirstFlight
+        ? { value: 'Trip Start Date', note: 'Computed from Active Pipeline' }
+        : { value: 'Apr 29, 2026', note: 'Computed from previous leg' };
+      html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
+        flightFormHTML(f, dateNote) + parserButtonHTML('Flight') +
+        (node.flightIndex === wizardState.stops[node.stopIndex].flights.length - 1 ? '<button class="add-flight-btn" id="wf-add-flight">+ Add Another Flight</button>' : '');
+    }
+
+    else if (node.type === 'layover') {
+      const i = node.betweenIndex;
+      const label1 = node.isReturn ? 'Return Flight ' + (i + 1) : 'Flight ' + (i + 1);
+      const label2 = node.isReturn ? 'Return Flight ' + (i + 2) : 'Flight ' + (i + 2);
+      html = '<div class="step-head">LAYOVER</div>' +
+        '<div class="layover-strip">🧳 Calculated: <b>' + label1 + ' Landing</b> → <b>' + label2 + ' Boarding</b></div>' +
+        '<div class="fld-note" style="margin-top:8px;">Example once flight times are auto-filled: SEA Landing 6:40 PM → MCI Boarding 8:22 PM = <b style="color:var(--amber);">1h 42m layover</b>. Real calculation activates once the Flight Tracker API auto-fill is wired in (Step 4).</div>';
+    }
+
+    else if (node.type === 'rental') {
+      const r = wizardState.stops[node.stopIndex].rental;
+      const companies = sortedByType('rental');
+      const compOpts = companies.map(c => '<option' + (c.name === r.company ? ' selected' : '') + '>' + c.name + '</option>').join('');
+      const classes = ['Economy','Compact','Intermediate/Midsize','Standard','Full-Size','Premium','Luxury','SUV (Compact)','SUV (Standard/Full-Size)','Minivan'];
+      const classOpts = classes.map(c => '<option' + (c === r.cls ? ' selected' : '') + '>' + c + '</option>').join('');
+      html = '<div class="step-head">RENTAL</div><div class="fld-grid">' +
+        '<div><label class="fld">Company</label><select id="wf-rental-company">' + (compOpts || '<option>No rental programs yet</option>') + '</select></div>' +
+        '<div><label class="fld">Class</label><select id="wf-rental-class">' + classOpts + '</select></div>' +
+        '<div><label class="fld">Color <span class="fld-opt">(at pickup)</span></label><input type="text" id="wf-rental-color" placeholder="—" value="' + r.color + '"></div>' +
+        '<div><label class="fld">License Plate <span class="fld-opt">(at pickup)</span></label><input type="text" id="wf-rental-plate" placeholder="—" value="' + r.plate + '"></div>' +
+        '</div>' + parserButtonHTML('Rental');
+    }
+
+    else if (node.type === 'hotel') {
+      const h = wizardState.stops[node.stopIndex].hotel;
+      const chains = sortedByType('hotel');
+      const chainOpts = chains.map(c => '<option' + (c.name === h.chain ? ' selected' : '') + '>' + c.name + '</option>').join('');
+      html = '<div class="step-head">HOTEL</div><div class="fld-grid">' +
+        '<div><label class="fld">Chain</label><select id="wf-hotel-chain">' + (chainOpts || '<option>No hotel programs yet</option>') + '</select></div>' +
+        '<div><label class="fld">Hotel Name</label><input type="text" id="wf-hotel-name" placeholder="e.g. Lambeau Field Hilton" value="' + h.name + '"></div>' +
+        '</div>' +
+        '<label class="fld">Address</label><input type="text" id="wf-hotel-address" placeholder="—" value="' + h.address + '">' +
+        '<button class="suggest-btn" id="wf-hotel-suggest">📍 Suggest Address</button>' +
+        '<div class="fld-grid"><div><label class="fld">Room # <span class="fld-opt">(at check-in)</span></label><input type="text" id="wf-hotel-room" placeholder="—" value="' + h.room + '"></div><div></div></div>' +
+        parserButtonHTML('Hotel');
+    }
+
+    else if (node.type === 'destination') {
+      const d = wizardState.stops[node.stopIndex].destination;
+      html = '<div class="step-head">DESTINATION</div>' +
+        '<label class="fld">Place Name</label><input type="text" id="wf-dest-name" placeholder="e.g. Hollywood Health Center" value="' + d.name + '">' +
+        '<label class="fld">Address</label><input type="text" id="wf-dest-address" placeholder="—" value="' + d.address + '">' +
+        '<button class="suggest-btn" id="wf-dest-suggest">📍 Suggest Address</button>' +
+        '<div class="fld-grid"><div><label class="fld">Contact Name</label><input type="text" id="wf-dest-contact" value="' + d.contact + '"></div><div><label class="fld">Contact Phone</label><input type="text" id="wf-dest-phone" value="' + d.phone + '"></div></div>' +
+        parserButtonHTML('Destination');
+    }
+
+    else if (node.type === 'rentalReturn') {
+      const r = wizardState.stops[node.stopIndex].rental;
+      const isLastStop = node.stopIndex === wizardState.stops.length - 1;
+      html = '<div class="step-head">RENTAL RETURN</div>' +
+        '<div class="return-ref">Returning: ' + (r.company || '—') + ' — ' + r.cls +
+        '<div class="rr-sub">No time needed — inferred from the next flight\'s boarding time.</div></div>' +
+        (isLastStop ? '<button class="add-flight-btn" id="wf-add-stop">+ Add Another Stop</button>' : '');
+    }
+
+    else if (node.type === 'returnFlight') {
+      const f = wizardState.returnFlights[node.flightIndex];
+      const isFirst = node.flightIndex === 0;
+      const dateNote = { value: isFirst ? 'Trip End Date' : 'Apr 29, 2026', note: isFirst ? 'Computed from Active Pipeline' : 'Computed from previous leg' };
+      html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
+        flightFormHTML(f, dateNote) + parserButtonHTML('Flight') +
+        (node.flightIndex === wizardState.returnFlights.length - 1 ? '<button class="add-flight-btn" id="wf-add-return-flight">+ Add Another Flight</button>' : '');
+    }
+
+    else if (node.type === 'uberHome') {
+      html = '<div class="step-head">UBER HOME</div>' +
+        '<label class="fld">Date</label><input type="text" value="Trip End Date" disabled><div class="fld-note">Computed from Active Pipeline</div>' +
+        '<div class="fld-grid">' +
+        '<div><label class="fld">Pickup Time <span class="fld-opt">(usually set live at baggage claim)</span></label><input type="text" id="wf-uberhome-pickup" placeholder="e.g. 6:15 PM" value="' + wizardState.uberHome.pickup + '"></div>' +
+        '<div><label class="fld">Drop-off Time <span class="fld-opt">(optional)</span></label><input type="text" id="wf-uberhome-dropoff" placeholder="e.g. 6:50 PM" value="' + wizardState.uberHome.dropoff + '"></div>' +
+        '</div>';
+    }
+
+    stepFormContainer.innerHTML = html;
+    wireStepFormInputs(node);
+  }
+
+  function wireStepFormInputs(node) {
+    if (node.type === 'uberOut') {
+      const pu = document.getElementById('wf-uber-pickup'), doff = document.getElementById('wf-uber-dropoff');
+      pu.addEventListener('input', e => wizardState.uberOut.pickup = e.target.value);
+      doff.addEventListener('input', e => wizardState.uberOut.dropoff = e.target.value);
+      wireSmartTimeInput(pu); wireSmartTimeInput(doff);
+      pu.addEventListener('blur', () => wizardState.uberOut.pickup = pu.value);
+      doff.addEventListener('blur', () => wizardState.uberOut.dropoff = doff.value);
+    }
+    else if (node.type === 'flight') {
+      const f = wizardState.stops[node.stopIndex].flights[node.flightIndex];
+      const sel = document.getElementById('wf-flight-airline');
+      if (sel) sel.addEventListener('change', e => f.airline = e.target.value);
+      document.getElementById('wf-flight-num').addEventListener('input', e => f.flightNum = e.target.value);
+      document.getElementById('wf-flight-conf').addEventListener('input', e => f.conf = e.target.value);
+      document.getElementById('wf-flight-seat').addEventListener('input', e => f.seat = e.target.value);
+      const addBtn = document.getElementById('wf-add-flight');
+      if (addBtn) addBtn.addEventListener('click', () => {
+        const flights = wizardState.stops[node.stopIndex].flights;
+        flights.push({ airline: '', flightNum: '', conf: '', seat: '' });
+        wizardState.selected = 'stop' + node.stopIndex + '-flight-' + (flights.length - 1);
+        renderNodeTrack(); renderStepForm();
+      });
+    }
+    else if (node.type === 'rental') {
+      const r = wizardState.stops[node.stopIndex].rental;
+      const compSel = document.getElementById('wf-rental-company');
+      if (compSel) compSel.addEventListener('change', e => r.company = e.target.value);
+      document.getElementById('wf-rental-class').addEventListener('change', e => r.cls = e.target.value);
+      document.getElementById('wf-rental-color').addEventListener('input', e => r.color = e.target.value);
+      document.getElementById('wf-rental-plate').addEventListener('input', e => r.plate = e.target.value);
+    }
+    else if (node.type === 'hotel') {
+      const h = wizardState.stops[node.stopIndex].hotel;
+      const chainSel = document.getElementById('wf-hotel-chain');
+      if (chainSel) chainSel.addEventListener('change', e => h.chain = e.target.value);
+      document.getElementById('wf-hotel-name').addEventListener('input', e => h.name = e.target.value);
+      document.getElementById('wf-hotel-address').addEventListener('input', e => h.address = e.target.value);
+      document.getElementById('wf-hotel-room').addEventListener('input', e => h.room = e.target.value);
+      document.getElementById('wf-hotel-suggest').addEventListener('click', () => { h.address = '1265 Lombardi Ave, Green Bay, WI'; renderStepForm(); });
+    }
+    else if (node.type === 'destination') {
+      const d = wizardState.stops[node.stopIndex].destination;
+      document.getElementById('wf-dest-name').addEventListener('input', e => { d.name = e.target.value; renderNodeTrack(); });
+      document.getElementById('wf-dest-address').addEventListener('input', e => d.address = e.target.value);
+      document.getElementById('wf-dest-contact').addEventListener('input', e => d.contact = e.target.value);
+      document.getElementById('wf-dest-phone').addEventListener('input', e => d.phone = e.target.value);
+      document.getElementById('wf-dest-suggest').addEventListener('click', () => { d.address = '1000 Universal Studios Plaza, Orlando, FL'; renderStepForm(); });
+    }
+    else if (node.type === 'rentalReturn') {
+      const addStopBtn = document.getElementById('wf-add-stop');
+      if (addStopBtn) addStopBtn.addEventListener('click', () => {
+        wizardState.stops.push(newStop());
+        const newIdx = wizardState.stops.length - 1;
+        wizardState.selected = 'stop' + newIdx + '-flight-0';
+        renderNodeTrack(); renderStepForm();
+      });
+    }
+    else if (node.type === 'returnFlight') {
+      const f = wizardState.returnFlights[node.flightIndex];
+      const sel = document.getElementById('wf-flight-airline');
+      if (sel) sel.addEventListener('change', e => f.airline = e.target.value);
+      document.getElementById('wf-flight-num').addEventListener('input', e => f.flightNum = e.target.value);
+      document.getElementById('wf-flight-conf').addEventListener('input', e => f.conf = e.target.value);
+      document.getElementById('wf-flight-seat').addEventListener('input', e => f.seat = e.target.value);
+      const addBtn = document.getElementById('wf-add-return-flight');
+      if (addBtn) addBtn.addEventListener('click', () => {
+        wizardState.returnFlights.push({ airline: '', flightNum: '', conf: '', seat: '' });
+        wizardState.selected = 'return-flight-' + (wizardState.returnFlights.length - 1);
+        renderNodeTrack(); renderStepForm();
+      });
+    }
+    else if (node.type === 'uberHome') {
+      const pu = document.getElementById('wf-uberhome-pickup'), doff = document.getElementById('wf-uberhome-dropoff');
+      pu.addEventListener('input', e => wizardState.uberHome.pickup = e.target.value);
+      doff.addEventListener('input', e => wizardState.uberHome.dropoff = e.target.value);
+      wireSmartTimeInput(pu); wireSmartTimeInput(doff);
+      pu.addEventListener('blur', () => wizardState.uberHome.pickup = pu.value);
+      doff.addEventListener('blur', () => wizardState.uberHome.dropoff = doff.value);
+    }
+  }
+
+  renderNodeTrack();
+  renderStepForm();
+
+  /* ============ DASHBOARD ============ */
+  const cardGround = document.getElementById('cardGround');
+  const cardAir = document.getElementById('cardAir');
+  let airborne = false;
+  document.getElementById('stateToggle').addEventListener('click', () => {
+    airborne = !airborne;
+    cardGround.style.display = airborne ? 'none' : 'block';
+    cardAir.style.display = airborne ? 'block' : 'none';
+  });
+  const groundSpeedVal = document.getElementById('groundSpeedVal');
+  let gsPrimaryIsMph = true;
+  const gsMph = 580, gsKph = Math.round(580 * 1.60934);
+  function renderGroundSpeed() {
+    if (gsPrimaryIsMph) groundSpeedVal.innerHTML = gsMph + ' <small style="font-size:0.7rem;">MPH</small><span class="unit-pill" id="groundSpeedPill" title="Tap to swap primary unit">(kph)</span>';
+    else groundSpeedVal.innerHTML = gsKph + ' <small style="font-size:0.7rem;">KPH</small><span class="unit-pill" id="groundSpeedPill" title="Tap to swap primary unit">(mph)</span>';
+    document.getElementById('groundSpeedPill').addEventListener('click', () => { gsPrimaryIsMph = !gsPrimaryIsMph; renderGroundSpeed(); });
+  }
+  renderGroundSpeed();
+  const copyAddrBtn = document.getElementById('copyAddrBtn');
+  copyAddrBtn.addEventListener('click', async () => {
+    const addr = '123 N Main St, Excelsior Springs, MO';
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(addr);
+      else { const ta = document.createElement('textarea'); ta.value = addr; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+      const original = copyAddrBtn.innerHTML;
+      copyAddrBtn.classList.add('copied');
+      copyAddrBtn.innerHTML = '[ ✓ Copied ]<small>Paste into your GPS app</small>';
+      setTimeout(() => { copyAddrBtn.classList.remove('copied'); copyAddrBtn.innerHTML = original; }, 1600);
+    } catch (e) {}
+  });
+
+  /* ============ IN-FLIGHT REQUEST ============ */
+  const reqText = document.getElementById('reqText');
+  const reqDisplay = document.getElementById('reqDisplay');
+  const reqDisplayText = document.getElementById('reqDisplayText');
+  const rotateOverlay = document.getElementById('rotateOverlay');
+  const reqBackBtn = document.getElementById('reqBackBtn');
+  const lastUsedBtn = document.getElementById('lastUsedBtn');
+  let lastMessage = null;
+  try { lastMessage = localStorage.getItem('crosswindLastRequest'); } catch(e) {}
+  function updateLastUsed() {
+    if (lastMessage) { const preview = lastMessage.length > 42 ? lastMessage.slice(0, 42) + '...' : lastMessage; lastUsedBtn.textContent = '↻ Repeat: ' + preview; lastUsedBtn.style.display = 'block'; }
+    else lastUsedBtn.style.display = 'none';
+  }
+  function saveLast(msg) { lastMessage = msg; try { localStorage.setItem('crosswindLastRequest', msg); } catch(e) {} updateLastUsed(); }
+  function fitText() {
+    const maxWidth = reqDisplay.clientWidth * 0.96, maxHeight = reqDisplay.clientHeight * 0.96;
+    let lo = 10, hi = 800, best = lo;
+    while (lo <= hi) { const mid = Math.floor((lo + hi) / 2); reqDisplayText.style.fontSize = mid + 'px'; const fits = reqDisplayText.scrollWidth <= maxWidth && reqDisplayText.scrollHeight <= maxHeight; if (fits) { best = mid; lo = mid + 1; } else hi = mid - 1; }
+    reqDisplayText.style.fontSize = best + 'px';
+  }
+  function checkOrientation() {
+    const isLandscape = window.innerWidth > window.innerHeight;
+    if (isLandscape) { rotateOverlay.style.display = 'none'; reqDisplayText.style.visibility = 'visible'; reqBackBtn.style.display = 'flex'; fitText(); }
+    else { rotateOverlay.style.display = 'flex'; reqDisplayText.style.visibility = 'hidden'; reqBackBtn.style.display = 'none'; }
+  }
+  async function showRequestDisplay(msg) {
+    if (!msg) { reqText.focus(); return; }
+    saveLast(msg); reqDisplayText.textContent = msg; reqDisplay.style.display = 'flex';
+    try { if (reqDisplay.requestFullscreen) await reqDisplay.requestFullscreen(); else if (reqDisplay.webkitRequestFullscreen) reqDisplay.webkitRequestFullscreen(); } catch(e) {}
+    try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); } catch(e) {}
+    checkOrientation();
+  }
+  function hideRequestDisplay() {
+    reqDisplay.style.display = 'none';
+    try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch(e) {}
+    try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen(); } catch(e) {}
+  }
+  document.querySelectorAll('.req-btn').forEach(b => b.addEventListener('click', () => showRequestDisplay(b.dataset.msg)));
+  document.getElementById('reqDisplayBtn').addEventListener('click', () => showRequestDisplay(reqText.value.trim()));
+  document.getElementById('reqClearBtn').addEventListener('click', () => { reqText.value = ''; reqText.focus(); });
+  lastUsedBtn.addEventListener('click', () => { if (lastMessage) showRequestDisplay(lastMessage); });
+  reqBackBtn.addEventListener('click', hideRequestDisplay);
+  window.addEventListener('resize', () => { if (reqDisplay.style.display === 'flex') checkOrientation(); });
+  window.addEventListener('orientationchange', () => { if (reqDisplay.style.display === 'flex') setTimeout(checkOrientation, 100); });
+
+  /* ============ IN-FLIGHT REQUEST: FAVORITES (3 user-defined slots) ============ */
+  let favorites = [null, null, null];
+  try {
+    const stored = localStorage.getItem('crosswindFavorites');
+    if (stored) favorites = JSON.parse(stored);
+  } catch(e) {}
+  const favGrid = document.getElementById('favGrid');
+  const favModal = document.getElementById('favModal');
+  const favIconInput = document.getElementById('favIconInput');
+  const favCaptionInput = document.getElementById('favCaptionInput');
+  const favMessageInput = document.getElementById('favMessageInput');
+  const favDeleteBtn = document.getElementById('favDeleteBtn');
+  let favEditingIndex = null;
+
+  function saveFavorites() { try { localStorage.setItem('crosswindFavorites', JSON.stringify(favorites)); } catch(e) {} }
+
+  function renderFavorites() {
+    favGrid.innerHTML = '';
+    favorites.forEach((fav, i) => {
+      const btn = document.createElement('button');
+      if (fav) {
+        btn.className = 'req-btn fav-filled';
+        btn.innerHTML = '<span class="ri">' + fav.icon + '</span><span class="rl">' + fav.caption + '</span><span class="fav-edit-pin">✎</span>';
+        btn.addEventListener('click', (e) => {
+          if (e.target.closest('.fav-edit-pin')) { openFavModal(i); return; }
+          showRequestDisplay(fav.message);
+        });
+      } else {
+        btn.className = 'req-btn fav-empty';
+        btn.innerHTML = '<span class="ri">+</span>';
+        btn.addEventListener('click', () => openFavModal(i));
+      }
+      favGrid.appendChild(btn);
+    });
+  }
+
+  function openFavModal(i) {
+    favEditingIndex = i;
+    const fav = favorites[i];
+    favIconInput.value = fav ? fav.icon : '';
+    favCaptionInput.value = fav ? fav.caption : '';
+    favMessageInput.value = fav ? fav.message : '';
+    favDeleteBtn.style.display = fav ? 'inline-block' : 'none';
+    favModal.classList.add('open');
+  }
+  function closeFavModal() { favModal.classList.remove('open'); }
+  document.getElementById('favCancelBtn').addEventListener('click', closeFavModal);
+  favModal.addEventListener('click', (e) => { if (e.target === favModal) closeFavModal(); });
+  favDeleteBtn.addEventListener('click', () => {
+    if (favEditingIndex !== null) { favorites[favEditingIndex] = null; saveFavorites(); renderFavorites(); closeFavModal(); }
+  });
+  document.getElementById('favSaveBtn').addEventListener('click', () => {
+    const icon = favIconInput.value.trim() || '⭐';
+    const caption = favCaptionInput.value.trim();
+    const message = favMessageInput.value.trim();
+    if (!caption || !message) { (caption ? favMessageInput : favCaptionInput).focus(); return; }
+    favorites[favEditingIndex] = { icon, caption, message };
+    saveFavorites(); renderFavorites(); closeFavModal();
+  });
+
+  updateLastUsed();
+  renderFavorites();
+  renderAll();
+})();
+</script>
+
+</body>
+</html>
