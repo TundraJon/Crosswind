@@ -67,6 +67,13 @@ Jon picked `Oct 26, 2026` as the single display format and approved teaching the
 - [x] Fixes: the 📅 calendar now opens on the field's existing date (single and range), and the End-before-Start check in New Project now clears End when End was entered first.
 - **Verification:** headless Chromium, 390px. Seed rows have no `'YY`. Refocusing and blurring a formatted field leaves it unchanged for `T+3`, `1027`, `3/3`, `W+2`, `031765`, `09191972`. Calendar preselects `Oct 30, 2026` and opens on December 2027 for `Dec 25, 2027`; Confirm without clicking keeps the date. Range calendar preselects both endpoints and Confirm keeps them. `Feb 30, 2027`, `Foo 12, 2027`, `Oct 30 2026` and `garbage` are left as typed. End-first-then-Start clears End and shows the note; valid order and same-day are kept. The earlier regression suites show the same results as before, zero JS errors.
 
+### Build 10 (completed): End-blur date check, header version fix
+Closes the gap found while verifying Build 9, and the stale header comment logged in Build 7. Both approved by Jon.
+- [x] `index.html`: the End-before-Start check in Create New Project is now a named function, `checkProjDates()`, attached to the blur of both Start and End (was Start only). If End is earlier than Start it is cleared and the existing "End date cleared" note shows. Reuses the existing check; no new message or behavior. Same-day dates are kept.
+- [x] `index.html`: header comment now says v0.8 and describes the current app (it said v0.5 and "unchanged from v0.4").
+- [x] Cache-bust: not applicable. Crosswind is one file with inline CSS and JS, so there is no local `.js`/`.css` file carrying a `?v=` number to bump. The only external file is the Google Fonts stylesheet. Note: Pages may serve a cached `index.html` for a few minutes after a push; opening the URL with a throwaway query string (e.g. `?v=10`) forces a fresh load.
+- **Verification:** headless Chromium, 390px. Start first then an earlier End: End cleared, note shown, Start untouched (screenshot checked). Later End kept, same-day End kept, Start moved past an existing End still clears End, End-first-then-Start still clears End, End with empty Start kept, garbage End left as typed, note auto-hides after 3s. Prior suites re-run: zero JS errors, same results as before. The old end-before-start check that failed in Build 8 now passes.
+
 ## Build Queue
 
 _Empty — nothing queued right now._
@@ -75,17 +82,8 @@ _Empty — nothing queued right now._
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
 
-### Gap: End-before-Start only checks when Start is edited
-Found while verifying Build 9. If Start is entered first and End is then typed earlier than Start, nothing is cleared, because only Start's blur runs the check. The original spec says Trip End must be after Start. Open question: add the same check on End's blur (small, but it's new behavior, so not done without a go-ahead).
-
-### Bug: Units settings are not read anywhere
-Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card always starts in MPH regardless of the Speed setting.
-
 ### Check: Loyalty autocomplete on the phone
 Verified in a browser that the `<datalist>` holds the right options (same-type names, updated after Save & Next). The native suggestion popup itself can't be seen headless. Jon to confirm on his Android device; if it fails, switch to a custom suggestion dropdown.
-
-### Inconsistency: stale version comment
-`index.html` header comment says v0.5; the code is v0.7. Leave until authorized.
 
 ### Dashboard redesign (recommended next)
 Dashboard is still the early mockup and doesn't match the round-trip/multi-stop wizard.

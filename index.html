@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v0.5) -->
-<!-- Single-file app. Show/hide div nav. Trip Wizard now models a full round trip with -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v0.8) -->
+<!-- Single-file app. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
-<!-- Return Flight leg + Uber Home. Setup/Dashboard/In-Flight/Media unchanged from v0.4. -->
+<!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -841,11 +841,13 @@
 
   wireSmartDateInput(projStartInput);
   wireSmartDateInput(projEndInput);
-  projStartInput.addEventListener('blur', () => {
+  function checkProjDates() {
     const s = parseSmartDate(projStartInput.value, new Date());
     const e = parseSmartDate(projEndInput.value, new Date());
     if (s && e && e < s) { projEndInput.value = ''; projDateNote.style.display = 'block'; setTimeout(() => projDateNote.style.display = 'none', 3000); }
-  });
+  }
+  projStartInput.addEventListener('blur', checkProjDates);
+  projEndInput.addEventListener('blur', checkProjDates);
   document.getElementById('projCalBtn').addEventListener('click', () => {
     const s = parseSmartDate(projStartInput.value, new Date());
     const e = parseSmartDate(projEndInput.value, new Date());
