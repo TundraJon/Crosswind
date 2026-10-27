@@ -82,6 +82,9 @@ _Empty — nothing queued right now._
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
 
+### Bug: Units settings are not read anywhere
+Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card always starts in MPH regardless of the Speed setting.
+
 ### Check: Loyalty autocomplete on the phone
 Verified in a browser that the `<datalist>` holds the right options (same-type names, updated after Save & Next). The native suggestion popup itself can't be seen headless. Jon to confirm on his Android device; if it fails, switch to a custom suggestion dropdown.
 
