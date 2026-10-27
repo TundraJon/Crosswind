@@ -337,6 +337,7 @@
   const projStartInput = document.getElementById('projStartInput');
   const projEndInput = document.getElementById('projEndInput');
   const projDateNote = document.getElementById('projDateNote');
+  const projEndClearedMsg = projDateNote.textContent;
 
   wireSmartDateInput(projStartInput);
   wireSmartDateInput(projEndInput, () => parseSmartDate(projStartInput.value, new Date()));
@@ -344,7 +345,7 @@
     const s = parseSmartDate(projStartInput.value, new Date());
     if (s && /^S/i.test(projEndInput.value.trim())) { const r = parseSmartDate(projEndInput.value, new Date(), s); if (r) projEndInput.value = fmtDate(r); }
     const e = parseSmartDate(projEndInput.value, new Date());
-    if (s && e && e < s) { projEndInput.value = ''; projDateNote.style.display = 'block'; setTimeout(() => projDateNote.style.display = 'none', 3000); }
+    if (s && e && e < s) { projEndInput.value = ''; projDateNote.textContent = projEndClearedMsg; projDateNote.style.display = 'block'; setTimeout(() => projDateNote.style.display = 'none', 3000); }
   }
   projStartInput.addEventListener('blur', checkProjDates);
   projEndInput.addEventListener('blur', checkProjDates);
@@ -366,6 +367,11 @@
   document.getElementById('projSaveBtn').addEventListener('click', () => {
     const name = document.getElementById('projNameInput').value.trim();
     if (!name) { document.getElementById('projNameInput').focus(); return; }
+    if (/^S\s*(\+\s*\d+)?$/i.test(projEndInput.value.trim()) && !parseSmartDate(projEndInput.value, new Date(), parseSmartDate(projStartInput.value, new Date()))) {
+      projDateNote.textContent = 'Start date was never filled in — S+N needs a start date';
+      projDateNote.style.display = 'block'; setTimeout(() => projDateNote.style.display = 'none', 3000);
+      projStartInput.focus(); return;
+    }
     const start = projStartInput.value || '—', end = projEndInput.value || '—';
     const row = document.createElement('div');
     row.className = 'proj-row';

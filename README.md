@@ -93,10 +93,17 @@ Jon asked for a date code that counts days from a start date (e.g. start Oct 1, 
 - [x] Cache-bust bumped: `script.js?v=1→2` (`styles.css?v=1` unchanged).
 - **Verification:** headless Chromium over a local HTTP server (confirmed `script.js?v=2` requested). With Start `Oct 1, 2026`: `S+5`→Oct 6, `S`→Oct 1, `s+0`→Oct 1, `S + 3`→Oct 4, `S+30`→Oct 31, `S+40`→Nov 10, and from Dec 30 `S+5`→Jan 4, 2027. With Start empty or unparseable, `S+5` stays as typed; filling Start (typed `Oct 1, 2026` or `T+10`) resolves End to exactly 5 days later. After resolving, moving Start earlier leaves End fixed. Moving Start later than End clears End via the existing rule (as designed). The range calendar preselects both dates; the saved row reads `Oct 1, 2026 – Oct 6, 2026`. TSA Expiration leaves `S+5` as typed, and `Y+5` still gives 5 years out. Earlier suites re-run: same results, zero JS errors. In my first run one check failed because my test expected the wrong thing (Start moved past End correctly clears End); I re-tested with a valid move.
 
+### Build 13 (completed): Block saving an unresolved `S+N`, shorter TSA placeholder
+Two small items Jon decided on: a project can no longer be saved with a raw `S+5` End when Start was never filled in, and the TSA Expiration placeholder no longer clips. Decision recorded here: after `S+N` resolves, End stays a fixed date and does not follow later Start changes (revisit only if retyping becomes annoying; a one-tap "Keep trip length?" offer is the fallback idea).
+- [x] `script.js` Save handler in Create New Project: if End still holds an unresolved `S` code (Start empty or unreadable), Save is blocked, the modal stays open, Start is focused, and the existing `#projDateNote` shows "Start date was never filled in — S+N needs a start date" (auto-hides after 3s like the other note). Reuses the existing note element.
+- [x] `script.js`: `projEndClearedMsg` keeps the original End-cleared text, and `checkProjDates()` restores it before showing, since the same element now carries two messages.
+- [x] `index.html`: `#ktnExp` placeholder `e.g. T+1825, 12/17` → `e.g. Y+5`.
+- [x] Cache-bust bumped: `script.js?v=2→3` (`styles.css?v=1` unchanged).
+- **Verification:** reproduced first on the committed version (e897d87): End `S+5` with empty Start and Save added a row reading `— – S+5` and closed the modal. On the new code, the same steps add no row, keep the modal open, focus Start, and show the warning (screenshot checked), which auto-hides after 3s. Filling Start resolves End to Oct 6 and Save then works (`Oct 1, 2026 – Oct 6, 2026`). Unreadable Start (`garbage`) with `S+5` is also blocked. The End-cleared note text is restored correctly after the warning has been used. Unchanged: non-`S` junk in End still saves, blank dates still save, a missing name still just focuses the name. TSA placeholder reads `e.g. Y+5` and fits (53px of text in 97px of room; screenshot checked). Earlier suites re-run: same results, zero JS errors; two old test checks still fail for test-script reasons already diagnosed (one wrong expectation, one timing), and their corrected versions pass.
+
 ## Build Queue
 
-### Shorten the TSA Expiration placeholder
-Not yet authorized to build. In `index.html`, change the `#ktnExp` placeholder from `e.g. T+1825, 12/17` to `e.g. Y+5` so it no longer clips next to the 📅 button at 390px. HTML only: no `script.js` or `styles.css` change, so no cache-bust bump.
+_Empty — nothing queued right now._
 
 ## Build Planner
 
@@ -104,12 +111,6 @@ Resolved, built, dropped, or superseded items are not kept here. Their history l
 
 ### Bug: Units settings are not read anywhere
 Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card always starts in MPH regardless of the Speed setting.
-
-### Rough edge: an unresolved `S+N` can be saved as raw text
-If Create New Project is saved while End is still `S+5` (Start never filled in), the pipeline row shows `S+5` as the end date. The same already happens with any unparseable text typed in a date field.
-- Decided: show a warning that Start was never filled in. Reuse the existing `#projDateNote` note element in the modal, with new text.
-- Open question: after the warning, should Save be **blocked** until Start is filled in or End is cleared (recommended, since otherwise the raw `S+5` still gets saved), or **allowed** anyway? Needs Jon's pick before this can move to the Queue.
-- Decided: leave End fixed after `S+N` resolves (it does not follow later Start changes). Revisit only if retyping `S+5` becomes annoying; a one-tap "Keep trip length?" offer is the fallback idea.
 
 ### Check: Loyalty autocomplete on the phone
 Verified in a browser that the `<datalist>` holds the right options (same-type names, updated after Save & Next). The native suggestion popup itself can't be seen headless. Jon to confirm on his Android device; if it fails, switch to a custom suggestion dropdown.
