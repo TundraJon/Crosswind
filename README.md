@@ -95,7 +95,8 @@ Jon asked for a date code that counts days from a start date (e.g. start Oct 1, 
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Shorten the TSA Expiration placeholder
+Not yet authorized to build. In `index.html`, change the `#ktnExp` placeholder from `e.g. T+1825, 12/17` to `e.g. Y+5` so it no longer clips next to the 📅 button at 390px. HTML only: no `script.js` or `styles.css` change, so no cache-bust bump.
 
 ## Build Planner
 
@@ -105,10 +106,10 @@ Resolved, built, dropped, or superseded items are not kept here. Their history l
 Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card always starts in MPH regardless of the Speed setting.
 
 ### Rough edge: an unresolved `S+N` can be saved as raw text
-If Create New Project is saved while End is still `S+5` (Start never filled in), the pipeline row shows `S+5` as the end date. The same already happens with any unparseable text typed in a date field. Open question: block Save, warn, or leave as is?
-
-### Inconsistency: TSA Expiration placeholder is clipped
-Seen in the Build 11 screenshot at 390px: the Expiration field's placeholder `e.g. T+1825, 12/17` is cut off to `e.g. T+1825, 12…` because the 📅 button shares the row. The field still works. Open question: shorten the placeholder or give the field more room?
+If Create New Project is saved while End is still `S+5` (Start never filled in), the pipeline row shows `S+5` as the end date. The same already happens with any unparseable text typed in a date field.
+- Decided: show a warning that Start was never filled in. Reuse the existing `#projDateNote` note element in the modal, with new text.
+- Open question: after the warning, should Save be **blocked** until Start is filled in or End is cleared (recommended, since otherwise the raw `S+5` still gets saved), or **allowed** anyway? Needs Jon's pick before this can move to the Queue.
+- Decided: leave End fixed after `S+N` resolves (it does not follow later Start changes). Revisit only if retyping `S+5` becomes annoying; a one-tap "Keep trip length?" offer is the fallback idea.
 
 ### Check: Loyalty autocomplete on the phone
 Verified in a browser that the `<datalist>` holds the right options (same-type names, updated after Save & Next). The native suggestion popup itself can't be seen headless. Jon to confirm on his Android device; if it fails, switch to a custom suggestion dropdown.
