@@ -334,17 +334,17 @@
       <div id="pipelineList">
         <div class="proj-row selected">
           <div class="proj-dot"></div>
-          <div class="proj-name"><div class="nm">Muckleshoot Go Live Support</div><div class="dt">Apr 27 – Sep 21, '25</div></div>
+          <div class="proj-name"><div class="nm">Muckleshoot Go Live Support</div><div class="dt">Apr 27, 2025 – Sep 21, 2025</div></div>
           <div class="proj-bar"><i style="width:70%"></i></div>
         </div>
         <div class="proj-row">
           <div class="proj-dot"></div>
-          <div class="proj-name"><div class="nm">Ray County Special Project</div><div class="dt">Nov 24, '25 – Jun 13, '26</div></div>
+          <div class="proj-name"><div class="nm">Ray County Special Project</div><div class="dt">Nov 24, 2025 – Jun 13, 2026</div></div>
           <div class="proj-bar amber"><i style="width:45%"></i></div>
         </div>
         <div class="proj-row">
           <div class="proj-dot"></div>
-          <div class="proj-name"><div class="nm">Dallas System Upgrade</div><div class="dt">Nov 30, '25 – Jun 13, '26</div></div>
+          <div class="proj-name"><div class="nm">Dallas System Upgrade</div><div class="dt">Nov 30, 2025 – Jun 13, 2026</div></div>
           <div class="proj-bar"><i style="width:10%"></i></div>
         </div>
       </div>
@@ -570,6 +570,11 @@
     if (m) { const yr = nearestFutureYearForMD(+m[1], +m[2], today); const d = new Date(yr, +m[1] - 1, +m[2]); if (!isNaN(d)) return d; }
     m = s.match(/^(\d{1,2})\/(\d{1,2})$/);
     if (m) { const yr = nearestFutureYearForMD(+m[1], +m[2], today); const d = new Date(yr, +m[1] - 1, +m[2]); if (!isNaN(d)) return d; }
+    m = s.match(/^([A-Za-z]{3})[A-Za-z]*\.?\s+(\d{1,2}),\s*(\d{4})$/);
+    if (m) {
+      const mi = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(m[1].toLowerCase());
+      if (mi >= 0) { const d = new Date(+m[3], mi, +m[2]); if (d.getMonth() === mi && d.getDate() === +m[2]) return d; }
+    }
     return null;
   }
   function parseSmartTime(raw, now) {

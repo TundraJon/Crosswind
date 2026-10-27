@@ -60,23 +60,23 @@ First static shell in the Crosswind theme with a dev nav strip. Setup, Trip Wiza
   - Passed: all 5 screens switch with no horizontal overflow and no JS errors; Setup (airport suggest, KTN 8-char limit, loyalty filter/add/duplicate warning/Save & Next/edit, Touchless sort and 3-row cap, smart dates, unit toggles); Wizard (node labels, Add Another Flight/Stop, dropdowns, state persists between steps, smart times, new project); Dashboard (state toggle, ground-speed pill swap, Copy Address); In-Flight (fullscreen display, landscape font fit, portrait rotate overlay, last-used, Favorites save/edit/clear, persistence across reload).
   - Failed: two bugs, logged in the Planner below. Not fixed.
 
+### Build 9 (completed): One date format, formatted dates readable again
+Jon picked `Oct 26, 2026` as the single display format and approved teaching the date engine to read it back (both from the Build 8 verification pass).
+- [x] `index.html`: the three seeded pipeline rows changed from the `Apr 27 – Sep 21, '25` style to full-year dates (`Apr 27, 2025 – Sep 21, 2025`, `Nov 24, 2025 – Jun 13, 2026`, `Nov 30, 2025 – Jun 13, 2026`). No other `'YY` date strings exist in the file.
+- [x] `index.html`: `parseSmartDate()` accepts the `Mon D, YYYY` text that `fmtDate()` writes (first three letters of the month, comma required, real calendar days only, so `Feb 30, 2027` is rejected and left as typed). Added as a last branch; existing formats are untouched.
+- [x] Fixes: the 📅 calendar now opens on the field's existing date (single and range), and the End-before-Start check in New Project now clears End when End was entered first.
+- **Verification:** headless Chromium, 390px. Seed rows have no `'YY`. Refocusing and blurring a formatted field leaves it unchanged for `T+3`, `1027`, `3/3`, `W+2`, `031765`, `09191972`. Calendar preselects `Oct 30, 2026` and opens on December 2027 for `Dec 25, 2027`; Confirm without clicking keeps the date. Range calendar preselects both endpoints and Confirm keeps them. `Feb 30, 2027`, `Foo 12, 2027`, `Oct 30 2026` and `garbage` are left as typed. End-first-then-Start clears End and shows the note; valid order and same-day are kept. The earlier regression suites show the same results as before, zero JS errors.
+
 ## Build Queue
 
-### Unify date display format to `Oct 26, 2026`
-Not yet authorized to build. Decided: `Oct 26, 2026` (`fmtDate()` output) is the single display format everywhere.
-- `fmtDate()` already outputs this, and TSA Expiration and new project rows already use it.
-- Change the three seeded pipeline rows in `#pipelineList` from the `Apr 27 – Sep 21, '25` style to full-year dates (`Apr 27, 2025 – Sep 21, 2025`, etc.).
-- No other format strings to change; check the rest of the file for date strings before building.
+_Empty — nothing queued right now._
 
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
 
-### Bug: formatted dates can't be read back by the date engine
-Found in the Build 8 verification pass. `fmtDate()` writes `Oct 30, 2026` into the field on blur, but `parseSmartDate()` doesn't accept that format, so anything that reads a field back gets `null`.
-- The 📅 calendar opens with no date selected even when the field already has one (KTN Expiration, New Project range).
-- The End-before-Start check in New Project never clears End when End was entered first, because Start's blur handler can't parse the formatted End. End blur has no check of its own.
-- Open question: teach `parseSmartDate` the `Mon D, YYYY` format, or store the real `Date` alongside the display text? Either also fixes the calendar.
+### Gap: End-before-Start only checks when Start is edited
+Found while verifying Build 9. If Start is entered first and End is then typed earlier than Start, nothing is cleared, because only Start's blur runs the check. The original spec says Trip End must be after Start. Open question: add the same check on End's blur (small, but it's new behavior, so not done without a go-ahead).
 
 ### Bug: Units settings are not read anywhere
 Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card always starts in MPH regardless of the Speed setting.
