@@ -84,6 +84,15 @@ Jon wants smaller files because the app is going to keep growing. This overrides
 - [x] `README.md`: Stack line updated. Earlier Build Log entries still mention `index.html` as it was at the time; they are history and left as written.
 - **Verification:** rebuilt the old single file from the three new files and compared: byte-identical to the pre-split file. Served over a local HTTP server: `/`, `styles.css?v=1`, `script.js?v=1` all return 200, CSS applies (body background and panel radius as expected), JS runs (3 loyalty rows, 9 wizard nodes, 9 step-default rows), zero JS errors. Screenshot of Setup checked. All earlier verification suites re-run against the split files: same results as before, zero JS errors.
 
+### Build 12 (completed): `S+N` date code
+Jon asked for a date code that counts days from a start date (e.g. start Oct 1, `S+5` = Oct 6). Design settled in conversation; TSA PreCheck Expiration stays on the existing codes (`T`, `W`, `M`, `Y`) because that card has no start date.
+- [x] `script.js` `parseSmartDate(raw, today, startDate)`: new optional third argument and an `S` / `S+N` branch (case-insensitive, optional spaces, days only, positive only). Returns `null` when no start date is passed, so the field is left as typed and other fields are unaffected.
+- [x] `script.js` `wireSmartDateInput(el, getStart)`: optional second argument supplies the start date; Create New Project End Date passes the Start field's value.
+- [x] `script.js` `checkProjDates()`: when Start is filled in and End still holds an `S` code, End is resolved to a real date, then the existing End-before-Start check runs. Reuses the Build 10 function; no new handler.
+- [x] No stacked codes: `S+W2`, `S+M1`, `SW2`, `S+-3`, `S+5+2`, `S5`, `SS+5`, `S+` are all left as typed.
+- [x] Cache-bust bumped: `script.js?v=1→2` (`styles.css?v=1` unchanged).
+- **Verification:** headless Chromium over a local HTTP server (confirmed `script.js?v=2` requested). With Start `Oct 1, 2026`: `S+5`→Oct 6, `S`→Oct 1, `s+0`→Oct 1, `S + 3`→Oct 4, `S+30`→Oct 31, `S+40`→Nov 10, and from Dec 30 `S+5`→Jan 4, 2027. With Start empty or unparseable, `S+5` stays as typed; filling Start (typed `Oct 1, 2026` or `T+10`) resolves End to exactly 5 days later. After resolving, moving Start earlier leaves End fixed. Moving Start later than End clears End via the existing rule (as designed). The range calendar preselects both dates; the saved row reads `Oct 1, 2026 – Oct 6, 2026`. TSA Expiration leaves `S+5` as typed, and `Y+5` still gives 5 years out. Earlier suites re-run: same results, zero JS errors. In my first run one check failed because my test expected the wrong thing (Start moved past End correctly clears End); I re-tested with a valid move.
+
 ## Build Queue
 
 _Empty — nothing queued right now._
@@ -95,15 +104,8 @@ Resolved, built, dropped, or superseded items are not kept here. Their history l
 ### Bug: Units settings are not read anywhere
 Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card always starts in MPH regardless of the Speed setting.
 
-### New date code: `S+N` (days after a start date)
-Decided so far:
-- `S+5` means 5 days after a start date; with a start of Oct 1, `S+5` becomes `Oct 6, 2026`. Plain `S` means the start date itself. Case-insensitive like the other codes.
-- Days only. No stacking or variants (no `S+W2`, no `S+M1`). Positive offsets only, like the other codes.
-- If Start is empty, `S+5` is left as typed (no error, no guess). It resolves once Start is filled in. Once resolved it is a fixed date; changing Start afterward does not move it.
-- Applies to End Date in Create New Project (the Start field next to it), and to other end/later date fields as they appear.
-- Today's codes for reference: `T`/`N` days, `W` weeks, `M` months, `Y` years, all counted from today.
-
-Open question: Jon also wants it on **TSA PreCheck Expiration**, but that card has no start date. Options: (a) add a TSA start/enrollment date field (new field), (b) have `S` mean the start date of the selected pipeline trip, which makes little sense for a TSA expiration, or (c) leave TSA on the existing `T`/`Y` codes. Recommendation: (c) for now, and add (a) only if wanted. Needs Jon's pick before this can move to the Queue.
+### Rough edge: an unresolved `S+N` can be saved as raw text
+If Create New Project is saved while End is still `S+5` (Start never filled in), the pipeline row shows `S+5` as the end date. The same already happens with any unparseable text typed in a date field. Open question: block Save, warn, or leave as is?
 
 ### Inconsistency: TSA Expiration placeholder is clipped
 Seen in the Build 11 screenshot at 390px: the Expiration field's placeholder `e.g. T+1825, 12/17` is cut off to `e.g. T+1825, 12…` because the 📅 button shares the row. The field still works. Open question: shorten the placeholder or give the field more room?

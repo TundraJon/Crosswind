@@ -41,7 +41,7 @@
     const past = options.sort((a, b) => b - a);
     return past.length ? past[0].getFullYear() : today.getFullYear();
   }
-  function parseSmartDate(raw, today) {
+  function parseSmartDate(raw, today, startDate) {
     today = today || new Date();
     const s = (raw || '').trim();
     if (!s) return null;
@@ -53,6 +53,13 @@
       if (code === 'W') { base.setDate(base.getDate() + offset * 7); return base; }
       if (code === 'M') { base.setMonth(base.getMonth() + offset); return base; }
       if (code === 'Y') { base.setFullYear(base.getFullYear() + offset); return base; }
+    }
+    m = s.match(/^S\s*(\+\s*(\d+))?$/i);
+    if (m) {
+      if (!startDate) return null;
+      const base = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      base.setDate(base.getDate() + (m[2] ? parseInt(m[2], 10) : 0));
+      return base;
     }
     m = s.match(/^(\d{2})(\d{2})(\d{4})$/);
     if (m) { const d = new Date(+m[3], +m[1] - 1, +m[2]); if (!isNaN(d)) return d; }
@@ -93,8 +100,8 @@
   }
   function fmtDate(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
   function fmtTime(d) { return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
-  function wireSmartDateInput(el) {
-    el.addEventListener('blur', () => { const p = parseSmartDate(el.value, new Date()); if (p) el.value = fmtDate(p); });
+  function wireSmartDateInput(el, getStart) {
+    el.addEventListener('blur', () => { const p = parseSmartDate(el.value, new Date(), getStart ? getStart() : null); if (p) el.value = fmtDate(p); });
   }
   function wireSmartTimeInput(el) {
     el.addEventListener('blur', () => { const p = parseSmartTime(el.value, new Date()); if (p) el.value = fmtTime(p); });
@@ -332,9 +339,10 @@
   const projDateNote = document.getElementById('projDateNote');
 
   wireSmartDateInput(projStartInput);
-  wireSmartDateInput(projEndInput);
+  wireSmartDateInput(projEndInput, () => parseSmartDate(projStartInput.value, new Date()));
   function checkProjDates() {
     const s = parseSmartDate(projStartInput.value, new Date());
+    if (s && /^S/i.test(projEndInput.value.trim())) { const r = parseSmartDate(projEndInput.value, new Date(), s); if (r) projEndInput.value = fmtDate(r); }
     const e = parseSmartDate(projEndInput.value, new Date());
     if (s && e && e < s) { projEndInput.value = ''; projDateNote.style.display = 'block'; setTimeout(() => projDateNote.style.display = 'none', 3000); }
   }
