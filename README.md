@@ -115,12 +115,14 @@ Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card a
 ### Check: Loyalty autocomplete on the phone
 Verified in a browser that the `<datalist>` holds the right options (same-type names, updated after Save & Next). The native suggestion popup itself can't be seen headless. Jon to confirm on his Android device; if it fails, switch to a custom suggestion dropdown.
 
-### Dashboard redesign (recommended next)
+### Dashboard redesign (design discussion in progress)
 Dashboard is still the early mockup and doesn't match the round-trip/multi-stop wizard.
-- Dynamic icon row built from the real trip sequence (layovers/connections only if present; return leg and multiple stops).
-- A quick-card per step type: Uber, Flight, Layover, Rental, Hotel, Destination, Rental Return, Uber Home.
-- Room # / Plate # tied to Hotel / Rental data; Copy Address copies the active step's address; ground speed follows Units.
-- Remove or hide the dev Ground/Airborne toggle later.
+Decided (round 1):
+- Current step is chosen by **tapping** a step in the icon row. Auto-advance by clock/location stays a Step 4 idea; it would just move the same selection.
+- The icon row **reuses the Wizard's scrolling step track** (same trip, same icons, same `buildNodes()` source), with the selected step scrolled into view.
+- **No sample trip.** Cards show dashes until real data is typed into the Wizard. Header "Distance to Home" also shows a dash until the Haversine engine exists (Step 4).
+Still open (round 2): exact fields per card, what Copy Address copies per step, whether Room # / Plate # move into the Hotel / Rental cards (and the standalone Live Transit Logs card goes), and whether the header project name follows the highlighted pipeline row.
+Carried over from the old note: the dev Ground/Airborne toggle stays until real GPS exists; ground speed should follow the Units setting (see the Units bug below).
 
 ### Other screens not yet designed
 - Compass-only fallback view (similar to the in-flight cockpit, minus flight data).
