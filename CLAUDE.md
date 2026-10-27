@@ -12,7 +12,7 @@ This governs everything below.
 
 ## Project
 
-Crosswind is a single-file HTML work-travel companion (`index.html`, served via GitHub Pages). The Build Log, Build Queue, and Build Planner live in `README.md`: one document, always current, always committed.
+Crosswind is a static HTML work-travel companion served via GitHub Pages, split into three files: `index.html` (markup), `styles.css` (styles), `script.js` (logic). No build tool, no bundler. The Build Log, Build Queue, and Build Planner live in `README.md`: one document, always current, always committed.
 
 ## You own the build docs
 
@@ -63,6 +63,37 @@ idea
 
 A design can skip the Planner and go straight to the Queue if it is specified in one sitting.
 
+## Cache-busting
+
+There is no build step and no hashed filenames, so browsers keep serving an old cached `styles.css` or `script.js` after a push. The user never gets the fix, with no error.
+
+- Each local JS/CSS file carries a version query string in `index.html`: `styles.css?v=N`, `script.js?v=N`. Keep them on the `<link>`/`<script>` tags so they're easy to grep.
+- Whenever a local JS/CSS file is edited in a build, bump its number in `index.html` by exactly 1 in the same change. No exceptions, not even for a one-line fix. Bump only the files that changed.
+- Log it in the Build Log checklist with before and after numbers, e.g. `Cache-bust bumped: script.js?v=1→2`.
+- If a user says "still broken" right after a push that should have fixed it, check the version numbers before doubting the code. If a bump was missed, the follow-up is its own small commit, and the Log says the earlier fix never reached users.
+- `index.html` itself can't carry a version number. Pages may serve a cached copy for a few minutes; opening the URL with a throwaway query string (`?v=10`) forces a fresh load.
+
+## Commit discipline
+
+- Authorization to build includes authorization to commit and push: implement, verify, write the Log entry, commit, push, without pausing to ask. Force-push, history rewrite, or anything destructive still needs a check first.
+- New commits, never amends. Even a tiny follow-up gets its own commit.
+- Commit message: a short summary line, then a line or two of why, not a restatement of the diff. Keep the attribution footer.
+- Direct to `main`, no PRs (solo project). If collaborators or reviewers appear, that process takes precedence.
+
+## Verification (Playwright)
+
+"Verify it" means driving the running app, not reading the diff. Chromium and Playwright are available in the sandbox.
+
+1. Write throwaway scripts to a scratch directory and **never commit them**.
+2. Register a page-error listener first and print the collected list at the end. Zero JS errors is a hard bar.
+3. Drive the UI like a user: click real buttons, fill real inputs, read state back from the rendered DOM. Don't poke internal JS state.
+4. Print each check with a label and expected value beside the actual value, so the output audits itself.
+5. Screenshot for any visual claim (layout, icons, color, alignment) and look at it.
+6. Re-run earlier verification scripts before calling a build done, to catch regressions.
+7. Use realistic data and state, not only the near-empty happy path.
+8. **Reproduce a reported bug first.** Write a script that fails the exact way the user described, then form a root-cause theory, fix it, and re-run the same script to prove it closes. Never patch a theory that hasn't been reproduced.
+9. Anything that needs a live network call (APIs, CDN fonts) may not be verifiable in the sandbox. Say so explicitly, verify the logic in isolation, and flag the rest for a real-device check.
+
 ## Working conventions
 
 - **Design out loud, in rounds.** Restate your understanding and let the user confirm or fix it before building.
@@ -72,4 +103,6 @@ A design can skip the Planner and go straight to the Queue if it is specified in
 - **Catch your own mistakes.** If verification finds a bug introduced by the change, fix it before calling the build done and say so in the Log entry.
 - **One file of truth.** Don't split the Log, Queue, or Planner into other docs or an external tracker.
 - **Log inconsistencies, don't fix them,** even trivial ones, even when you're already in the file. Surface them and let the user decide.
+- **Cleanup that a build itself makes stale rides along.** If an authorized build makes a Queue entry or Planner item obsolete, delete it in the same commit. Fixing an unrelated thing you noticed is still logged, not fixed.
+- **Audit every reference when editing numbered or cross-referenced text** (numbered sections, tables of contents, "see section N"). Update all of them and confirm with a script, not a visual skim.
 - **Don't clean up, optimize, modernize, or reformat** anything that wasn't asked for. Keep existing formatting, spacing, and structure. Don't add or remove features unless asked.

@@ -5,7 +5,7 @@ Live: https://tundrajon.github.io/Crosswind/
 
 Working rules for the AI live in `CLAUDE.md`. The three sections below are the project's running memory.
 
-Stack: one HTML file (`index.html`), show/hide `<div class="screen">` navigation, Android-only, Capacitor wrap later. Dark "cockpit" theme (Chakra Petch + Michroma).
+Stack: three static files (`index.html` markup, `styles.css`, `script.js`; no build tool), show/hide `<div class="screen">` navigation, Android-only, Capacitor wrap later. Dark "cockpit" theme (Chakra Petch + Michroma).
 
 ## Build Log
 
@@ -74,6 +74,16 @@ Closes the gap found while verifying Build 9, and the stale header comment logge
 - [x] Cache-bust: not applicable. Crosswind is one file with inline CSS and JS, so there is no local `.js`/`.css` file carrying a `?v=` number to bump. The only external file is the Google Fonts stylesheet. Note: Pages may serve a cached `index.html` for a few minutes after a push; opening the URL with a throwaway query string (e.g. `?v=10`) forces a fresh load.
 - **Verification:** headless Chromium, 390px. Start first then an earlier End: End cleared, note shown, Start untouched (screenshot checked). Later End kept, same-day End kept, Start moved past an existing End still clears End, End-first-then-Start still clears End, End with empty Start kept, garbage End left as typed, note auto-hides after 3s. Prior suites re-run: zero JS errors, same results as before. The old end-before-start check that failed in Build 8 now passes.
 
+### Build 11 (completed): Split into index.html, styles.css, script.js
+Jon wants smaller files because the app is going to keep growing. This overrides the earlier "single HTML file" decision from the handoff. Code moved, not changed.
+- [x] `styles.css`: the contents of the old `<style>` block (209 lines). `index.html` now has `<link rel="stylesheet" href="styles.css?v=1">` in its place.
+- [x] `script.js`: the contents of the old `<script>` block (816 lines, still one IIFE). `index.html` now has `<script src="script.js?v=1"></script>` in its place, at the end of `<body>`.
+- [x] `index.html`: 301 lines of markup. Header comment now says v0.9 and describes the split.
+- [x] Cache-bust bumped: `styles.css` new → `?v=1`, `script.js` new → `?v=1`. From now on any edit to either file bumps its number by 1 (rule added to `CLAUDE.md`).
+- [x] `CLAUDE.md`: added the sections missing from the first workflow doc: Cache-busting, Commit discipline, Verification (Playwright), plus two conventions (stale-entry cleanup rides along; audit cross-references). Project line updated for the three files.
+- [x] `README.md`: Stack line updated. Earlier Build Log entries still mention `index.html` as it was at the time; they are history and left as written.
+- **Verification:** rebuilt the old single file from the three new files and compared: byte-identical to the pre-split file. Served over a local HTTP server: `/`, `styles.css?v=1`, `script.js?v=1` all return 200, CSS applies (body background and panel radius as expected), JS runs (3 loyalty rows, 9 wizard nodes, 9 step-default rows), zero JS errors. Screenshot of Setup checked. All earlier verification suites re-run against the split files: same results as before, zero JS errors.
+
 ## Build Queue
 
 _Empty — nothing queued right now._
@@ -84,6 +94,9 @@ Resolved, built, dropped, or superseded items are not kept here. Their history l
 
 ### Bug: Units settings are not read anywhere
 Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card always starts in MPH regardless of the Speed setting.
+
+### Inconsistency: TSA Expiration placeholder is clipped
+Seen in the Build 11 screenshot at 390px: the Expiration field's placeholder `e.g. T+1825, 12/17` is cut off to `e.g. T+1825, 12…` because the 📅 button shares the row. The field still works. Open question: shorten the placeholder or give the field more room?
 
 ### Check: Loyalty autocomplete on the phone
 Verified in a browser that the `<datalist>` holds the right options (same-type names, updated after Save & Next). The native suggestion popup itself can't be seen headless. Jon to confirm on his Android device; if it fails, switch to a custom suggestion dropdown.
