@@ -95,6 +95,16 @@ Resolved, built, dropped, or superseded items are not kept here. Their history l
 ### Bug: Units settings are not read anywhere
 Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card always starts in MPH regardless of the Speed setting.
 
+### New date code: `S+N` (days after a start date)
+Decided so far:
+- `S+5` means 5 days after a start date; with a start of Oct 1, `S+5` becomes `Oct 6, 2026`. Plain `S` means the start date itself. Case-insensitive like the other codes.
+- Days only. No stacking or variants (no `S+W2`, no `S+M1`). Positive offsets only, like the other codes.
+- If Start is empty, `S+5` is left as typed (no error, no guess). It resolves once Start is filled in. Once resolved it is a fixed date; changing Start afterward does not move it.
+- Applies to End Date in Create New Project (the Start field next to it), and to other end/later date fields as they appear.
+- Today's codes for reference: `T`/`N` days, `W` weeks, `M` months, `Y` years, all counted from today.
+
+Open question: Jon also wants it on **TSA PreCheck Expiration**, but that card has no start date. Options: (a) add a TSA start/enrollment date field (new field), (b) have `S` mean the start date of the selected pipeline trip, which makes little sense for a TSA expiration, or (c) leave TSA on the existing `T`/`Y` codes. Recommendation: (c) for now, and add (a) only if wanted. Needs Jon's pick before this can move to the Queue.
+
 ### Inconsistency: TSA Expiration placeholder is clipped
 Seen in the Build 11 screenshot at 390px: the Expiration field's placeholder `e.g. T+1825, 12/17` is cut off to `e.g. T+1825, 12…` because the 📅 button shares the row. The field still works. Open question: shorten the placeholder or give the field more room?
 
