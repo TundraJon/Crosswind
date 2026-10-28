@@ -103,7 +103,45 @@ Two small items Jon decided on: a project can no longer be saved with a raw `S+5
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Dashboard redesign: dynamic steps, per-step cards
+Not yet authorized to build. Design settled with Jon over two rounds.
+
+**Header**
+- "Active: …" shows the name of the pipeline row currently highlighted on the Wizard screen (read when the Dashboard is shown), instead of the hardcoded Muckleshoot name.
+- "Distance to Home" shows `—` until the Haversine engine exists (Step 4).
+
+**Step row**
+- Replace the static emoji row with the Wizard's scrolling node track, built from the same `buildNodes()` and wizard state, so both screens show the same trip and icons. Same node look (done / current / optional), but no ✎ edit pins on the Dashboard.
+- Tapping a step selects it and shows its card; the selected step scrolls into view. The Dashboard keeps its own selection, separate from the Wizard's, and defaults to the first step after Home (Uber). The row and cards are rebuilt each time the Dashboard is shown, so Wizard edits appear.
+- No auto-advance by clock or location (Step 4).
+
+**Cards (one per selected step; every empty value shows `—`; multi-stop uses that stop's data)**
+- Home: Home Base address and Home Airport from Setup.
+- Uber / Uber Home: pickup time, drop-off time.
+- Flight (and Return Flight): airline + flight #, confirmation #, seat, TSA KTN from Setup. Gate, route, boarding and landing times stay `—` until the flight API exists (Step 4).
+- Layover: "Landing → next boarding", `—` until the API.
+- Rental: company, class, color, plate.
+- Hotel: chain + name, address, room #.
+- Destination: place name, address, contact name + phone.
+- Rental Return: "Returning: company, class".
+
+**Copy Address**
+- Copies the active step's address: Home and Uber Home copy the Home Base address; Hotel copies the hotel address; Destination copies the destination address.
+- Hidden on steps with no address (Uber out, flights, layovers, rental, rental return) and when the step's address is empty.
+- Keeps the existing "✓ Copied" flash and clipboard fallback.
+
+**Room # and Plate #**
+- Room # becomes an input on the Hotel card; Plate # and Color become inputs on the Rental card. They read and write the same wizard fields (`hotel.room`, `rental.plate`, `rental.color`), so the Wizard and Dashboard always agree.
+- The standalone "Live Transit Logs" card is removed.
+
+**Unchanged**
+- The dev Ground/Airborne toggle stays; the airborne cockpit card (all placeholder values) is unchanged and only applies while a flight step is selected. Units wiring is a separate item (see Units bug in the Planner).
+
+**Reuse:** `buildNodes()`, wizard state, the node-track styles, the quick-card styles, and the existing Copy Address handler.
+
+**Files:** `index.html`, `script.js`, `styles.css`; expect cache-bust bumps `script.js?v=3→4` and `styles.css?v=1→2`.
+
+**Verification plan:** empty trip shows dashes everywhere; data typed in the Wizard appears on the matching cards; multi-stop trip shows the right stop's data; each step's Copy Address (copied text, and hidden where specified); Room #/Plate #/Color edits show up in the Wizard and vice versa; header follows the highlighted pipeline row; Live Transit Logs gone; airborne toggle still works; screenshots at 390px; all earlier suites re-run with zero JS errors.
 
 ## Build Planner
 
@@ -114,15 +152,6 @@ Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card a
 
 ### Check: Loyalty autocomplete on the phone
 Verified in a browser that the `<datalist>` holds the right options (same-type names, updated after Save & Next). The native suggestion popup itself can't be seen headless. Jon to confirm on his Android device; if it fails, switch to a custom suggestion dropdown.
-
-### Dashboard redesign (design discussion in progress)
-Dashboard is still the early mockup and doesn't match the round-trip/multi-stop wizard.
-Decided (round 1):
-- Current step is chosen by **tapping** a step in the icon row. Auto-advance by clock/location stays a Step 4 idea; it would just move the same selection.
-- The icon row **reuses the Wizard's scrolling step track** (same trip, same icons, same `buildNodes()` source), with the selected step scrolled into view.
-- **No sample trip.** Cards show dashes until real data is typed into the Wizard. Header "Distance to Home" also shows a dash until the Haversine engine exists (Step 4).
-Still open (round 2): exact fields per card, what Copy Address copies per step, whether Room # / Plate # move into the Hotel / Rental cards (and the standalone Live Transit Logs card goes), and whether the header project name follows the highlighted pipeline row.
-Carried over from the old note: the dev Ground/Airborne toggle stays until real GPS exists; ground speed should follow the Units setting (see the Units bug below).
 
 ### Other screens not yet designed
 - Compass-only fallback view (similar to the in-flight cockpit, minus flight data).
