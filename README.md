@@ -114,7 +114,47 @@ The Dashboard now follows the real trip from the Wizard instead of the fake mock
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Setup: real saving, empty first launch, step defaults, backup
+Not yet authorized to build. Design settled with Jon over three rounds. Touches `index.html`, `script.js`, `styles.css`; includes a cache-bust bump for `script.js` and `styles.css` and a header-comment version update.
+
+**1. Saving**
+- One saved profile in browser storage under `crosswindProfile` (JSON with a `v: 1` version number), behind small `loadProfile()` / `saveProfile()` functions (try/catch like the existing storage code) so it can be swapped for SQLite later. Favorites keep their own key `crosswindFavorites`; `crosswindLastRequest` is not part of the profile.
+- The profile holds: Home Base address, Home Airport, loyalty programs, Touchless flags, KTN, KTN Expiration, Units (speed / temp / distance), Trip Step Defaults.
+- Auto-save on every change (text fields on input). No explicit save step. If storage is blocked or full the app keeps working for the session without errors. If the saved text can't be read, start empty and leave the stored text alone until the next change.
+- **Save Profile button removed.** **Back** stays unchanged (still has no destination; Setup is the first screen; revisit when there is one).
+
+**2. First launch is empty**
+- No sample address, programs, or Touchless flags. Address and Home Airport show "Not set". Units start imperial (MPH, °F, Miles). Step defaults start at the system defaults. The Loyalty list shows a faint "No programs yet" line (existing `.empty-row` style). Wizard dropdowns already say "No … yet — add in Setup".
+
+**3. Home Base**
+- **Verify Address (USPS)** and **Suggest Nearest Airport** are disabled (greyed) with the note "Needs online lookup — coming soon" (replaces the "Fake suggestion…" note). Home Airport stays editable by typing.
+- The **CASS Validated** badge stays visible but greyed; the green style is kept for when a real verification exists (Step 4).
+
+**4. Loyalty Programs**
+- Delete in the edit modal is two-tap: the first tap turns the button into "Tap again to delete" (reverts after about 3 seconds or when the modal closes); the second tap deletes. Saved immediately.
+
+**5. TSA PreCheck**
+- KTN: capped at **9** characters (was 8), placeholder "9 char", auto-uppercased as you type. On leaving the field, if it is non-empty and not exactly 9 letters/numbers, show a gentle note ("KTN is usually 9 letters/numbers"). Never blocks and never changes what was typed. Expiration and Touchless flags are saved.
+
+**6. Units**
+- All three toggles are saved. **Speed is wired to the Dashboard**: ground speed starts in the saved unit each time the Dashboard is shown (MPH → "580 MPH (kph)", KPH → "933 KPH (mph)"). Tapping the pill still swaps it for that visit only and does not change Setup. Cockpit airspeed stays in knots. Temperature and Distance are saved but not shown anywhere yet (weather and Distance to Home are Step 4).
+
+**7. Trip Step Defaults drive the Wizard and Dashboard**
+- Table grows from 9 to **11 rows**: new **Rental Return** (🚗) and **Uber Home** (🚙). Each row gets a small ↺ button that resets that row's name and icon to the system default. Blank name or icon falls back to the system default (the system default is shown as the placeholder).
+- Names and icons come from the table everywhere a step appears: Wizard step row, Wizard step headings (all headings use the step's label, uppercased; today some are hardcoded), Dashboard step row and card titles. Reuses `buildNodes()`; no separate lookup per screen.
+- **Flight names come from the table, replacing "Flight / Flight 1, 2, 3":** one flight uses the **Flight (Initial)** row (🛫 by default); with 2 or more, first = Initial, last = **Flight (Final)**, middle = **Connection**. If more than one flight is a Connection they are numbered ("Connection 1", "Connection 2"); a single Connection stays plain. Return flights use the same rows with "Return: " in front ("Return: Flight (Initial)"). Outbound flights keep the multi-stop suffix (" — Muckleshoot"). Layover uses the Layover row.
+- Destination uses the **Objective / To** row: plain on a single-stop trip; numbered on multi-stop ("Objective / To 1", "Objective / To 2"). Rental, Hotel, Rental Return keep their " — Muckleshoot" suffix on multi-stop trips.
+- Per-trip ✎ overrides are not part of this build (Wizard spec).
+
+**8. Backup (new "Backup" card in Setup)**
+- **Export** downloads `crosswind-backup-YYYY-MM-DD.json` containing `{ app: "crosswind", version: 1, profile, favorites }`.
+- **Import** opens a file picker (.json). A file that is not a Crosswind backup shows a note and changes nothing. A valid file opens a confirm popup (reuses the existing modal look) "Replace your Setup and Favorites with this backup?" with Cancel / Replace. Replace overwrites (no merge), saves, and refreshes Setup, Favorites, and the other screens.
+- Trips and projects are not in the backup yet (they are not stored yet); the version number leaves room to add them.
+
+**Cleanup that rides along when built:** remove the Setup inventory entries this resolves, and the "Units settings are not read anywhere" Planner item (Temperature and Distance wiring moves to Step 4).
+
+**Verification plan:** fresh load shows the empty state everywhere; add data, reload, everything persists (address, programs, Touchless, KTN and Expiration, Units, step defaults); unreadable and blocked storage do not crash; KTN uppercases, caps at 9, and warns without blocking; badge grey and both buttons disabled with the note; Delete needs two taps and reverts; Speed unit changes the Dashboard's ground speed; renaming each step row shows up on the Wizard row and heading and on the Dashboard row and card title; blank falls back; ↺ resets; flight naming for 1, 2, 3, and 4 flights, return flights, and multi-stop; Export file contents; Import round trip, invalid file, cancel; screenshots; all earlier suites re-run (checks that depended on the old sample data are updated and noted).
+
 
 ## Build Planner
 
@@ -132,22 +172,6 @@ Audit only; nothing here is decided. "Real" = works in the current session but i
 - Real: pipeline row highlight; Create New Project (name, smart Start/End dates, range calendar, End-before-Start check, `S+N`); step row built from state; forms for every step type (Uber, Flight(s), Layover, Rental, Hotel, Destination, Rental Return, Return Flight(s), Uber Home); Add Another Flight / Stop; airline, rental, and hotel dropdowns fed by Setup; smart times on Uber fields; Continue goes to the Dashboard.
 - Cosmetic: a project is only display text (name plus two date strings), so the three seeded projects and any new one share one trip; progress bars are fixed made-up percentages; the title is hardcoded "Muckleshoot Itinerary Wizard"; ✎ pins only toggle a look; the Text Clipboard Parser buttons do nothing; the flight "Auto-Filled via Flight Tracker API" box is disabled placeholders; "Trip Start Date" / "Trip End Date" / `Apr 29, 2026` are placeholder text, not real dates computed from the project; Layover is explanation text only; the two "Suggest Address" buttons insert fixed fake addresses; WhatsApp Report is an alert; a step counts as "done" only because it sits before the selected one.
 - Missing: a real project record (name, real start and end dates, status, its own trip data); switching, editing, deleting, or archiving projects; removing or reordering stops and flights; Hotel check-in/out and Rental pickup/drop-off dates; step dates derived from the project dates; fields not collected yet (rental confirmation # and pickup location, hotel confirmation #); validation (required fields, flight # and confirmation # formats); applying Trip Step Defaults and ✎ overrides; real step completion; saving anything.
-
-### Setup spec (design discussion in progress)
-Decided (round 1):
-- **Storage:** Setup data lives in browser storage now, as one saved profile behind a small save/load layer so it can be swapped for SQLite when the app is wrapped for Android. A backup/export option is still to be discussed (browser storage can be cleared).
-- **Saving:** auto-save on every change, like Favorites and the last request already do. **Save Profile** becomes unnecessary and is to be removed (Back stays).
-- **First launch:** empty. No sample address, no sample loyalty programs; the current sample data was dev scaffolding.
-Decided (round 2):
-- **Online-only items:** USPS Verify and Suggest Nearest Airport are disabled with a short note (e.g. "Needs online lookup — coming soon") until the real lookups exist. The "CASS Validated" badge stays visible but greyed out and turns green only after a real verification. The Home Airport field stays editable by typing.
-- **Profile details:** skipped for now (nothing uses a name). **Saved Addresses:** held for the Wizard spec (recurring hotels and client sites could autofill).
-- **Units:** saved and used. Speed is wired to the Dashboard's ground speed in the Setup build; Temperature and Distance get wired when something displays them (weather, Distance to Home; Step 4).
-Decided (round 3):
-- **Trip Step Defaults** apply everywhere a step appears (Wizard row and headings, Dashboard row and card titles). Blank name or icon falls back to the system default; each row gets a small ↺ reset; the multi-stop suffix stays ("Car — Muckleshoot"). **Flight names come from the table, not "Flight 1/2/3"**: the Wizard currently hardcodes `Flight` / `Flight 1, 2, 3` (`flightNodeMeta`) and ignores the table's Flight (Initial) / Connection / Flight (Final) rows; Jon prefers the table's names, so position picks the row (first = Initial, middle = Connection, last = Final) for both name and icon.
-- **KTN** is 9 characters (the field is capped at 8 today, which truncates real numbers): cap at 9, auto-uppercase, gentle warning (never a block) if the length or characters look wrong.
-- **Delete confirmation:** the loyalty program Delete button asks "Tap again to delete" on the first tap (no new popup).
-- **Backup:** Export / Import of the profile as a file, in Setup.
-Still open: naming for a nonstop, repeated connections, and return flights; table rows for Rental Return / Uber Home / Destination; what the backup file contains and how Import behaves.
 
 ### Bug: Units settings are not read anywhere
 Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card always starts in MPH regardless of the Speed setting.
