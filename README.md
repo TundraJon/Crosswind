@@ -160,9 +160,6 @@ Found while verifying Build 14. With about 14 steps (a two-stop trip) the labels
 ### Inconsistency: some typed text is inserted into the page without escaping
 Found while building Build 15. Loyalty names and IDs, Favorite captions and icons, and the destination name inside step labels are put into the page as HTML, so typing `<` and `>` can break the layout. The Dashboard escapes its own text. Import now strips `<` and `>` from backup files as a stopgap, and step names are cleaned the same way. Open question: escape everywhere text is shown?
 
-### Check: Loyalty autocomplete on the phone
-Verified in a browser that the `<datalist>` holds the right options (same-type names, updated after Save & Next). The native suggestion popup itself can't be seen headless. Jon to confirm on his Android device; if it fails, switch to a custom suggestion dropdown.
-
 ### Other screens not yet designed
 - Compass-only fallback view (similar to the in-flight cockpit, minus flight data).
 - Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal).
