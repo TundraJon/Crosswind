@@ -73,6 +73,10 @@ There is no build step and no hashed filenames, so browsers keep serving an old 
 - If a user says "still broken" right after a push that should have fixed it, check the version numbers before doubting the code. If a bump was missed, the follow-up is its own small commit, and the Log says the earlier fix never reached users.
 - `index.html` itself can't carry a version number. Pages may serve a cached copy for a few minutes; opening the URL with a throwaway query string (`?v=10`) forces a fresh load.
 
+## Version number
+
+The header comment at the top of `index.html` carries the app version in hundredths (`vX.YY`, e.g. v1.23). Every build bumps it by 0.01 in the same change, and the Build Log checklist states before and after (e.g. `Version: v0.90→v0.91`). Treat today's "v0.9" as v0.90. The user raises the whole-number and tenths parts themselves.
+
 ## Commit discipline
 
 - Authorization to build includes authorization to commit and push: implement, verify, write the Log entry, commit, push, without pausing to ask. Force-push, history rewrite, or anything destructive still needs a check first.

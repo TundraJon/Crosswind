@@ -115,7 +115,7 @@ The Dashboard now follows the real trip from the Wizard instead of the fake mock
 ## Build Queue
 
 ### Setup: real saving, empty first launch, step defaults, backup
-Not yet authorized to build. Design settled with Jon over three rounds. Touches `index.html`, `script.js`, `styles.css`; includes a cache-bust bump for `script.js` and `styles.css` and a header-comment version update (version shown in hundredths, e.g. v1.23; numbering scheme pending Jon).
+Not yet authorized to build. Design settled with Jon over three rounds. Touches `index.html`, `script.js`, `styles.css`; includes a cache-bust bump for `script.js` and `styles.css` and a header-comment version update (version shown in hundredths; this build takes the header from v0.90 to v0.91, then +0.01 per build).
 
 **1. Saving**
 - One saved profile in browser storage under `crosswindProfile` (JSON with a `v: 1` version number), behind small `loadProfile()` / `saveProfile()` functions (try/catch like the existing storage code) so it can be swapped for SQLite later. Favorites keep their own key `crosswindFavorites`; `crosswindLastRequest` is not part of the profile.
@@ -134,7 +134,7 @@ Not yet authorized to build. Design settled with Jon over three rounds. Touches 
 - Delete in the edit modal is two-tap: the first tap turns the button into "Tap again to delete" (reverts after about 3 seconds or when the modal closes); the second tap deletes. Saved immediately.
 
 **5. TSA PreCheck**
-- KTN: capped at **9** characters (was 8), placeholder "9 char", auto-uppercased as you type. **Live colour while typing: green at exactly 9 letters/numbers, red for anything else** (red also if it contains other characters). Proposed, awaiting Jon: an empty field stays neutral (no colour), and a short "KTN is usually 9 letters/numbers" note shows only while it is red. Never blocks and never changes what was typed. Expiration and Touchless flags are saved.
+- KTN: capped at **9** characters (was 8), placeholder "9 char", auto-uppercased as you type. **Live colour while typing: green at exactly 9 letters/numbers, red for anything else** (red also if it contains other characters). An empty field stays neutral (no colour), and a short "KTN is usually 9 letters/numbers" note shows only while it is red. Never blocks and never changes what was typed. Expiration and Touchless flags are saved.
 
 **6. Units**
 - All three toggles are saved. **Speed is wired to the Dashboard**: ground speed starts in the saved unit each time the Dashboard is shown (MPH → "580 MPH (kph)", KPH → "933 KPH (mph)"). Tapping the pill still swaps it for that visit only and does not change Setup. Cockpit airspeed stays in knots. Temperature and Distance are saved but not shown anywhere yet (weather and Distance to Home are Step 4).
