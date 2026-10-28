@@ -97,6 +97,7 @@ The header comment at the top of `index.html` carries the app version in hundred
 7. Use realistic data and state, not only the near-empty happy path.
 8. **Reproduce a reported bug first.** Write a script that fails the exact way the user described, then form a root-cause theory, fix it, and re-run the same script to prove it closes. Never patch a theory that hasn't been reproduced.
 9. Anything that needs a live network call (APIs, CDN fonts) may not be verifiable in the sandbox. Say so explicitly, verify the logic in isolation, and flag the rest for a real-device check.
+10. Seed test data into browser storage after the page has loaded (`page.evaluate`, then reload), never from `addInitScript`. On `file://` an init script that touches `localStorage` randomly lost saved data in headless Chromium (reproduced on already-shipped code), which looks like an app bug and isn't.
 
 ## Working conventions
 

@@ -126,48 +126,26 @@ Setup was mostly cosmetic and nothing was saved. This build makes it real. Desig
 - **Verification:** headless Chromium at 390px, 138 checks, zero JS errors. First launch: empty fields, "No programs yet", imperial units, disabled buttons and notes, greyed badge, 11 default rows, Wizard shows system names with "No airlines yet — add in Setup", nothing stored. Saving: address, airport, four programs, Touchless, KTN, Expiration, units all survive a reload and feed the Wizard dropdowns. Damaged stored text starts empty, is left alone until a change, then overwritten with valid JSON; blocked storage still works and Export still downloads. KTN: neutral empty, red at 3 and 8 characters and at 9 with symbols or a space, green at 9, 10th character refused, uppercased. Delete: first tap arms, reverts after 3 seconds, resets when the modal closes, second tap deletes and persists. Units: KPH shows 933 KPH on the Dashboard, the pill swaps for that visit only, a new visit returns to the saved unit. Step names: all 11 rows renamed shows on the Wizard row, icons, headings, Dashboard row and card title; flights for 1, 2, 3, and 4 legs, return flights, layover strip, multi-stop suffixes and numbered objectives; blank and ↺ fall back; names survive reload. Backup: file name pattern, contents, restore points (limit of 3 enforced, newest first, labels, dates, summaries), confirm popup, Cancel changes nothing, Replace saves a Before import point and a flip back works, Favorites round trip, three kinds of invalid file, hostile content stripped. Screenshots checked (empty Setup, KTN green and red, both popups, renamed Wizard and Dashboard). Earlier suites re-run (dates, `S+N`, blocked save, End-blur, In-Flight, TSA placeholder, split serving, Dashboard 61 checks): same results, with checks that depended on the old sample data and old labels updated.
 - **Found and fixed during verification:** on an empty list, "No programs yet" broke across the loyalty list's three columns; fixed with the `column-span` rule above.
 
+### Build 16 (completed): Trip Wizard Part 1: real trips, pipeline, saving, home switches, restore checklist
+A project is now one saved trip instead of display text over a shared itinerary. Design settled with Jon over three rounds (spec was in the Build Queue). Version: v0.91→v0.92.
+- [x] `script.js` TRIPS section: `crosswindTrips` (`{ v: 1, trips: [{ id, name, start, end, startsAtHome, endsAtHome, modified, itinerary }] }`, real `yyyy-mm-dd` dates) and `crosswindActiveTrip`; `loadTrips()`, `saveTrips()`, `normalizeTrip()` / `normalizeItinerary()` / `normalizeTripList()`; `wizardState` now points at the active trip's own itinerary (`loadItinerary()`), so the Wizard and Dashboard read and write one trip. Unreadable stored text starts empty and is left alone until the next change; blocked storage works for the session; a missing stored active id falls back to the first Active or Upcoming trip.
+- [x] Auto-save through `commitTrips()`, called from delegated listeners on the Wizard form and the Dashboard card. It compares each trip with its last saved snapshot, so only a real change updates `modified`; viewing, tabbing, or recalculating nothing does not.
+- [x] Pipeline: starts empty ("No trips yet — create one"), sample projects removed; status computed from today's date (Upcoming / Active / Done), real progress bar (days elapsed of total; amber and empty when Upcoming); Active first then Upcoming by Start; Done trips in a collapsed "Past trips (N)" section, most recent first; tapping a row makes it active and it is remembered; a ✎ on each row edits it.
+- [x] Create / Edit popup (`openProjectModal()`): retitled "Edit Project" when editing; Starts at home / Ends at home switches (reusing the `.unit-switch` look; the Setup unit code is now scoped to `#screenSetup`); Name, Start, and End required with a "Missing: …" note naming what is absent; a new trip becomes active; two-tap Delete (deleting the active trip falls back to the next Active or Upcoming, else none). Existing `S+N`, End-before-Start, and unresolved-`S+N` handling kept (the S+N message is shown only once a name is present).
+- [x] `buildNodes()` hides Home and Uber (out) when Starts at home is off, and the return flights and Uber Home when Ends at home is off; hidden steps keep their data; `firstStepKey()` / `ensureWizardSelection()` choose the first visible step for the Wizard and Dashboard.
+- [x] Empty states: Wizard shows "Create a project to start planning"; its title is "<name> Itinerary Wizard"; the Dashboard shows "No active trip — create one in Trip Wizard" with no step row or dock. WhatsApp Report is disabled with a "coming soon" note (its alert removed).
+- [x] Backup: `crosswindProfile` now carries `modified` (Setup and Favorites share it; `touchProfile()` from `saveFavorites()`); Export writes `version: 2` with `trips` and `activeTrip`; restore points hold trips (summary adds "N trips"); Import opens a checklist (`compareItem()`): Setup & Favorites and each trip by name, "New" and "Replaces your copy" ticked, "Backup is older (…)" unticked with a warning (times shown when both are the same day), **Restore selected** disabled while nothing is ticked. Trips on the device but not in the backup are never deleted; a deleted trip returns as New; restored items get `modified` = now; the active trip is unchanged unless it was replaced (or none exists, then the first restored trip becomes active); a "Before import" restore point of Setup, Favorites, and all trips is saved first. Version 1 files still import (Setup & Favorites only). Imported trips are validated and cleaned (`<` `>` stripped, invalid trips dropped, ids made unique).
+- [x] Cache-bust bumped: `script.js?v=5→6`, `styles.css?v=3→4`. Version: v0.91→v0.92.
+- **Verification:** headless Chromium at 390px, 157 new checks plus every earlier suite, zero JS errors. Empty first launch (pipeline, Wizard, Dashboard messages, disabled WhatsApp, nothing stored). Create (switches default Yes, required-field notes naming what is missing and focusing the right field, blocked unresolved `S+N`), edit (prefilled, unchanged save keeps `modified`, a real change updates it), two-tap delete (arms, reverts after 3 seconds, resets on close, persists). Status, order, and bars for Done, Active (day 3 of 5 = 60%, first day 20%, last day 100%), Upcoming, and the same-day edges; Past trips collapse and expand. Active switching with data isolated per trip, Wizard title and Dashboard following, surviving reload, delete fallback. All four switch combinations hide and show the right steps, data kept, selection moves to a visible step, survives reload. Wizard and Dashboard edits save and update `modified`; viewing does not. Backup: version 2 file contents, checklist states (New, same or newer ticked, older unticked with warning), ticking an older trip rolls just that trip back, Setup and other trips untouched, Before import point holds everything, restore points use the same checklist, deleted trip returns as New, trips not in the backup survive, no-trips case, version 1 file, hostile and invalid trips cleaned. Damaged and blocked storage. Screenshots checked (pipeline with sections, create popup with switches, checklist, away trip, empty Wizard). Earlier suites re-run (dates, `S+N`, blocked save, End-before-Start, In-Flight, split serving, Dashboard 61 checks, Setup 138 checks); checks that assumed sample projects, one shared itinerary, saving without dates, or the old replace-everything import were updated, and the Dashboard and Setup suites now create their own trips.
+- **Found and fixed during verification:** (1) the older-backup warning read "Oct 28 vs. your current Oct 28" when both were the same day, which is exactly the "back up, then break it an hour later" case; it now shows times when the dates match. (2) With no name and an unresolved `S+N`, Save showed the S+N message instead of "Missing: Trip Name…"; the name check now comes first, as before.
+- **Not an app bug:** a flaky "everything lost after reload" (3 of 20) turned out to come from seeding storage from a test init script on `file://`; it reproduced on the already-shipped Build 15 code (4 of 30) and never without the script (0 of 30, also over a local server). Tests now seed storage after the page loads.
+
 ## Build Queue
 
-### Trip Wizard: real trips, pipeline, step dates
-Not yet authorized to build. Design settled with Jon over three rounds, plus a few additions flagged for his review (marked *added*). Touches `index.html`, `script.js`, `styles.css`; includes a cache-bust bump for all local files that change and the header version bump (v0.91→v0.92). Written as two parts so it can be built together or in two builds; Part 2 depends on Part 1. Backup and restore for trips is in Part 1 so trips are never unprotected.
+### Trip Wizard Part 2: step dates, new fields, validation, honesty
+Not yet authorized to build. Second half of the Trip Wizard spec (Part 1 shipped as Build 16). Settled with Jon over three rounds; items marked *added* are for his review. Touches `index.html`, `script.js`, `styles.css`; includes cache-bust bumps for every local file that changes and the header version bump (v0.92→v0.93). Trips are saved per project, so every field below lives inside the active trip's itinerary and counts as a change to that trip's `modified` time.
 
-**PART 1: trips, pipeline, saving**
-
-**1. A project is one trip, saved for real**
-- Browser storage `crosswindTrips` (JSON, `v: 1`): a list of projects, each `{ id, name, start, end, startsAtHome, endsAtHome, modified, itinerary }`, where `itinerary` is today's Wizard data (Uber out, stops with destination / flights / rental / hotel, return flights, Uber Home). `crosswindActiveTrip` holds the active project's id. Start and End are stored as real dates and shown in the one display format (`Oct 26, 2026`).
-- The Wizard and Dashboard read and write the **active project's** itinerary; nothing else is shared between projects. Auto-save on every change. Unreadable stored text starts empty and is left alone until the next change; blocked storage keeps working for the session. Same load/save pattern as the Setup profile.
-- Wizard data was never saved before, so there is nothing to migrate.
-- Each project and the Setup profile also carry a last-changed time (`modified`); see item 4, which uses it for restores.
-
-**2. Pipeline**
-- First launch is empty: "No trips yet — create one". The three sample projects are removed. With no active project the Wizard shows "Create a project to start planning" instead of forms, and the Dashboard shows "No active trip — create one in Trip Wizard" (*added*).
-- Status is computed from today's date: **Upcoming** (before Start), **Active** (Start to End inclusive), **Done** (after End). The progress bar is real: days elapsed out of total days (empty bar when Upcoming).
-- Order: Active first, then Upcoming by Start date. Done trips go into a collapsed "Past trips (N)" section under the list (tap to expand), most recent first. No manual archive.
-- Tapping a row makes it the active project (highlight as today), saved between launches. Each row has a small ✎ that opens the same popup to edit it.
-- **Create / Edit popup** (the existing Create New Project popup, retitled "Edit Project" when editing, same Add/Edit pattern as the loyalty popup): Trip Name, Start, End (smart dates, calendar range, `S+N`, End-before-Start check, blocked save for an unresolved `S+N`, all as today), plus two switches, **Starts at home** and **Ends at home**, both on by default. Name, Start, and End are required (*added*: status and step dates need real dates); a blocked save shows a short note naming what is missing. A newly created project becomes the active one.
-- **Delete** is in the edit popup, two-tap ("Tap again to delete"), and deletes the trip's itinerary. Deleting the active trip falls back to the next Active or Upcoming trip in list order, or none.
-- Changing a project's dates refreshes the default dates of step fields the user has not edited (Part 2).
-- The Wizard card title becomes "<project name> Itinerary Wizard" (was hardcoded Muckleshoot) (*added*).
-- WhatsApp Report button: disabled with "Coming soon" (real report is Step 4).
-
-**3. Starts at home / Ends at home**
-- **Starts at home off:** the Home and Uber (out) steps are hidden; the trip begins at its first flight (Jon is already at the airport; the rental was returned there). **Ends at home off:** the return flights and Uber Home are hidden; the trip ends at its last Rental Return. The trip you fly toward owns the flight. Hidden steps keep their data in case the switch is turned back on. No link between projects is stored. Wizard and Dashboard step rows, default selection (first visible step), and Distance to Home (still from the Home Base) all follow the visible steps.
-
-**4. Backup includes trips, and Import becomes a checklist** (*added*; lives in Part 1 so trips are never unprotected)
-- **Last-changed times.** Every project stores `modified` (set on every real edit to its fields or itinerary, not on viewing it or on automatic default recalculation). Setup and Favorites share one `modified` stored in `crosswindProfile` (any change to Setup or to Favorites updates it). Backups carry these times.
-- **Export** writes `version: 2` with `profile` (with its `modified`), `favorites`, `trips` (each with its `id` and `modified`), and `activeTrip`, plus `created`. Restore points hold the same data; their summary reads "N programs · N favorites · N trips". Version 1 files (no trips) still import.
-- **Import / Restore** (a backup file or a restore point) opens one **checklist popup** instead of the single confirm: title "Restore from backup", the backup's name and created date, then one tick-box line per item: **Setup & Favorites**, and **each trip by name**. Each line says how it compares with what is on the device:
-  - not on the device (new, including a trip that was deleted since): ticked by default, "New";
-  - on the device, backup the same or newer: ticked by default, "Replaces your copy";
-  - on the device, **backup older than what is on screen**: **unticked by default**, with a warning such as "Backup is older (Oct 20 vs. your current Oct 28)". Ticking it replaces the newer copy.
-  - Comparison: the backup item's `modified`, or the backup's `created` date when it has none, against the device item's `modified` (a device item with no `modified` counts as older).
-- Buttons: Cancel and **Restore selected** (disabled while nothing is ticked). Trips matched by `id`.
-- Trips on the device that are not in the backup are **left alone, never deleted**. The active trip stays active unless it was replaced (its content updates); if there is no active trip afterwards, the first restored trip becomes active.
-- Before anything is replaced, a **Before import** restore point of the whole current state (Setup, Favorites, and all trips) is saved, so every selective restore can be undone. Invalid files and trips are dropped and cleaned like the profile; an invalid file shows a note and changes nothing.
-
-**PART 2: step dates, fields, honesty**
-
-**5. Step dates: editable, with smart defaults**
+**1. Step dates: editable, with smart defaults**
 - Every date field is a smart date input with a 📅 calendar button (same behaviour as the other date fields), and `S+N` counts from the project's Start. Clearing a field returns it to its default. A date the user has typed or picked is kept even if project dates later change.
 - Flights (outbound and return): **Date**. Default: first outbound flight = project Start; first return flight = project End; every other flight = the previous flight's date, except the first flight of a later stop, which uses the previous stop's hotel check-out once the user has entered one.
 - **Uber (out)** Date defaults to project Start; **Uber Home** Date defaults to the last return flight's date.
@@ -175,29 +153,29 @@ Not yet authorized to build. Design settled with Jon over three rounds, plus a f
 - If a step date falls outside the project's Start to End, a small note under the field says so ("Outside the trip dates"). Never blocks.
 - Layover stays computed (Step 4).
 
-**6. New fields**
+**2. New fields**
 - Rental: optional **Confirmation #**. Hotel: optional **Confirmation #**. Both auto-uppercase.
 - The Dashboard cards add the matching lines (*added*): dates on Uber, Flight, Rental (pickup / return), Hotel (check-in / check-out), and Confirmation # on Rental and Hotel; `—` when empty.
 
-**7. Validation: gentle, never blocking**
+**3. Validation: gentle, never blocking**
 - Flight Confirmation #: auto-uppercase, live colour like KTN (green at exactly 6 letters/numbers, red otherwise, neutral when empty) with a short note while red. Seat # and the Rental and Hotel confirmations auto-uppercase only. Nothing else is checked.
 
-**8. Honesty about stubs**
+**4. Honesty about stubs**
 - The two **Suggest Address** buttons (Hotel, Destination) and every **Text Clipboard Parser** button are disabled with "Needs online lookup — coming soon" / "Coming soon". The flight "Auto-Filled via Flight Tracker API" box stays as disabled placeholders.
 - Dropdowns no longer look filled when they are not (*added*, fixes the Planner inconsistency): Airline, Rental Company, and Hotel Chain start on a blank "Select…" option, so what the Wizard shows is what is stored and what the Dashboard shows. Rental Class keeps its real default (Economy).
 
-**Reuse:** `buildNodes()`, the loyalty Add/Edit popup pattern, the two-tap delete, smart date inputs and the calendar, the KTN live colour, the Setup load/save pattern, the Dashboard card builder, the Export/Import code.
+**Reuse:** smart date inputs and the calendar, `S+N` (counts from the project's Start), the KTN live colour, the Dashboard card builder, `commitTrips()`.
 
-**Cleanup that rides along when built:** remove the Wizard inventory entries this resolves, the "dropdowns look filled but store nothing" item, and the Deferred items for hotel and rental dates and per-project data. Still open after this build: per-trip ✎ step overrides, Saved Addresses, step labels overlapping on long trips, and the Step 4 items.
+**Cleanup that rides along when built:** remove the remaining Wizard inventory entries this resolves, the "dropdowns look filled but store nothing" item, and the Deferred item for hotel and rental dates. Still open after this build: per-trip ✎ step overrides, Saved Addresses, step labels overlapping on long trips, and the Step 4 items.
 
-**Verification plan:** restore checklist (New, same or newer ticked, older unticked with the warning; ticking an older item replaces it; Restore selected disabled when nothing is ticked; trips not in the backup left alone; a deleted trip comes back as New; version 1 files; restore points use the same checklist; Before import point holds Setup, Favorites, and all trips; `modified` changes on edits and not on viewing); empty first launch (pipeline, Wizard, Dashboard messages); create, edit, delete (two-tap), required fields and blocked save; status and progress for Upcoming, Active, and Done using real dates; Past trips section; ordering; active project switching with the Wizard and Dashboard following and surviving a reload; the two switches hiding and showing the right steps (and data kept); all date defaults and the order they are computed in, a typed date surviving a project date change, clearing back to default, `S+N`, the outside-range note; new fields and Dashboard lines; flight confirmation colour; disabled stubs; "Select…" dropdowns; damaged and blocked storage; screenshots; all earlier suites re-run.
+**Verification plan:** all date defaults and the order they are computed in; a typed date surviving a project date change; clearing back to default; `S+N`; the outside-range note; new fields and Dashboard lines; flight confirmation colour; disabled stubs; "Select…" dropdowns; every date and field saving with the trip; screenshots; all earlier suites re-run.
 
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
 
-### Inventory: what Setup and the Trip Wizard really do today (updated after Build 15)
-Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished but does nothing real; "Missing" = not built or not designed yet. Setup now saves for real (Build 15); the Wizard still only keeps data for the session.
+### Inventory: what Setup and the Trip Wizard really do today (updated after Build 16)
+Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished but does nothing real; "Missing" = not built or not designed yet. Setup saves for real (Build 15) and so do trips (Build 16).
 
 **Setup, what is still missing**
 - Real address verification (USPS / CASS) and cached lat/long, and a nearest-airports list: Step 4, behind the disabled buttons.
@@ -205,10 +183,10 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Temperature and Distance units are saved but nothing shows a temperature or distance yet (weather, Distance to Home: Step 4).
 - Per-trip ✎ overrides on top of the step defaults: Wizard spec.
 
-**Trip Wizard**
-- Real: pipeline row highlight; Create New Project (name, smart Start/End dates, range calendar, End-before-Start check, `S+N`); step row built from state; forms for every step type (Uber, Flight(s), Layover, Rental, Hotel, Destination, Rental Return, Return Flight(s), Uber Home); Add Another Flight / Stop; airline, rental, and hotel dropdowns fed by Setup; smart times on Uber fields; Continue goes to the Dashboard.
-- Cosmetic: a project is only display text (name plus two date strings), so the three seeded projects and any new one share one trip; progress bars are fixed made-up percentages; the title is hardcoded "Muckleshoot Itinerary Wizard"; ✎ pins only toggle a look; the Text Clipboard Parser buttons do nothing; the flight "Auto-Filled via Flight Tracker API" box is disabled placeholders; "Trip Start Date" / "Trip End Date" / `Apr 29, 2026` are placeholder text, not real dates computed from the project; Layover is explanation text only; the two "Suggest Address" buttons insert fixed fake addresses; WhatsApp Report is an alert; a step counts as "done" only because it sits before the selected one.
-- Missing: a real project record (name, real start and end dates, status, its own trip data); switching, editing, deleting, or archiving projects; removing or reordering stops and flights; Hotel check-in/out and Rental pickup/drop-off dates; step dates derived from the project dates; fields not collected yet (rental confirmation # and pickup location, hotel confirmation #); validation (required fields, flight # and confirmation # formats); applying Trip Step Defaults and ✎ overrides; real step completion; saving anything.
+**Trip Wizard (after Build 16)**
+- Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; forms for every step type; Add Another Flight / Stop; dropdowns fed by Setup; smart times on Uber fields.
+- Cosmetic: ✎ pins only toggle a look; the Text Clipboard Parser buttons do nothing; the flight "Auto-Filled via Flight Tracker API" box is disabled placeholders; the date fields still show placeholder text ("Trip Start Date", "Trip End Date", `Apr 29, 2026`); Layover is explanation text only; the two "Suggest Address" buttons insert fixed fake addresses; a step counts as "done" only because it sits before the selected one. (Part 2 covers the dates, the stubs, and the dropdowns.)
+- Missing: step dates and Hotel / Rental dates (Part 2); removing or reordering stops and flights; fields not collected yet (rental and hotel confirmation #; Part 2); validation (Part 2); per-trip ✎ overrides; real step completion.
 
 ### Inconsistency: dropdowns look filled but store nothing
 Found while verifying Build 14. Untouched Wizard dropdowns display their first option (airline Southwest, rental company National, hotel chain Marriott) but the value is only stored once you change the dropdown, so the Dashboard shows `—` where the Wizard visibly shows a name. Open question: store the visible first option automatically, or start the dropdowns on a blank "Select…" option?
@@ -231,7 +209,6 @@ Found while building Build 15. Loyalty names and IDs, Favorite captions and icon
 
 ### Deferred on purpose
 - Hotel Check-in/Check-out and Rental Pickup/Drop-off date fields (range calendar could apply later).
-- Per-project wizard data (the wizard is one shared dataset; pipeline row highlight is visual only; wizard title is hardcoded "Muckleshoot Itinerary Wizard").
 - Trip Step Defaults feeding the wizard, and ✎ per-trip overrides persisting.
 
 ### Step 4: real logic (needs data, API, or hardware)

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v0.91) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v0.92) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -10,7 +10,7 @@
 <title>Crosswind</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Michroma&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 
@@ -132,34 +132,22 @@
   <div class="panel">
     <div class="card">
       <div class="card-title">Active Pipeline</div>
-      <div id="pipelineList">
-        <div class="proj-row selected">
-          <div class="proj-dot"></div>
-          <div class="proj-name"><div class="nm">Muckleshoot Go Live Support</div><div class="dt">Apr 27, 2025 – Sep 21, 2025</div></div>
-          <div class="proj-bar"><i style="width:70%"></i></div>
-        </div>
-        <div class="proj-row">
-          <div class="proj-dot"></div>
-          <div class="proj-name"><div class="nm">Ray County Special Project</div><div class="dt">Nov 24, 2025 – Jun 13, 2026</div></div>
-          <div class="proj-bar amber"><i style="width:45%"></i></div>
-        </div>
-        <div class="proj-row">
-          <div class="proj-dot"></div>
-          <div class="proj-name"><div class="nm">Dallas System Upgrade</div><div class="dt">Nov 30, 2025 – Jun 13, 2026</div></div>
-          <div class="proj-bar"><i style="width:10%"></i></div>
-        </div>
-      </div>
+      <div id="pipelineList"></div>
       <div class="pipeline-footer">
         <span class="chip add" id="newProjectBtn">+ Create New Project</span>
-        <button class="btn primary small" id="whatsappReportBtn">📋 WhatsApp Report</button>
+        <button class="btn primary small" id="whatsappReportBtn" disabled title="Coming soon">📋 WhatsApp Report</button>
       </div>
+      <div class="fld-note" style="text-align:right;">WhatsApp Report: coming soon</div>
     </div>
 
     <div class="card">
-      <div class="card-title" style="color:var(--amber);">Muckleshoot Itinerary Wizard</div>
-      <div class="node-track" id="nodeTrack"></div>
-      <div class="fld-note" style="text-align:center; margin-top:2px;">✎ = override this step's name/icon for this trip only.</div>
-      <div id="stepFormContainer"></div>
+      <div class="card-title" id="wizTitle" style="color:var(--amber);">Itinerary Wizard</div>
+      <div class="empty-row" id="wizardEmpty">Create a project to start planning</div>
+      <div id="wizardBody" style="display:none;">
+        <div class="node-track" id="nodeTrack"></div>
+        <div class="fld-note" style="text-align:center; margin-top:2px;">✎ = override this step's name/icon for this trip only.</div>
+        <div id="stepFormContainer"></div>
+      </div>
     </div>
   </div>
   <div class="btn-row">
@@ -170,7 +158,7 @@
 
 <div class="modal-overlay" id="projectModal">
   <div class="modal-card">
-    <div class="modal-title">Create New Project</div>
+    <div class="modal-title" id="projModalTitle">Create New Project</div>
     <label class="fld">Trip Name</label>
     <input type="text" id="projNameInput" placeholder="e.g. Ray County Special Project">
     <div class="fld-grid" style="margin-top:4px;">
@@ -179,7 +167,10 @@
     </div>
     <div class="fld-note" id="projDateNote" style="display:none;">End date cleared — must be on or after the start date</div>
     <button class="suggest-btn" id="projCalBtn" style="margin-top:6px;">📅 Pick Date Range</button>
+    <div class="unit-row" style="margin-top:8px;"><span class="ul">Starts at home</span><div class="unit-switch" id="projStartsHome"><button class="on" data-val="yes">Yes</button><button data-val="no">No</button></div></div>
+    <div class="unit-row"><span class="ul">Ends at home</span><div class="unit-switch" id="projEndsHome"><button class="on" data-val="yes">Yes</button><button data-val="no">No</button></div></div>
     <div class="btn-row" style="margin-top:10px;">
+      <button class="btn ghost" id="projDeleteBtn" style="display:none; color: var(--red);">Delete</button>
       <button class="btn ghost" id="projCancelBtn">Cancel</button>
       <button class="btn primary grow" id="projSaveBtn">Save</button>
     </div>
@@ -294,12 +285,13 @@
 <!-- Import confirm popup -->
 <div class="modal-overlay" id="importConfirmModal">
   <div class="modal-card">
-    <div class="modal-title">Replace Setup &amp; Favorites?</div>
-    <div class="card-sub">Replace your Setup and Favorites with:</div>
+    <div class="modal-title">Restore from backup</div>
     <div class="return-ref"><span id="importConfirmName"></span><div class="rr-sub" id="importConfirmDate"></div></div>
+    <div class="card-sub">Choose what to restore:</div>
+    <div id="restoreChecklist"></div>
     <div class="btn-row" style="margin-top:10px;">
       <button class="btn ghost" id="importConfirmCancel">Cancel</button>
-      <button class="btn primary grow" id="importReplaceBtn">Replace</button>
+      <button class="btn primary grow" id="importReplaceBtn">Restore selected</button>
     </div>
   </div>
 </div>
@@ -317,7 +309,7 @@
   </div>
 </div>
 
-<script src="script.js?v=5"></script>
+<script src="script.js?v=6"></script>
 
 </body>
 </html>

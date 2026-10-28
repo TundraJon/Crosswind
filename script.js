@@ -14,7 +14,7 @@
   document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showScreen(b.dataset.goto)));
 
   /* ============ SETUP: unit toggles ============ */
-  document.querySelectorAll('.unit-switch').forEach(group => {
+  document.querySelectorAll('#screenSetup .unit-switch').forEach(group => {
     group.querySelectorAll('button').forEach(btn => {
       btn.addEventListener('click', () => { group.querySelectorAll('button').forEach(b => b.classList.remove('on')); btn.classList.add('on'); saveProfile(); });
     });
@@ -172,7 +172,7 @@
   const homeAirportInput = document.getElementById('homeAirportInput');
   const ktnInput = document.getElementById('ktnInput');
   const ktnNote = document.getElementById('ktnNote');
-  const unitGroups = document.querySelectorAll('.unit-switch');
+  const unitGroups = document.querySelectorAll('#screenSetup .unit-switch');
   const stepSystem = [
     { sys: 'Home', icon: '🏠' }, { sys: 'Uber', icon: '🚙' },
     { sys: 'Flight (Initial)', icon: '🛫' }, { sys: 'Layover', icon: '🧳' },
@@ -187,7 +187,7 @@
 
   function emptyProfile() {
     return { v: 1, address: '', homeAirport: '', programs: [], touchless: {}, ktn: '', ktnExp: '',
-      units: { speed: 'mph', temp: 'f', dist: 'mi' }, stepDefaults: {} };
+      units: { speed: 'mph', temp: 'f', dist: 'mi' }, stepDefaults: {}, modified: '' };
   }
   function normalizeProfile(raw) {
     const p = emptyProfile();
@@ -195,6 +195,7 @@
     const str = v => typeof v === 'string' ? v : '';
     p.address = str(raw.address); p.homeAirport = str(raw.homeAirport);
     p.ktn = str(raw.ktn).toUpperCase().slice(0, 9); p.ktnExp = str(raw.ktnExp);
+    p.modified = (typeof raw.modified === 'string' && !isNaN(Date.parse(raw.modified))) ? raw.modified : '';
     if (Array.isArray(raw.programs)) {
       p.programs = raw.programs
         .filter(x => x && ['airline', 'rental', 'hotel'].indexOf(x.type) >= 0 && typeof x.name === 'string' && cleanText(x.name).trim())
@@ -226,13 +227,21 @@
     unitGroups.forEach(g => { u[g.dataset.unitGroup] = g.querySelector('button.on').dataset.val; });
     return u;
   }
-  function snapshotProfile() {
+  let profileModified = '';
+  let lastProfileSnap = '';
+  function profileContent() {
     const t = {}; Object.keys(touchless).forEach(k => { if (touchless[k]) t[k] = true; });
     return { v: 1, address: addrInput.value, homeAirport: homeAirportInput.value,
       programs: programs.map(p => ({ type: p.type, name: p.name, id: p.id })), touchless: t,
       ktn: ktnInput.value, ktnExp: ktnExpInput.value, units: currentUnits(), stepDefaults: JSON.parse(JSON.stringify(stepCustom)) };
   }
-  function saveProfile() { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(snapshotProfile())); } catch (e) {} }
+  function snapshotProfile() { return Object.assign(profileContent(), { modified: profileModified }); }
+  function saveProfile() {
+    const c = JSON.stringify(profileContent());
+    if (c !== lastProfileSnap) { if (lastProfileSnap !== '') profileModified = new Date().toISOString(); lastProfileSnap = c; }
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(snapshotProfile())); } catch (e) {}
+  }
+  function touchProfile() { profileModified = new Date().toISOString(); saveProfile(); }
   function updateKtn() {
     const v = ktnInput.value, good = /^[A-Z0-9]{9}$/.test(v);
     ktnInput.classList.toggle('ktn-ok', good);
@@ -246,6 +255,7 @@
     unitGroups.forEach(g => g.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.val === p.units[g.dataset.unitGroup])));
     stepSystem.forEach(r => { const c = stepCustom[r.sys] || { name: '', icon: '' }; defaultsInputs[r.sys].name.value = c.name; defaultsInputs[r.sys].icon.value = c.icon; });
     updateKtn();
+    profileModified = p.modified || ''; lastProfileSnap = JSON.stringify(profileContent());
     renderLoyaltyList(); renderTsaAirlines(); renderNodeTrack(); renderStepForm();
   }
   addrInput.addEventListener('input', saveProfile);
@@ -458,42 +468,9 @@
     });
   });
 
-  document.getElementById('newProjectBtn').addEventListener('click', () => {
-    document.getElementById('projNameInput').value = ''; projStartInput.value = ''; projEndInput.value = ''; projDateNote.style.display = 'none';
-    projectModal.classList.add('open');
-  });
-  document.getElementById('projCancelBtn').addEventListener('click', () => projectModal.classList.remove('open'));
-  projectModal.addEventListener('click', (e) => { if (e.target === projectModal) projectModal.classList.remove('open'); });
-  document.getElementById('projSaveBtn').addEventListener('click', () => {
-    const name = document.getElementById('projNameInput').value.trim();
-    if (!name) { document.getElementById('projNameInput').focus(); return; }
-    if (/^S\s*(\+\s*\d+)?$/i.test(projEndInput.value.trim()) && !parseSmartDate(projEndInput.value, new Date(), parseSmartDate(projStartInput.value, new Date()))) {
-      projDateNote.textContent = 'Start date was never filled in — S+N needs a start date';
-      projDateNote.style.display = 'block'; setTimeout(() => projDateNote.style.display = 'none', 3000);
-      projStartInput.focus(); return;
-    }
-    const start = projStartInput.value || '—', end = projEndInput.value || '—';
-    const row = document.createElement('div');
-    row.className = 'proj-row';
-    row.innerHTML = '<div class="proj-dot"></div><div class="proj-name"><div class="nm">' + name + '</div><div class="dt">' + start + ' – ' + end + '</div></div><div class="proj-bar"><i style="width:0%"></i></div>';
-    wirePipelineRowSelect(row);
-    pipelineList.appendChild(row);
-    projectModal.classList.remove('open');
-  });
-  document.getElementById('whatsappReportBtn').addEventListener('click', () => {
-    alert('WhatsApp Report layout/content is a Step 4 item — not designed yet.');
-  });
-
-  /* Tapping a pipeline row (dot or name) selects/highlights it — visual only for now */
-  function wirePipelineRowSelect(row) {
-    row.addEventListener('click', () => {
-      pipelineList.querySelectorAll('.proj-row').forEach(r => r.classList.remove('selected'));
-      row.classList.add('selected');
-    });
-  }
-  pipelineList.querySelectorAll('.proj-row').forEach(wirePipelineRowSelect);
-
   /* ============ TRIP WIZARD: full round-trip, multi-stop state ============ */
+  let trips = [];
+  let activeTripId = '';
   function newStop() {
     return {
       destination: { name: '', address: '', contact: '', phone: '' },
@@ -524,8 +501,12 @@
 
   function buildNodes() {
     const nodes = [];
-    nodes.push({ key: 'home', icon: stepIcon('Home'), label: stepName('Home'), type: 'home' });
-    nodes.push({ key: 'uber-out', icon: stepIcon('Uber'), label: stepName('Uber'), type: 'uberOut' });
+    const trip = activeTrip();
+    const startsHome = !trip || trip.startsAtHome, endsHome = !trip || trip.endsAtHome;
+    if (startsHome) {
+      nodes.push({ key: 'home', icon: stepIcon('Home'), label: stepName('Home'), type: 'home' });
+      nodes.push({ key: 'uber-out', icon: stepIcon('Uber'), label: stepName('Uber'), type: 'uberOut' });
+    }
     const multi = wizardState.stops.length > 1;
 
     wizardState.stops.forEach((stop, si) => {
@@ -542,18 +523,26 @@
       nodes.push({ key: 'stop' + si + '-rentalreturn', icon: stepIcon('Rental Return'), label: multi ? (stepName('Rental Return') + ' — ' + tag) : stepName('Rental Return'), type: 'rentalReturn', stopIndex: si, optional: true });
     });
 
-    wizardState.returnFlights.forEach((f, fi) => {
-      const m = flightNodeMeta(wizardState.returnFlights, fi);
-      nodes.push({ key: 'return-flight-' + fi, icon: m.icon, label: 'Return: ' + m.base, type: 'returnFlight', flightIndex: fi });
-      if (fi < wizardState.returnFlights.length - 1) nodes.push({ key: 'return-layover-' + fi, icon: stepIcon('Layover'), label: stepName('Layover'), type: 'layover', optional: true, betweenIndex: fi, isReturn: true });
-    });
+    if (endsHome) {
+      wizardState.returnFlights.forEach((f, fi) => {
+        const m = flightNodeMeta(wizardState.returnFlights, fi);
+        nodes.push({ key: 'return-flight-' + fi, icon: m.icon, label: 'Return: ' + m.base, type: 'returnFlight', flightIndex: fi });
+        if (fi < wizardState.returnFlights.length - 1) nodes.push({ key: 'return-layover-' + fi, icon: stepIcon('Layover'), label: stepName('Layover'), type: 'layover', optional: true, betweenIndex: fi, isReturn: true });
+      });
 
-    nodes.push({ key: 'uber-home', icon: stepIcon('Uber Home'), label: stepName('Uber Home'), type: 'uberHome' });
+      nodes.push({ key: 'uber-home', icon: stepIcon('Uber Home'), label: stepName('Uber Home'), type: 'uberHome' });
+    }
     return nodes;
   }
 
+  function firstStepKey(nodes) { return (nodes[0].type === 'home' && nodes[1]) ? nodes[1].key : nodes[0].key; }
+  function ensureWizardSelection() {
+    const nodes = buildNodes();
+    if (!nodes.some(n => n.key === wizardState.selected)) wizardState.selected = firstStepKey(nodes);
+  }
   const nodeTrack = document.getElementById('nodeTrack');
   function renderNodeTrack() {
+    ensureWizardSelection();
     const nodes = buildNodes();
     const selIdx = nodes.findIndex(n => n.key === wizardState.selected);
     nodeTrack.innerHTML = '';
@@ -599,6 +588,7 @@
   }
 
   function renderStepForm() {
+    ensureWizardSelection();
     const nodes = buildNodes();
     const node = nodes.find(n => n.key === wizardState.selected);
     if (!node) return;
@@ -874,10 +864,17 @@
     }
   }
   function renderDash() {
-    const selRow = pipelineList.querySelector('.proj-row.selected .nm');
-    dashProject.textContent = 'Active: ' + (selRow ? selRow.textContent : '—');
+    const at = activeTrip();
+    dashProject.textContent = 'Active: ' + (at ? at.name : '—');
+    if (!at) {
+      dashTrack.innerHTML = '';
+      dashCard.innerHTML = '<div class="qc-line">No active trip — create one in Trip Wizard</div>';
+      dashCard.style.display = 'block'; cardAir.style.display = 'none';
+      dashAddr = ''; dashDock.style.display = 'none';
+      return;
+    }
     const nodes = buildNodes();
-    if (!nodes.some(n => n.key === dashSelected)) dashSelected = nodes[1].key;
+    if (!nodes.some(n => n.key === dashSelected)) dashSelected = firstStepKey(nodes);
     const selIdx = nodes.findIndex(n => n.key === dashSelected);
     const node = nodes[selIdx];
     dashTrack.innerHTML = '';
@@ -925,6 +922,236 @@
       copyAddrBtn.innerHTML = '[ ✓ Copied ]<small>Paste into your GPS app</small>';
       setTimeout(() => { copyAddrBtn.classList.remove('copied'); copyAddrBtn.innerHTML = original; }, 1600);
     } catch (e) {}
+  });
+
+  /* ============ TRIPS: projects, pipeline, saving ============ */
+  const TRIPS_KEY = 'crosswindTrips', ACTIVE_KEY = 'crosswindActiveTrip';
+  const wizTitle = document.getElementById('wizTitle');
+  const wizardEmpty = document.getElementById('wizardEmpty');
+  const wizardBody = document.getElementById('wizardBody');
+  const projModalTitle = document.getElementById('projModalTitle');
+  const projNameInput = document.getElementById('projNameInput');
+  const projDeleteBtn = document.getElementById('projDeleteBtn');
+  let tripSnaps = {};
+  let editingTripId = null;
+  let pastOpen = false;
+
+  function newItinerary() {
+    return { uberOut: { pickup: '', dropoff: '' }, stops: [ newStop() ], returnFlights: [ { airline: '', flightNum: '', conf: '', seat: '' } ], uberHome: { pickup: '', dropoff: '' } };
+  }
+  function newTripId() { return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function toISODate(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function fromISODate(str) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str || '');
+    if (!m) return null;
+    const d = new Date(+m[1], +m[2] - 1, +m[3]);
+    return (d.getFullYear() === +m[1] && d.getMonth() === +m[2] - 1 && d.getDate() === +m[3]) ? d : null;
+  }
+  function activeTrip() { return trips.find(t => t.id === activeTripId) || null; }
+
+  function normalizeFlight(f) {
+    const s = v => typeof v === 'string' ? cleanText(v) : '';
+    f = (f && typeof f === 'object') ? f : {};
+    return { airline: s(f.airline), flightNum: s(f.flightNum), conf: s(f.conf), seat: s(f.seat) };
+  }
+  function normalizeItinerary(raw) {
+    if (!raw || typeof raw !== 'object') return newItinerary();
+    const s = v => typeof v === 'string' ? cleanText(v) : '';
+    const times = o => ({ pickup: s(o && o.pickup), dropoff: s(o && o.dropoff) });
+    const out = { uberOut: times(raw.uberOut), uberHome: times(raw.uberHome), stops: [], returnFlights: [] };
+    (Array.isArray(raw.stops) ? raw.stops : []).forEach(st => {
+      if (!st || typeof st !== 'object') return;
+      const d = st.destination || {}, r = st.rental || {}, h = st.hotel || {};
+      const flights = (Array.isArray(st.flights) ? st.flights : []).map(normalizeFlight);
+      out.stops.push({
+        destination: { name: s(d.name), address: s(d.address), contact: s(d.contact), phone: s(d.phone) },
+        flights: flights.length ? flights : [ normalizeFlight() ],
+        rental: { company: s(r.company), cls: s(r.cls) || 'Economy', color: s(r.color), plate: s(r.plate) },
+        hotel: { chain: s(h.chain), name: s(h.name), address: s(h.address), room: s(h.room) }
+      });
+    });
+    if (!out.stops.length) out.stops.push(newStop());
+    out.returnFlights = (Array.isArray(raw.returnFlights) ? raw.returnFlights : []).map(normalizeFlight);
+    if (!out.returnFlights.length) out.returnFlights.push(normalizeFlight());
+    return out;
+  }
+  function normalizeTrip(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const name = typeof raw.name === 'string' ? cleanText(raw.name).trim() : '';
+    const s = fromISODate(raw.start), e = fromISODate(raw.end);
+    if (!name || !s || !e || e < s) return null;
+    return {
+      id: (typeof raw.id === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(raw.id)) ? raw.id : newTripId(),
+      name, start: raw.start, end: raw.end,
+      startsAtHome: raw.startsAtHome !== false, endsAtHome: raw.endsAtHome !== false,
+      modified: (typeof raw.modified === 'string' && !isNaN(Date.parse(raw.modified))) ? raw.modified : '',
+      itinerary: normalizeItinerary(raw.itinerary)
+    };
+  }
+  function normalizeTripList(list) {
+    const seen = {}, out = [];
+    (Array.isArray(list) ? list : []).forEach(raw => {
+      const t = normalizeTrip(raw);
+      if (!t) return;
+      if (seen[t.id]) t.id = newTripId();
+      seen[t.id] = true; out.push(t);
+    });
+    return out;
+  }
+
+  function dayStart(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function tripStatus(t, now) {
+    const today = dayStart(now || new Date()), s = fromISODate(t.start), e = fromISODate(t.end);
+    if (today < s) return 'upcoming';
+    if (today > e) return 'done';
+    return 'active';
+  }
+  function tripProgress(t, now) {
+    const st = tripStatus(t, now);
+    if (st === 'upcoming') return 0;
+    if (st === 'done') return 100;
+    const today = dayStart(now || new Date()), s = fromISODate(t.start), e = fromISODate(t.end);
+    const total = Math.round((e - s) / 864e5) + 1, elapsed = Math.round((today - s) / 864e5) + 1;
+    return Math.max(0, Math.min(100, Math.round(elapsed / total * 100)));
+  }
+  function splitTrips() {
+    const now = new Date();
+    const byStart = (a, b) => fromISODate(a.start) - fromISODate(b.start);
+    return {
+      active: trips.filter(t => tripStatus(t, now) === 'active').sort(byStart),
+      upcoming: trips.filter(t => tripStatus(t, now) === 'upcoming').sort(byStart),
+      past: trips.filter(t => tripStatus(t, now) === 'done').sort((a, b) => fromISODate(b.end) - fromISODate(a.end))
+    };
+  }
+  function defaultActiveId() { const g = splitTrips(); const l = g.active.concat(g.upcoming); return l.length ? l[0].id : ''; }
+
+  function tripContent(t) { return JSON.stringify([t.name, t.start, t.end, t.startsAtHome, t.endsAtHome, t.itinerary]); }
+  function saveTrips() { try { localStorage.setItem(TRIPS_KEY, JSON.stringify({ v: 1, trips })); } catch (e) {} }
+  function saveActive() { try { localStorage.setItem(ACTIVE_KEY, activeTripId); } catch (e) {} }
+  function commitTrips() {
+    let changed = false;
+    trips.forEach(t => {
+      const c = tripContent(t);
+      if (tripSnaps[t.id] !== c) {
+        if (tripSnaps[t.id] !== undefined) t.modified = new Date().toISOString();
+        tripSnaps[t.id] = c; changed = true;
+      }
+    });
+    if (changed) saveTrips();
+  }
+
+  function loadItinerary() {
+    const t = activeTrip(), it = t ? t.itinerary : newItinerary();
+    wizardState.uberOut = it.uberOut; wizardState.stops = it.stops; wizardState.returnFlights = it.returnFlights; wizardState.uberHome = it.uberHome;
+    wizardState.editingPins = {}; wizardState.selected = '';
+  }
+  function renderWizardShell() {
+    const t = activeTrip();
+    wizTitle.textContent = t ? t.name + ' Itinerary Wizard' : 'Itinerary Wizard';
+    wizardBody.style.display = t ? '' : 'none';
+    wizardEmpty.style.display = t ? 'none' : 'block';
+  }
+  function fmtTripDates(t) { return fmtDate(fromISODate(t.start)) + ' – ' + fmtDate(fromISODate(t.end)); }
+  function tripRow(t) {
+    const st = tripStatus(t), row = document.createElement('div');
+    row.className = 'proj-row' + (t.id === activeTripId ? ' selected' : '');
+    row.dataset.id = t.id;
+    row.innerHTML = '<div class="proj-dot"></div><div class="proj-name"><div class="nm"></div><div class="dt"></div></div><button class="proj-edit" title="Edit project">✎</button><div class="proj-bar' + (st === 'upcoming' ? ' amber' : '') + '"><i></i></div>';
+    row.querySelector('.nm').textContent = t.name;
+    row.querySelector('.dt').textContent = fmtTripDates(t);
+    row.querySelector('.proj-bar i').style.width = tripProgress(t) + '%';
+    row.addEventListener('click', () => setActiveTrip(t.id));
+    row.querySelector('.proj-edit').addEventListener('click', (e) => { e.stopPropagation(); openProjectModal(t.id); });
+    return row;
+  }
+  function renderPipeline() {
+    pipelineList.innerHTML = '';
+    if (!trips.length) { const e = document.createElement('div'); e.className = 'empty-row'; e.textContent = 'No trips yet — create one'; pipelineList.appendChild(e); return; }
+    const g = splitTrips();
+    g.active.concat(g.upcoming).forEach(t => pipelineList.appendChild(tripRow(t)));
+    if (g.past.length) {
+      const tg = document.createElement('div'); tg.className = 'past-toggle';
+      tg.textContent = 'Past trips (' + g.past.length + ') ' + (pastOpen ? '▾' : '▸');
+      tg.addEventListener('click', () => { pastOpen = !pastOpen; renderPipeline(); });
+      pipelineList.appendChild(tg);
+      if (pastOpen) g.past.forEach(t => pipelineList.appendChild(tripRow(t)));
+    }
+  }
+  function refreshTripUI() { renderPipeline(); renderWizardShell(); renderNodeTrack(); renderStepForm(); }
+  function setActiveTrip(id) { activeTripId = id; saveActive(); dashSelected = ''; loadItinerary(); refreshTripUI(); }
+  function loadTrips() {
+    let list = [], act = '';
+    try { const raw = JSON.parse(localStorage.getItem(TRIPS_KEY)); if (raw && Array.isArray(raw.trips)) list = normalizeTripList(raw.trips); } catch (e) {}
+    try { act = localStorage.getItem(ACTIVE_KEY) || ''; } catch (e) {}
+    trips = list; tripSnaps = {};
+    trips.forEach(t => { tripSnaps[t.id] = tripContent(t); });
+    activeTripId = trips.some(t => t.id === act) ? act : defaultActiveId();
+    dashSelected = ''; loadItinerary(); refreshTripUI();
+  }
+
+  /* ---- Create / Edit project popup ---- */
+  function getYN(id) { return document.querySelector('#' + id + ' button.on').dataset.val === 'yes'; }
+  function setYN(id, yes) { document.querySelectorAll('#' + id + ' button').forEach(b => b.classList.toggle('on', (b.dataset.val === 'yes') === yes)); }
+  ['projStartsHome', 'projEndsHome'].forEach(id => {
+    document.querySelectorAll('#' + id + ' button').forEach(btn => btn.addEventListener('click', () => { document.querySelectorAll('#' + id + ' button').forEach(b => b.classList.remove('on')); btn.classList.add('on'); }));
+  });
+  let projDeleteTimer = null;
+  function disarmProjDelete() { clearTimeout(projDeleteTimer); projDeleteTimer = null; projDeleteBtn.textContent = 'Delete'; }
+  function showProjNote(text) { projDateNote.textContent = text; projDateNote.style.display = 'block'; setTimeout(() => projDateNote.style.display = 'none', 3000); }
+  function openProjectModal(id) {
+    disarmProjDelete();
+    editingTripId = id || null;
+    const t = id ? trips.find(x => x.id === id) : null;
+    projModalTitle.textContent = t ? 'Edit Project' : 'Create New Project';
+    projNameInput.value = t ? t.name : '';
+    projStartInput.value = t ? fmtDate(fromISODate(t.start)) : '';
+    projEndInput.value = t ? fmtDate(fromISODate(t.end)) : '';
+    setYN('projStartsHome', t ? t.startsAtHome : true); setYN('projEndsHome', t ? t.endsAtHome : true);
+    projDateNote.style.display = 'none';
+    projDeleteBtn.style.display = t ? 'inline-block' : 'none';
+    projectModal.classList.add('open');
+  }
+  function closeProjectModal() { disarmProjDelete(); projectModal.classList.remove('open'); }
+  document.getElementById('newProjectBtn').addEventListener('click', () => openProjectModal(null));
+  document.getElementById('projCancelBtn').addEventListener('click', closeProjectModal);
+  projectModal.addEventListener('click', (e) => { if (e.target === projectModal) closeProjectModal(); });
+  document.getElementById('projSaveBtn').addEventListener('click', () => {
+    const name = cleanText(projNameInput.value).trim();
+    if (name && /^S\s*(\+\s*\d+)?$/i.test(projEndInput.value.trim()) && !parseSmartDate(projEndInput.value, new Date(), parseSmartDate(projStartInput.value, new Date()))) {
+      showProjNote('Start date was never filled in — S+N needs a start date');
+      projStartInput.focus(); return;
+    }
+    const s = parseSmartDate(projStartInput.value, new Date());
+    const e = parseSmartDate(projEndInput.value, new Date(), s);
+    const missing = [];
+    if (!name) missing.push('Trip Name'); if (!s) missing.push('Start Date'); if (!e) missing.push('End Date');
+    if (missing.length) { showProjNote('Missing: ' + missing.join(', ')); (!name ? projNameInput : !s ? projStartInput : projEndInput).focus(); return; }
+    if (e < s) { showProjNote(projEndClearedMsg); return; }
+    const startsAtHome = getYN('projStartsHome'), endsAtHome = getYN('projEndsHome');
+    if (editingTripId) {
+      const t = trips.find(x => x.id === editingTripId);
+      t.name = name; t.start = toISODate(s); t.end = toISODate(e); t.startsAtHome = startsAtHome; t.endsAtHome = endsAtHome;
+      commitTrips();
+    } else {
+      const t = { id: newTripId(), name, start: toISODate(s), end: toISODate(e), startsAtHome, endsAtHome, modified: new Date().toISOString(), itinerary: newItinerary() };
+      trips.push(t); tripSnaps[t.id] = tripContent(t);
+      activeTripId = t.id; saveActive(); saveTrips(); dashSelected = ''; loadItinerary();
+    }
+    closeProjectModal(); refreshTripUI();
+  });
+  projDeleteBtn.addEventListener('click', () => {
+    if (!editingTripId) return;
+    if (!projDeleteTimer) { projDeleteBtn.textContent = 'Tap again to delete'; projDeleteTimer = setTimeout(disarmProjDelete, 3000); return; }
+    const id = editingTripId;
+    trips = trips.filter(t => t.id !== id); delete tripSnaps[id];
+    if (activeTripId === id) { activeTripId = defaultActiveId(); saveActive(); dashSelected = ''; loadItinerary(); }
+    saveTrips(); closeProjectModal(); refreshTripUI();
+  });
+
+  /* Wizard and Dashboard edits write straight into the active trip; save whenever something really changed */
+  ['input', 'change', 'focusout', 'click'].forEach(ev => {
+    document.getElementById('stepFormContainer').addEventListener(ev, commitTrips);
+    dashCard.addEventListener(ev, commitTrips);
   });
 
   /* ============ IN-FLIGHT REQUEST ============ */
@@ -986,7 +1213,7 @@
   const favDeleteBtn = document.getElementById('favDeleteBtn');
   let favEditingIndex = null;
 
-  function saveFavorites() { try { localStorage.setItem('crosswindFavorites', JSON.stringify(favorites)); } catch(e) {} }
+  function saveFavorites() { try { localStorage.setItem('crosswindFavorites', JSON.stringify(favorites)); } catch(e) {} touchProfile(); }
 
   function renderFavorites() {
     favGrid.innerHTML = '';
@@ -1042,6 +1269,8 @@
   const restoreList = document.getElementById('restoreList');
   const importNote = document.getElementById('importNote');
   const importConfirmModal = document.getElementById('importConfirmModal');
+  const restoreChecklist = document.getElementById('restoreChecklist');
+  const importReplaceBtn = document.getElementById('importReplaceBtn');
   let pendingImport = null;
   let backupNoteTimer = null;
 
@@ -1050,6 +1279,12 @@
   function fmtStamp(iso) {
     const d = new Date(iso);
     return isNaN(d) ? 'unknown date' : d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+  function shortDate(iso, withYear, withTime) {
+    const d = new Date(iso);
+    if (isNaN(d)) return 'unknown';
+    const day = d.toLocaleDateString('en-US', withYear ? { month: 'short', day: 'numeric', year: 'numeric' } : { month: 'short', day: 'numeric' });
+    return withTime ? day + ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : day;
   }
   function normalizeFavorites(raw) {
     const out = [null, null, null];
@@ -1064,7 +1299,8 @@
     return out;
   }
   function buildBackup() {
-    return { app: 'crosswind', version: 1, created: new Date().toISOString(), profile: snapshotProfile(), favorites: favorites.slice() };
+    return { app: 'crosswind', version: 2, created: new Date().toISOString(), profile: snapshotProfile(), favorites: favorites.slice(),
+      trips: JSON.parse(JSON.stringify(trips)), activeTrip: activeTripId };
   }
   function readRestorePoints() {
     try {
@@ -1074,18 +1310,21 @@
   }
   function addRestorePoint(label, backup) {
     const pts = readRestorePoints();
-    pts.unshift({ label, created: backup.created, profile: backup.profile, favorites: backup.favorites });
+    pts.unshift({ label, created: backup.created, profile: backup.profile, favorites: backup.favorites, trips: backup.trips || [], activeTrip: backup.activeTrip || '' });
     try { localStorage.setItem(RESTORE_KEY, JSON.stringify(pts.slice(0, 3))); } catch (e) {}
   }
-  function summarize(profile, favs) {
-    const np = (profile.programs || []).length, nf = (favs || []).filter(Boolean).length;
-    return np + (np === 1 ? ' program' : ' programs') + ' · ' + nf + (nf === 1 ? ' favorite' : ' favorites');
+  function summarize(profile, favs, tr) {
+    const np = (profile.programs || []).length, nf = (favs || []).filter(Boolean).length, nt = (tr || []).length;
+    return np + (np === 1 ? ' program' : ' programs') + ' · ' + nf + (nf === 1 ? ' favorite' : ' favorites') + ' · ' + nt + (nt === 1 ? ' trip' : ' trips');
   }
   function showBackupNote(text) {
     backupNote.textContent = text; backupNote.style.display = 'block';
     clearTimeout(backupNoteTimer); backupNoteTimer = setTimeout(() => { backupNote.style.display = 'none'; }, 4000);
   }
   function showImportNote(text) { importNote.textContent = text; importNote.style.display = 'block'; }
+  function pendingFrom(name, created, rawProfile, rawFavorites, rawTrips) {
+    return { name, created, profile: normalizeProfile(rawProfile), favorites: normalizeFavorites(rawFavorites), trips: normalizeTripList(rawTrips), rows: [] };
+  }
   function renderRestoreList() {
     restoreList.innerHTML = '';
     const pts = readRestorePoints();
@@ -1095,16 +1334,45 @@
       const info = document.createElement('div');
       const b = document.createElement('b'); b.textContent = pt.label;
       info.appendChild(b); info.appendChild(document.createTextNode(' — ' + fmtStamp(pt.created)));
-      const sm = document.createElement('small'); sm.textContent = summarize(pt.profile, pt.favorites); info.appendChild(sm);
+      const sm = document.createElement('small'); sm.textContent = summarize(pt.profile, pt.favorites, pt.trips); info.appendChild(sm);
       const btn = document.createElement('button'); btn.className = 'btn ghost small'; btn.textContent = 'Restore';
-      btn.addEventListener('click', () => askImport({ name: pt.label, created: pt.created, profile: normalizeProfile(pt.profile), favorites: normalizeFavorites(pt.favorites) }));
+      btn.addEventListener('click', () => askImport(pendingFrom(pt.label, pt.created, pt.profile, pt.favorites, pt.trips)));
       row.appendChild(info); row.appendChild(btn); restoreList.appendChild(row);
     });
+  }
+  /* Compare a backup item with the copy on the device: older backups start unticked with a warning */
+  function compareItem(backupIso, currentIso, existsHere) {
+    if (!existsHere) return { text: 'New', checked: true, warn: false };
+    const b = Date.parse(backupIso), c = currentIso ? Date.parse(currentIso) : NaN;
+    if (isNaN(b)) return { text: 'Backup date unknown', checked: false, warn: true };
+    if (isNaN(c) || b >= c) return { text: 'Replaces your copy', checked: true, warn: false };
+    const withYear = new Date(backupIso).getFullYear() !== new Date(currentIso).getFullYear();
+    const sameDay = shortDate(backupIso, true) === shortDate(currentIso, true);
+    return { text: 'Backup is older (' + shortDate(backupIso, withYear, sameDay) + ' vs. your current ' + shortDate(currentIso, withYear, sameDay) + ')', checked: false, warn: true };
+  }
+  function updateRestoreButton() { importReplaceBtn.disabled = !(pendingImport && pendingImport.rows.some(r => r.cb.checked)); }
+  function addCheckRow(pending, kind, label, cmp, trip) {
+    const row = document.createElement('label'); row.className = 'restore-row check';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = cmp.checked;
+    cb.addEventListener('change', updateRestoreButton);
+    const info = document.createElement('div');
+    const b = document.createElement('b'); b.textContent = label;
+    const sm = document.createElement('small'); sm.textContent = cmp.text; if (cmp.warn) sm.className = 'warn';
+    info.appendChild(b); info.appendChild(sm);
+    row.appendChild(cb); row.appendChild(info); restoreChecklist.appendChild(row);
+    pending.rows.push({ kind, cb, trip });
   }
   function askImport(pending) {
     pendingImport = pending;
     document.getElementById('importConfirmName').textContent = pending.name;
     document.getElementById('importConfirmDate').textContent = fmtStamp(pending.created);
+    restoreChecklist.innerHTML = '';
+    addCheckRow(pending, 'setup', 'Setup & Favorites', compareItem(pending.profile.modified || pending.created, profileModified, true));
+    pending.trips.forEach(t => {
+      const cur = trips.find(x => x.id === t.id);
+      addCheckRow(pending, 'trip', t.name, compareItem(t.modified || pending.created, cur ? cur.modified : '', !!cur), t);
+    });
+    updateRestoreButton();
     importModal.classList.remove('open');
     importConfirmModal.classList.add('open');
   }
@@ -1129,21 +1397,38 @@
     try { obj = JSON.parse(await f.text()); } catch (e) {}
     importFile.value = '';
     if (!obj || obj.app !== 'crosswind' || !obj.profile || typeof obj.profile !== 'object') { showImportNote("That file isn't a Crosswind backup."); return; }
-    askImport({ name: f.name, created: obj.created, profile: normalizeProfile(obj.profile), favorites: normalizeFavorites(obj.favorites) });
+    askImport(pendingFrom(f.name, obj.created, obj.profile, obj.favorites, obj.trips));
   });
-  document.getElementById('importConfirmCancel').addEventListener('click', () => { pendingImport = null; importConfirmModal.classList.remove('open'); });
-  importConfirmModal.addEventListener('click', (e) => { if (e.target === importConfirmModal) { pendingImport = null; importConfirmModal.classList.remove('open'); } });
-  document.getElementById('importReplaceBtn').addEventListener('click', () => {
+  function closeImportConfirm() { pendingImport = null; importConfirmModal.classList.remove('open'); }
+  document.getElementById('importConfirmCancel').addEventListener('click', closeImportConfirm);
+  importConfirmModal.addEventListener('click', (e) => { if (e.target === importConfirmModal) closeImportConfirm(); });
+  importReplaceBtn.addEventListener('click', () => {
     if (!pendingImport) return;
+    const chosen = pendingImport.rows.filter(r => r.cb.checked);
+    if (!chosen.length) return;
     addRestorePoint('Before import', buildBackup());
-    applyProfile(pendingImport.profile); saveProfile();
-    favorites = pendingImport.favorites; saveFavorites(); renderFavorites();
-    pendingImport = null;
-    importConfirmModal.classList.remove('open');
-    showBackupNote('✓ Backup imported');
+    const now = new Date().toISOString();
+    let firstRestored = '';
+    chosen.forEach(r => {
+      if (r.kind === 'setup') {
+        applyProfile(pendingImport.profile); profileModified = now; saveProfile();
+        favorites = pendingImport.favorites; saveFavorites(); renderFavorites();
+      } else {
+        const t = r.trip; t.modified = now;
+        const i = trips.findIndex(x => x.id === t.id);
+        if (i >= 0) trips[i] = t; else trips.push(t);
+        tripSnaps[t.id] = tripContent(t);
+        if (!firstRestored) firstRestored = t.id;
+      }
+    });
+    if (!trips.some(t => t.id === activeTripId)) activeTripId = firstRestored || defaultActiveId();
+    saveActive(); saveTrips(); dashSelected = ''; loadItinerary(); refreshTripUI();
+    closeImportConfirm();
+    showBackupNote('✓ Backup restored');
   });
 
   applyProfile(loadProfile());
+  loadTrips();
   updateLastUsed();
   renderFavorites();
   renderAll();
