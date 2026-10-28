@@ -134,6 +134,13 @@ _Empty — nothing queued right now._
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
 
+### Trip Wizard spec (design discussion in progress)
+Decided (round 1):
+- **A project is one trip**: one round trip, front door to front door, kept separate for Jon's own organisation (not billing). Trips are 1 to 3 weeks on site, and several can run back to back.
+- **Status is computed from the dates** (Upcoming / Active / Done); the progress bar becomes real (days elapsed out of total) instead of a made-up percentage.
+- **Active project:** tapping a project in the pipeline makes it the active one; the Wizard and Dashboard show its data; the choice is remembered between launches.
+Still open: back-to-back projects (Jon sometimes goes straight from one project to the next and can be away for 5 weeks, so a trip does not always start or end at Home); pipeline actions (create, edit, delete, archive); step fields, step dates, validation; whether a project needs more than a name and dates.
+
 ### Inventory: what Setup and the Trip Wizard really do today (updated after Build 15)
 Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished but does nothing real; "Missing" = not built or not designed yet. Setup now saves for real (Build 15); the Wizard still only keeps data for the session.
 
