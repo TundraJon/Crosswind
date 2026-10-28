@@ -140,7 +140,12 @@ Decided (round 1):
 - **Status is computed from the dates** (Upcoming / Active / Done); the progress bar becomes real (days elapsed out of total) instead of a made-up percentage.
 - **Active project:** tapping a project in the pipeline makes it the active one; the Wizard and Dashboard show its data; the choice is remembered between launches.
 - **Back-to-back projects:** Jon sometimes goes straight from one project to the next and can be away for 5 weeks, so a trip does not always start or end at Home. Each project has two switches in the Create New Project popup, both on by default: **Starts at home** and **Ends at home**. Off for Starts: the Home and Uber-out steps are hidden and the trip begins at its first flight (Jon is already at the airport; he returned the rental car there). Off for Ends: the return flights and Uber Home are hidden and the trip ends at its last Rental Return at that airport. The trip you fly toward owns the flight. The app does not store a link between projects (the two switches are enough; a calendar can show the stretch from the dates). Distance to Home on the Dashboard still measures from the Home Base.
-Still open: pipeline actions (create, edit, delete, archive, order); step fields, step dates, validation; whether a project needs more than a name and dates.
+Decided (round 2, pipeline):
+- **Create and edit:** the Create New Project popup gets the Starts-at-home / Ends-at-home switches (both on by default); each project row gets a small ✎ that opens the same popup to edit name, dates, and switches (same Add/Edit pattern as the loyalty popup). A newly created project becomes the active one.
+- **Delete:** in the edit popup, two-tap ("Tap again to delete"); deleting a trip deletes its itinerary; deleting the active trip falls back to the next active or upcoming trip, or none.
+- **Past trips:** no manual archive. Done trips drop into a collapsed "Past trips" section under the list (tap to expand). Order: Active first, then Upcoming by start date.
+- **First launch:** the pipeline starts empty ("No trips yet — create one"); the three sample projects are removed; with no active project the Wizard shows "Create a project to start planning" instead of forms.
+Still open: step fields, step dates, validation, and the stubs; whether a project needs more than a name and dates.
 
 ### Inventory: what Setup and the Trip Wizard really do today (updated after Build 15)
 Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished but does nothing real; "Missing" = not built or not designed yet. Setup now saves for real (Build 15); the Wizard still only keeps data for the session.
