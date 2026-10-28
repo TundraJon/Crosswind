@@ -101,47 +101,20 @@ Two small items Jon decided on: a project can no longer be saved with a raw `S+5
 - [x] Cache-bust bumped: `script.js?v=2→3` (`styles.css?v=1` unchanged).
 - **Verification:** reproduced first on the committed version (e897d87): End `S+5` with empty Start and Save added a row reading `— – S+5` and closed the modal. On the new code, the same steps add no row, keep the modal open, focus Start, and show the warning (screenshot checked), which auto-hides after 3s. Filling Start resolves End to Oct 6 and Save then works (`Oct 1, 2026 – Oct 6, 2026`). Unreadable Start (`garbage`) with `S+5` is also blocked. The End-cleared note text is restored correctly after the warning has been used. Unchanged: non-`S` junk in End still saves, blank dates still save, a missing name still just focuses the name. TSA placeholder reads `e.g. Y+5` and fits (53px of text in 97px of room; screenshot checked). Earlier suites re-run: same results, zero JS errors; two old test checks still fail for test-script reasons already diagnosed (one wrong expectation, one timing), and their corrected versions pass.
 
+### Build 14 (completed): Dashboard redesign
+The Dashboard now follows the real trip from the Wizard instead of the fake mockup. Design settled with Jon over two rounds (spec was in the Build Queue).
+- [x] `index.html`: header project name is now a live element (`#dashProject`) and "Distance to Home" shows `—`; the static emoji row, the hardcoded ground flight card, and the "Live Transit Logs" card are removed; added `#dashTrack` (step row) and `#dashCard` (per-step card); the dock got `id="dashDock"`. The airborne card and dev toggle are unchanged.
+- [x] `script.js` `renderDash()`: rebuilds the header, step row, card, and dock each time the Dashboard is shown (hooked into `showScreen`). Header follows the highlighted pipeline row. The step row is built from the Wizard's `buildNodes()` with the same `.node-track` / `.node` styles and no ✎ pins; tapping a step selects it (own selection `dashSelected`, default Uber, falls back to Uber if the selected step disappears) and scrolls it into view.
+- [x] `script.js` `dashCardHTML()` / `wireDashInputs()`: one card per step type (Home, Uber / Uber Home, Flight / Return Flight, Layover, Rental, Hotel, Destination, Rental Return) reading the Wizard state and Setup (Home Base, Home Airport, KTN), `—` for empty values. Room # (Hotel card) and Plate # / Color (Rental card) are inputs that read and write `hotel.room`, `rental.plate`, `rental.color`, so both screens agree. User text is HTML-escaped (`esc()` / `dv()`).
+- [x] `script.js` Copy Address: copies the active step's address (`dashAddressFor()`; Home and Uber Home = Home Base, Hotel, Destination) and the whole dock is hidden when the step has no address. Existing "✓ Copied" flash and clipboard fallback reused.
+- [x] `script.js` dev toggle: the airborne cockpit card only replaces the step card while a flight or return-flight step is selected.
+- [x] `styles.css`: added `.qc-inputs` rules for the card inputs. The old `.state-row`, `.st*`, and `.logs-grid` rules are now unused and were left in place.
+- [x] Cache-bust bumped: `script.js?v=3→4`, `styles.css?v=1→2`.
+- **Verification:** headless Chromium, 390px, driving the real UI; 61 checks, zero JS errors. Empty trip: header follows the highlighted row, distance `—`, same steps as the Wizard, no ✎ pins, default Uber, every card shows dashes, Copy hidden everywhere except Home and Uber Home. After filling the Wizard and Setup: each card shows the right values (Uber times, flight + seat + confirmation + KTN, rental, hotel, destination, rental return, Home Airport); Copy Address put the right text on the clipboard for Home, Hotel, Destination, and Uber Home. Room #, Plate #, and Color edits made on the Dashboard show up in the Wizard and vice versa. Typed `<b>Bold</b> & "q"` displays literally. Multi-stop: steps labelled by destination, Stop 2's hotel is empty while Stop 1 keeps its data, the last step scrolls fully into view. Header follows row 2 and a newly created project. Airborne toggle: cockpit card on flight and return-flight steps, hidden on other steps, ground-speed pill still swaps. Screenshots checked (empty Uber, filled Hotel, airborne). Earlier suites re-run (dates, `S+N`, blocked save, In-Flight, TSA placeholder, split serving): same results, zero JS errors. Old checks that targeted the removed ground card and the old Copy Address were retired with the design they tested. In my first Dashboard run, 5 checks failed because of wrong test expectations (spacing, label capitalisation, the Dashboard correctly remembering its last step), no app bugs; corrected and re-run.
+
 ## Build Queue
 
-### Dashboard redesign: dynamic steps, per-step cards
-Not yet authorized to build. Design settled with Jon over two rounds.
-
-**Header**
-- "Active: …" shows the name of the pipeline row currently highlighted on the Wizard screen (read when the Dashboard is shown), instead of the hardcoded Muckleshoot name.
-- "Distance to Home" shows `—` until the Haversine engine exists (Step 4).
-
-**Step row**
-- Replace the static emoji row with the Wizard's scrolling node track, built from the same `buildNodes()` and wizard state, so both screens show the same trip and icons. Same node look (done / current / optional), but no ✎ edit pins on the Dashboard.
-- Tapping a step selects it and shows its card; the selected step scrolls into view. The Dashboard keeps its own selection, separate from the Wizard's, and defaults to the first step after Home (Uber). The row and cards are rebuilt each time the Dashboard is shown, so Wizard edits appear.
-- No auto-advance by clock or location (Step 4).
-
-**Cards (one per selected step; every empty value shows `—`; multi-stop uses that stop's data)**
-- Home: Home Base address and Home Airport from Setup.
-- Uber / Uber Home: pickup time, drop-off time.
-- Flight (and Return Flight): airline + flight #, confirmation #, seat, TSA KTN from Setup. Gate, route, boarding and landing times stay `—` until the flight API exists (Step 4).
-- Layover: "Landing → next boarding", `—` until the API.
-- Rental: company, class, color, plate.
-- Hotel: chain + name, address, room #.
-- Destination: place name, address, contact name + phone.
-- Rental Return: "Returning: company, class".
-
-**Copy Address**
-- Copies the active step's address: Home and Uber Home copy the Home Base address; Hotel copies the hotel address; Destination copies the destination address.
-- Hidden on steps with no address (Uber out, flights, layovers, rental, rental return) and when the step's address is empty.
-- Keeps the existing "✓ Copied" flash and clipboard fallback.
-
-**Room # and Plate #**
-- Room # becomes an input on the Hotel card; Plate # and Color become inputs on the Rental card. They read and write the same wizard fields (`hotel.room`, `rental.plate`, `rental.color`), so the Wizard and Dashboard always agree.
-- The standalone "Live Transit Logs" card is removed.
-
-**Unchanged**
-- The dev Ground/Airborne toggle stays; the airborne cockpit card (all placeholder values) is unchanged and only applies while a flight step is selected. Units wiring is a separate item (see Units bug in the Planner).
-
-**Reuse:** `buildNodes()`, wizard state, the node-track styles, the quick-card styles, and the existing Copy Address handler.
-
-**Files:** `index.html`, `script.js`, `styles.css`; expect cache-bust bumps `script.js?v=3→4` and `styles.css?v=1→2`.
-
-**Verification plan:** empty trip shows dashes everywhere; data typed in the Wizard appears on the matching cards; multi-stop trip shows the right stop's data; each step's Copy Address (copied text, and hidden where specified); Room #/Plate #/Color edits show up in the Wizard and vice versa; header follows the highlighted pipeline row; Live Transit Logs gone; airborne toggle still works; screenshots at 390px; all earlier suites re-run with zero JS errors.
+_Empty — nothing queued right now._
 
 ## Build Planner
 
@@ -149,6 +122,15 @@ Resolved, built, dropped, or superseded items are not kept here. Their history l
 
 ### Bug: Units settings are not read anywhere
 Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card always starts in MPH regardless of the Speed setting.
+
+### Inconsistency: dropdowns look filled but store nothing
+Found while verifying Build 14. Untouched Wizard dropdowns display their first option (airline Southwest, rental company National, hotel chain Marriott) but the value is only stored once you change the dropdown, so the Dashboard shows `—` where the Wizard visibly shows a name. Open question: store the visible first option automatically, or start the dropdowns on a blank "Select…" option?
+
+### Inconsistency: step labels overlap on long trips
+Found while verifying Build 14. With about 14 steps (a two-stop trip) the labels in the step row run into their neighbours. It happens identically on the Wizard's row (same styles, confirmed before and after Build 14), so the Dashboard inherited it. Open question: wrap labels, shorten them, or widen the steps?
+
+### Cleanup: unused Dashboard CSS
+`.state-row`, `.st`, `.st .ic`, `.st.optional`, `.st.active`, `.st .ln`, `.st .tag`, and `.logs-grid` in `styles.css` were left behind when Build 14 replaced the old Dashboard elements. Harmless; remove when authorized.
 
 ### Check: Loyalty autocomplete on the phone
 Verified in a browser that the `<datalist>` holds the right options (same-type names, updated after Save & Next). The native suggestion popup itself can't be seen headless. Jon to confirm on his Android device; if it fails, switch to a custom suggestion dropdown.

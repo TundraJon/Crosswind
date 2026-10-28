@@ -176,6 +176,10 @@
   .compass .s { bottom: 4px; left: 50%; transform: translateX(-50%); }
   .compass .w { left: 6px; top: 50%; transform: translateY(-50%); }
   .logs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .qc-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; text-align: left; }
+  .qc-inputs.one { grid-template-columns: 1fr; }
+  .qc-inputs label.fld { margin-top: 0; }
+  .qc-inputs input[type="text"] { text-align: left; }
   .dock { display: flex; gap: 8px; max-width: 760px; margin: 0 auto; }
   .dock .btn { flex: 1; font-size: 0.78rem; }
   .dock .btn small { display: block; font-weight: 400; font-size: 0.58rem; color: var(--text-dim); letter-spacing: 0.08em; margin-top: 2px; }

@@ -8,6 +8,7 @@
     screens.forEach(s => s.classList.toggle('active', s.id === id));
     navBtns.forEach(b => b.classList.toggle('active', b.dataset.screen === id));
     window.scrollTo(0, 0);
+    if (id === 'screenDash') renderDash();
   }
   navBtns.forEach(b => b.addEventListener('click', () => showScreen(b.dataset.screen)));
   document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showScreen(b.dataset.goto)));
@@ -689,13 +690,116 @@
   renderStepForm();
 
   /* ============ DASHBOARD ============ */
-  const cardGround = document.getElementById('cardGround');
+  const dashProject = document.getElementById('dashProject');
+  const dashTrack = document.getElementById('dashTrack');
+  const dashCard = document.getElementById('dashCard');
+  const dashDock = document.getElementById('dashDock');
   const cardAir = document.getElementById('cardAir');
   let airborne = false;
+  let dashSelected = 'uber-out';
+  let dashAddr = '';
+  function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function dv(t) { const s = (t == null ? '' : String(t)).trim(); return s ? esc(s) : '—'; }
+  function dashFlightFor(node) {
+    return node.type === 'flight' ? wizardState.stops[node.stopIndex].flights[node.flightIndex] : wizardState.returnFlights[node.flightIndex];
+  }
+  function dashAddressFor(node) {
+    if (node.type === 'home' || node.type === 'uberHome') return document.getElementById('addrInput').value;
+    if (node.type === 'hotel') return wizardState.stops[node.stopIndex].hotel.address;
+    if (node.type === 'destination') return wizardState.stops[node.stopIndex].destination.address;
+    return '';
+  }
+  function dashCardHTML(node) {
+    const line = (html) => '<div class="qc-line">' + html + '</div>';
+    let html = '<div class="qc-title">' + node.icon + ' ' + esc(node.label.toUpperCase()) + '</div>';
+    if (node.type === 'home') {
+      html += line('ADDRESS: <b>' + dv(document.getElementById('addrInput').value) + '</b>') +
+        line('HOME AIRPORT: <b>' + dv(document.getElementById('homeAirportInput').value) + '</b>');
+    }
+    else if (node.type === 'uberOut' || node.type === 'uberHome') {
+      const u = node.type === 'uberOut' ? wizardState.uberOut : wizardState.uberHome;
+      html += line('PICKUP: <b>' + dv(u.pickup) + '</b> | DROP-OFF: <b>' + dv(u.dropoff) + '</b>');
+    }
+    else if (node.type === 'flight' || node.type === 'returnFlight') {
+      const f = dashFlightFor(node);
+      const fl = [f.airline, f.flightNum].filter(x => x && String(x).trim()).join(' ');
+      html += '<div class="qc-route"><span class="apt">—</span><span class="arr">⟶</span><span class="apt">—</span></div>' +
+        line('FLIGHT: <b>' + dv(fl) + '</b> | SEAT: <b>' + dv(f.seat) + '</b>') +
+        line('CONFIRMATION: <b>' + dv(f.conf) + '</b> | GATE: <b>—</b>') +
+        line('BOARDING: <b>—</b> | LANDING: <b>—</b>') +
+        line('TSA PRECHECK: <span class="wt">' + dv(document.getElementById('ktnInput').value) + '</span>');
+    }
+    else if (node.type === 'layover') {
+      html += line('LANDING → NEXT BOARDING: <b>—</b>');
+    }
+    else if (node.type === 'rental') {
+      const r = wizardState.stops[node.stopIndex].rental;
+      html += line('COMPANY: <b>' + dv(r.company) + '</b> | CLASS: <b>' + dv(r.cls) + '</b>') +
+        '<div class="qc-inputs"><div><label class="fld">Plate #</label><input type="text" id="dash-plate"></div>' +
+        '<div><label class="fld">Color</label><input type="text" id="dash-color"></div></div>';
+    }
+    else if (node.type === 'hotel') {
+      const h = wizardState.stops[node.stopIndex].hotel;
+      html += line('CHAIN: <b>' + dv(h.chain) + '</b>') + line('NAME: <b>' + dv(h.name) + '</b>') + line('ADDRESS: <b>' + dv(h.address) + '</b>') +
+        '<div class="qc-inputs one"><div><label class="fld">Room #</label><input type="text" id="dash-room"></div></div>';
+    }
+    else if (node.type === 'destination') {
+      const d = wizardState.stops[node.stopIndex].destination;
+      html += line('PLACE: <b>' + dv(d.name) + '</b>') + line('ADDRESS: <b>' + dv(d.address) + '</b>') +
+        line('CONTACT: <b>' + dv(d.contact) + '</b> | PHONE: <b>' + dv(d.phone) + '</b>');
+    }
+    else if (node.type === 'rentalReturn') {
+      const r = wizardState.stops[node.stopIndex].rental;
+      html += line('RETURNING: <b>' + dv(r.company) + ' — ' + dv(r.cls) + '</b>');
+    }
+    return html;
+  }
+  function wireDashInputs(node) {
+    if (node.type === 'rental') {
+      const r = wizardState.stops[node.stopIndex].rental;
+      const plate = document.getElementById('dash-plate'), color = document.getElementById('dash-color');
+      plate.value = r.plate; color.value = r.color;
+      plate.addEventListener('input', e => r.plate = e.target.value);
+      color.addEventListener('input', e => r.color = e.target.value);
+    }
+    else if (node.type === 'hotel') {
+      const h = wizardState.stops[node.stopIndex].hotel;
+      const room = document.getElementById('dash-room');
+      room.value = h.room;
+      room.addEventListener('input', e => h.room = e.target.value);
+    }
+  }
+  function renderDash() {
+    const selRow = pipelineList.querySelector('.proj-row.selected .nm');
+    dashProject.textContent = 'Active: ' + (selRow ? selRow.textContent : '—');
+    const nodes = buildNodes();
+    if (!nodes.some(n => n.key === dashSelected)) dashSelected = nodes[1].key;
+    const selIdx = nodes.findIndex(n => n.key === dashSelected);
+    const node = nodes[selIdx];
+    dashTrack.innerHTML = '';
+    nodes.forEach((n, idx) => {
+      const div = document.createElement('div');
+      let cls = 'node';
+      if (n.optional) cls += ' optional';
+      if (idx < selIdx) cls += ' done'; else if (idx === selIdx) cls += ' current';
+      div.className = cls; div.dataset.key = n.key;
+      div.innerHTML = '<div class="nd">' + n.icon + '</div><div class="nl">' + esc(n.label) + '</div>';
+      div.addEventListener('click', () => { dashSelected = n.key; renderDash(); });
+      dashTrack.appendChild(div);
+    });
+    const cur = dashTrack.querySelector('.node.current');
+    if (cur) dashTrack.scrollLeft = cur.getBoundingClientRect().left - dashTrack.getBoundingClientRect().left + dashTrack.scrollLeft - (dashTrack.clientWidth - cur.offsetWidth) / 2;
+    dashCard.innerHTML = dashCardHTML(node);
+    wireDashInputs(node);
+    const showAir = airborne && (node.type === 'flight' || node.type === 'returnFlight');
+    dashCard.style.display = showAir ? 'none' : 'block';
+    cardAir.style.display = showAir ? 'block' : 'none';
+    dashAddr = (dashAddressFor(node) || '').trim();
+    dashDock.style.display = dashAddr ? 'flex' : 'none';
+  }
   document.getElementById('stateToggle').addEventListener('click', () => {
     airborne = !airborne;
-    cardGround.style.display = airborne ? 'none' : 'block';
-    cardAir.style.display = airborne ? 'block' : 'none';
+    renderDash();
   });
   const groundSpeedVal = document.getElementById('groundSpeedVal');
   let gsPrimaryIsMph = true;
@@ -708,7 +812,7 @@
   renderGroundSpeed();
   const copyAddrBtn = document.getElementById('copyAddrBtn');
   copyAddrBtn.addEventListener('click', async () => {
-    const addr = '123 N Main St, Excelsior Springs, MO';
+    const addr = dashAddr;
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(addr);
       else { const ta = document.createElement('textarea'); ta.value = addr; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }

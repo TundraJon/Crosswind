@@ -10,7 +10,7 @@
 <title>Crosswind</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Michroma&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1">
+<link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body>
 
@@ -195,24 +195,9 @@
 <!-- ================= SCREEN 3: DASHBOARD ================= -->
 <div class="screen" id="screenDash">
   <div class="panel">
-    <div class="dash-head"><div class="hd-l">Active: Muckleshoot Go Live Support</div><div class="hd-r">🏠 Distance to Home: <b>1,842 mi</b></div></div>
-    <div class="state-row">
-      <div class="st"><span class="ic">🏠</span><span class="ln"></span></div>
-      <div class="st"><span class="ic">🚙</span><span class="ln"></span></div>
-      <div class="st active"><span class="ic">🛫</span><span class="tag">ACTIVE</span><span class="ln"></span></div>
-      <div class="st optional"><span class="ic">🧳</span><span class="ln"></span></div>
-      <div class="st optional"><span class="ic">✈️</span><span class="ln"></span></div>
-      <div class="st"><span class="ic">🚗</span><span class="ln"></span></div>
-      <div class="st"><span class="ic">🏨</span><span class="ln"></span></div>
-      <div class="st"><span class="ic">🏥</span></div>
-    </div>
-    <div class="quick-card" id="cardGround">
-      <div class="qc-title">✈ FLIGHT SEGMENT: DEPARTURE</div>
-      <div class="qc-route"><span class="apt">SEA</span> <small>[Seattle-Tacoma]</small><span class="arr">⟶</span><span class="apt">MCI</span> <small>[Kansas City Int'l]</small></div>
-      <div class="qc-line">FLIGHT: <b>AS 402</b> | GATE: <b>D12</b> | BOARDING: <b>06:15 PM</b> | SEAT: <b>4C</b></div>
-      <div class="qc-line">CONFIRMATION: <b>NZ82X1</b> | STATUS: <b>ON TIME</b></div>
-      <div class="qc-line">TSA PRECHECK: <span class="wt">K10J82392</span></div>
-    </div>
+    <div class="dash-head"><div class="hd-l" id="dashProject">Active: —</div><div class="hd-r">🏠 Distance to Home: <b>—</b></div></div>
+    <div class="node-track" id="dashTrack"></div>
+    <div class="quick-card" id="dashCard"></div>
     <div class="quick-card" id="cardAir" style="display:none;">
       <div class="telem-grid">
         <div class="telem-col">
@@ -228,9 +213,8 @@
         </div>
       </div>
     </div>
-    <div class="card"><div class="card-title">Live Transit Logs</div><div class="logs-grid"><input type="text" placeholder="Room #____"><input type="text" placeholder="Plate #________"></div></div>
   </div>
-  <div class="dock" style="margin-top:12px;"><button class="btn primary grow" id="copyAddrBtn">[ Copy Address ]<small>Paste into your GPS app</small></button></div>
+  <div class="dock" id="dashDock" style="margin-top:12px;"><button class="btn primary grow" id="copyAddrBtn">[ Copy Address ]<small>Paste into your GPS app</small></button></div>
   <button id="stateToggle">⇄ Dev: Toggle Ground / Airborne</button>
 </div>
 
@@ -295,7 +279,7 @@
   </div>
 </div>
 
-<script src="script.js?v=3"></script>
+<script src="script.js?v=4"></script>
 
 </body>
 </html>
