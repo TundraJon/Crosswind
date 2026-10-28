@@ -120,6 +120,19 @@ _Empty — nothing queued right now._
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
 
+### Inventory: what Setup and the Trip Wizard really do today (2026-10-28)
+Audit only; nothing here is decided. "Real" = works in the current session but is lost on reload (only `crosswindLastRequest` and `crosswindFavorites` are ever saved). "Cosmetic" = looks finished but does nothing real. "Missing" = not built or not designed yet.
+
+**Setup**
+- Real: Home Base address text field; Loyalty Programs add / edit / delete, duplicate warning, Save & Next, type filter; TSA KTN (8 characters) and Expiration (smart date + calendar); per-airline Touchless toggles; Trip Step Defaults table is editable; Continue goes to the Wizard.
+- Cosmetic: "Verify Address (USPS)" button has no handler; the "CASS Validated" badge is always shown; "Suggest Nearest Airport" always fills `Orlando (MCO)`; the Units switches change nothing; edits in Trip Step Defaults are never read by the Wizard; **Back** and **Save Profile** have no handlers.
+- Missing: any saving (reload resets to the sample address and three sample programs); an empty first-run state (sample data is dev scaffolding); profile details from the original plan (demographics) and Saved Addresses (SavedAddresses table); address validation and cached lat/long; a nearest-airports list; KTN format check; delete confirmations; any backup/export (not discussed).
+
+**Trip Wizard**
+- Real: pipeline row highlight; Create New Project (name, smart Start/End dates, range calendar, End-before-Start check, `S+N`); step row built from state; forms for every step type (Uber, Flight(s), Layover, Rental, Hotel, Destination, Rental Return, Return Flight(s), Uber Home); Add Another Flight / Stop; airline, rental, and hotel dropdowns fed by Setup; smart times on Uber fields; Continue goes to the Dashboard.
+- Cosmetic: a project is only display text (name plus two date strings), so the three seeded projects and any new one share one trip; progress bars are fixed made-up percentages; the title is hardcoded "Muckleshoot Itinerary Wizard"; ✎ pins only toggle a look; the Text Clipboard Parser buttons do nothing; the flight "Auto-Filled via Flight Tracker API" box is disabled placeholders; "Trip Start Date" / "Trip End Date" / `Apr 29, 2026` are placeholder text, not real dates computed from the project; Layover is explanation text only; the two "Suggest Address" buttons insert fixed fake addresses; WhatsApp Report is an alert; a step counts as "done" only because it sits before the selected one.
+- Missing: a real project record (name, real start and end dates, status, its own trip data); switching, editing, deleting, or archiving projects; removing or reordering stops and flights; Hotel check-in/out and Rental pickup/drop-off dates; step dates derived from the project dates; fields not collected yet (rental confirmation # and pickup location, hotel confirmation #); validation (required fields, flight # and confirmation # formats); applying Trip Step Defaults and ✎ overrides; real step completion; saving anything.
+
 ### Bug: Units settings are not read anywhere
 Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card always starts in MPH regardless of the Speed setting.
 
