@@ -133,6 +133,13 @@ Audit only; nothing here is decided. "Real" = works in the current session but i
 - Cosmetic: a project is only display text (name plus two date strings), so the three seeded projects and any new one share one trip; progress bars are fixed made-up percentages; the title is hardcoded "Muckleshoot Itinerary Wizard"; ✎ pins only toggle a look; the Text Clipboard Parser buttons do nothing; the flight "Auto-Filled via Flight Tracker API" box is disabled placeholders; "Trip Start Date" / "Trip End Date" / `Apr 29, 2026` are placeholder text, not real dates computed from the project; Layover is explanation text only; the two "Suggest Address" buttons insert fixed fake addresses; WhatsApp Report is an alert; a step counts as "done" only because it sits before the selected one.
 - Missing: a real project record (name, real start and end dates, status, its own trip data); switching, editing, deleting, or archiving projects; removing or reordering stops and flights; Hotel check-in/out and Rental pickup/drop-off dates; step dates derived from the project dates; fields not collected yet (rental confirmation # and pickup location, hotel confirmation #); validation (required fields, flight # and confirmation # formats); applying Trip Step Defaults and ✎ overrides; real step completion; saving anything.
 
+### Setup spec (design discussion in progress)
+Decided (round 1):
+- **Storage:** Setup data lives in browser storage now, as one saved profile behind a small save/load layer so it can be swapped for SQLite when the app is wrapped for Android. A backup/export option is still to be discussed (browser storage can be cleared).
+- **Saving:** auto-save on every change, like Favorites and the last request already do. **Save Profile** becomes unnecessary and is to be removed (Back stays).
+- **First launch:** empty. No sample address, no sample loyalty programs; the current sample data was dev scaffolding.
+Still open: what the online-only items (USPS verify, nearest-airport suggest) do until the lookup exists; whether profile details / Saved Addresses are wanted; how far to wire Units; Trip Step Defaults behavior; KTN validation; delete confirmations; backup/export.
+
 ### Bug: Units settings are not read anywhere
 Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card always starts in MPH regardless of the Speed setting.
 
