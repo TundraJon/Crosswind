@@ -115,13 +115,13 @@ The Dashboard now follows the real trip from the Wizard instead of the fake mock
 ## Build Queue
 
 ### Setup: real saving, empty first launch, step defaults, backup
-Not yet authorized to build. Design settled with Jon over three rounds. Touches `index.html`, `script.js`, `styles.css`; includes a cache-bust bump for `script.js` and `styles.css` and a header-comment version update.
+Not yet authorized to build. Design settled with Jon over three rounds. Touches `index.html`, `script.js`, `styles.css`; includes a cache-bust bump for `script.js` and `styles.css` and a header-comment version update (version shown in hundredths, e.g. v1.23; numbering scheme pending Jon).
 
 **1. Saving**
 - One saved profile in browser storage under `crosswindProfile` (JSON with a `v: 1` version number), behind small `loadProfile()` / `saveProfile()` functions (try/catch like the existing storage code) so it can be swapped for SQLite later. Favorites keep their own key `crosswindFavorites`; `crosswindLastRequest` is not part of the profile.
 - The profile holds: Home Base address, Home Airport, loyalty programs, Touchless flags, KTN, KTN Expiration, Units (speed / temp / distance), Trip Step Defaults.
 - Auto-save on every change (text fields on input). No explicit save step. If storage is blocked or full the app keeps working for the session without errors. If the saved text can't be read, start empty and leave the stored text alone until the next change.
-- **Save Profile button removed.** **Back** stays unchanged (still has no destination; Setup is the first screen; revisit when there is one).
+- **Save Profile and Back buttons removed** from the Setup footer; only **Continue to Trip Planning** remains (Back had nowhere to go on the first screen). The Wizard's own Back button stays.
 
 **2. First launch is empty**
 - No sample address, programs, or Touchless flags. Address and Home Airport show "Not set". Units start imperial (MPH, °F, Miles). Step defaults start at the system defaults. The Loyalty list shows a faint "No programs yet" line (existing `.empty-row` style). Wizard dropdowns already say "No … yet — add in Setup".
@@ -134,7 +134,7 @@ Not yet authorized to build. Design settled with Jon over three rounds. Touches 
 - Delete in the edit modal is two-tap: the first tap turns the button into "Tap again to delete" (reverts after about 3 seconds or when the modal closes); the second tap deletes. Saved immediately.
 
 **5. TSA PreCheck**
-- KTN: capped at **9** characters (was 8), placeholder "9 char", auto-uppercased as you type. On leaving the field, if it is non-empty and not exactly 9 letters/numbers, show a gentle note ("KTN is usually 9 letters/numbers"). Never blocks and never changes what was typed. Expiration and Touchless flags are saved.
+- KTN: capped at **9** characters (was 8), placeholder "9 char", auto-uppercased as you type. **Live colour while typing: green at exactly 9 letters/numbers, red for anything else** (red also if it contains other characters). Proposed, awaiting Jon: an empty field stays neutral (no colour), and a short "KTN is usually 9 letters/numbers" note shows only while it is red. Never blocks and never changes what was typed. Expiration and Touchless flags are saved.
 
 **6. Units**
 - All three toggles are saved. **Speed is wired to the Dashboard**: ground speed starts in the saved unit each time the Dashboard is shown (MPH → "580 MPH (kph)", KPH → "933 KPH (mph)"). Tapping the pill still swaps it for that visit only and does not change Setup. Cockpit airspeed stays in knots. Temperature and Distance are saved but not shown anywhere yet (weather and Distance to Home are Step 4).
@@ -146,10 +146,9 @@ Not yet authorized to build. Design settled with Jon over three rounds. Touches 
 - Destination uses the **Objective / To** row: plain on a single-stop trip; numbered on multi-stop ("Objective / To 1", "Objective / To 2"). Rental, Hotel, Rental Return keep their " — Muckleshoot" suffix on multi-stop trips.
 - Per-trip ✎ overrides are not part of this build (Wizard spec).
 
-**8. Backup (new "Backup" card in Setup)**
-- **Export** downloads `crosswind-backup-YYYY-MM-DD.json` containing `{ app: "crosswind", version: 1, profile, favorites }`.
-- **Import** opens a file picker (.json). A file that is not a Crosswind backup shows a note and changes nothing. A valid file opens a confirm popup (reuses the existing modal look) "Replace your Setup and Favorites with this backup?" with Cancel / Replace. Replace overwrites (no merge), saves, and refreshes Setup, Favorites, and the other screens.
-- Trips and projects are not in the backup yet (they are not stored yet); the version number leaves room to add them.
+**8. Backup (new "Backup" card in Setup): design pending Jon's decision**
+- Settled: Export and Import buttons in a Backup card; the Import confirm popup ("Replace your Setup and Favorites with this backup?", Cancel / Replace, reusing the existing modal look) is approved; Import replaces, it does not merge; an invalid file shows a note and changes nothing; the file holds `{ app: "crosswind", version: 1, profile, favorites }`; trips are not in it yet.
+- Pending: Jon wants a limit of about three backups, with the Import screen showing each backup's file name and date of creation, so a mistaken press can be reverted. Proposal sent (automatic restore points kept in the browser, last 3; the downloaded file stays the off-device backup). Spec to be finalised once Jon decides.
 
 **Cleanup that rides along when built:** remove the Setup inventory entries this resolves, and the "Units settings are not read anywhere" Planner item (Temperature and Distance wiring moves to Step 4).
 
