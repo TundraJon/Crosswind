@@ -142,7 +142,12 @@ Decided (round 2):
 - **Online-only items:** USPS Verify and Suggest Nearest Airport are disabled with a short note (e.g. "Needs online lookup — coming soon") until the real lookups exist. The "CASS Validated" badge stays visible but greyed out and turns green only after a real verification. The Home Airport field stays editable by typing.
 - **Profile details:** skipped for now (nothing uses a name). **Saved Addresses:** held for the Wizard spec (recurring hotels and client sites could autofill).
 - **Units:** saved and used. Speed is wired to the Dashboard's ground speed in the Setup build; Temperature and Distance get wired when something displays them (weather, Distance to Home; Step 4).
-Still open: Trip Step Defaults behavior; KTN validation (and its length); delete confirmations; backup/export.
+Decided (round 3):
+- **Trip Step Defaults** apply everywhere a step appears (Wizard row and headings, Dashboard row and card titles). Blank name or icon falls back to the system default; each row gets a small ↺ reset; the multi-stop suffix stays ("Car — Muckleshoot"). **Flight names come from the table, not "Flight 1/2/3"**: the Wizard currently hardcodes `Flight` / `Flight 1, 2, 3` (`flightNodeMeta`) and ignores the table's Flight (Initial) / Connection / Flight (Final) rows; Jon prefers the table's names, so position picks the row (first = Initial, middle = Connection, last = Final) for both name and icon.
+- **KTN** is 9 characters (the field is capped at 8 today, which truncates real numbers): cap at 9, auto-uppercase, gentle warning (never a block) if the length or characters look wrong.
+- **Delete confirmation:** the loyalty program Delete button asks "Tap again to delete" on the first tap (no new popup).
+- **Backup:** Export / Import of the profile as a file, in Setup.
+Still open: naming for a nonstop, repeated connections, and return flights; table rows for Rental Return / Uber Home / Destination; what the backup file contains and how Import behaves.
 
 ### Bug: Units settings are not read anywhere
 Speed/Temp/Distance toggles are visual only. Ground Speed on the airborne card always starts in MPH regardless of the Speed setting.
