@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v0.9) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v0.91) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -10,7 +10,7 @@
 <title>Crosswind</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Michroma&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
 
@@ -31,15 +31,16 @@
 <div class="screen active" id="screenSetup">
   <div class="panel">
     <div class="card">
-      <button id="verifyAddrBtn">🏠 Verify Address (USPS)</button>
+      <button id="verifyAddrBtn" disabled title="Needs online lookup — coming soon">🏠 Verify Address (USPS)</button>
       <div class="card-title">Home Base</div>
       <label class="fld" for="addrInput">Address</label>
-      <input type="text" id="addrInput" value="123 N MAIN ST, EXCELSIOR SPRINGS, MO">
-      <div style="margin-top:6px;"><span class="badge ok">CASS Validated</span></div>
+      <input type="text" id="addrInput" placeholder="Not set">
+      <div style="margin-top:6px;"><span class="badge off" id="cassBadge">CASS Validated</span></div>
+      <div class="fld-note">Needs online lookup — coming soon</div>
       <label class="fld" for="homeAirportInput">Home Airport</label>
       <input type="text" id="homeAirportInput" placeholder="Not set">
-      <button class="suggest-btn" id="suggestAirportBtn">📍 Suggest Nearest Airport</button>
-      <div class="fld-note">Fake suggestion for now — real lookup comes in a later pass</div>
+      <button class="suggest-btn" id="suggestAirportBtn" disabled title="Needs online lookup — coming soon">📍 Suggest Nearest Airport</button>
+      <div class="fld-note">Needs online lookup — coming soon</div>
     </div>
 
     <div class="card">
@@ -58,7 +59,8 @@
       <div class="tsa-grid-2col">
         <div class="tsa-col-left">
           <label class="fld">KTN</label>
-          <input type="text" id="ktnInput" placeholder="8 char" maxlength="8">
+          <input type="text" id="ktnInput" placeholder="9 char" maxlength="9">
+          <div class="fld-note" id="ktnNote" style="display:none;">KTN is usually 9 letters/numbers</div>
           <label class="fld">Expiration</label>
           <div style="display:flex; gap:6px; align-items:center;">
             <input type="text" id="ktnExp" placeholder="e.g. Y+5">
@@ -83,12 +85,21 @@
     <div class="card">
       <div class="card-title">Trip Step Defaults</div>
       <div class="fld-note" style="margin-bottom:8px;">Your defaults for every new trip. Override per-trip anytime with the ✎ pin in the Itinerary Wizard.</div>
-      <table class="defaults-table" id="defaultsTable"><thead><tr><th>Step</th><th>Your Name</th><th style="width:56px;">Icon</th></tr></thead><tbody></tbody></table>
+      <table class="defaults-table" id="defaultsTable"><thead><tr><th>Step</th><th>Your Name</th><th style="width:56px;">Icon</th><th style="width:28px;"></th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Backup</div>
+      <div class="fld-note" style="margin-bottom:8px;">Export saves your Setup and Favorites to a file. Import restores from a file or from one of the app's last 3 restore points.</div>
+      <div class="btn-row" style="margin-top:0;">
+        <button class="btn grow" id="exportBtn">Export</button>
+        <button class="btn grow" id="importBtn">Import</button>
+      </div>
+      <div class="fld-note" id="backupNote" style="display:none;"></div>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none;">
     </div>
   </div>
   <div class="btn-row">
-    <button class="btn ghost">Back</button>
-    <button class="btn grow">Save Profile</button>
     <button class="btn primary grow" data-goto="screenWizard">Continue to Trip Planning</button>
   </div>
 </div>
@@ -266,6 +277,33 @@
   </div>
 </div>
 
+<!-- Import popup: restore points + file picker -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal-card">
+    <div class="modal-title">Import Backup</div>
+    <div class="card-sub">Restore points</div>
+    <div id="restoreList"></div>
+    <div class="dup-warning" id="importNote" style="display:none;"></div>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn ghost" id="importCancelBtn">Cancel</button>
+      <button class="btn primary grow" id="importChooseBtn">Choose a file…</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import confirm popup -->
+<div class="modal-overlay" id="importConfirmModal">
+  <div class="modal-card">
+    <div class="modal-title">Replace Setup &amp; Favorites?</div>
+    <div class="card-sub">Replace your Setup and Favorites with:</div>
+    <div class="return-ref"><span id="importConfirmName"></span><div class="rr-sub" id="importConfirmDate"></div></div>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn ghost" id="importConfirmCancel">Cancel</button>
+      <button class="btn primary grow" id="importReplaceBtn">Replace</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= SCREEN 5: MEDIA PLAYER ================= -->
 <div class="screen" id="screenMedia">
   <div class="panel">
@@ -279,7 +317,7 @@
   </div>
 </div>
 
-<script src="script.js?v=4"></script>
+<script src="script.js?v=5"></script>
 
 </body>
 </html>

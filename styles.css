@@ -34,6 +34,7 @@
   .chip.add { color: var(--cyan); border-style: dashed; }
   .badge { font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border-radius: 4px; }
   .badge.ok { color: var(--green); border: 1px solid var(--green); }
+  .badge.off { color: var(--text-faint); border: 1px solid var(--line); }
   .btn-row { display: flex; gap: 8px; max-width: 760px; margin: 12px auto 0; }
   .btn { font-family: var(--font-body); font-weight: 600; font-size: 0.85rem; letter-spacing: 0.05em; border-radius: 10px; padding: 12px 14px; cursor: pointer; border: 1px solid var(--line); background: var(--bg-card); color: var(--text); }
   .btn.primary { border-color: var(--cyan-dim); color: var(--cyan); box-shadow: var(--glow-cyan); }
@@ -48,6 +49,14 @@
   .unit-switch button.on { background: var(--cyan-dim); color: #04151c; font-weight: 700; }
   #verifyAddrBtn { float: right; background: var(--bg-input); border: 1px solid var(--cyan-dim); color: var(--cyan); border-radius: 8px; font-size: 0.72rem; padding: 6px 10px; cursor: pointer; }
   .suggest-btn { background: var(--bg-input); border: 1px solid var(--cyan-dim); color: var(--cyan); border-radius: 6px; font-size: 0.68rem; padding: 5px 9px; cursor: pointer; margin-top: 4px; }
+  #verifyAddrBtn:disabled, .suggest-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  #ktnInput.ktn-ok { color: var(--green); border-bottom-color: var(--green); }
+  #ktnInput.ktn-bad { color: var(--red); border-bottom-color: var(--red); }
+  #ktnNote { color: var(--red); }
+  .reset-btn { background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.95rem; padding: 0 2px; }
+  .reset-btn:hover { color: var(--cyan); }
+  .restore-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); font-size: 0.8rem; }
+  .restore-row small { display: block; color: var(--text-dim); margin-top: 2px; }
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(4, 8, 12, 0.78); align-items: center; justify-content: center; z-index: 100; padding: 16px; }
   .modal-overlay.open { display: flex; }
   .modal-card { background: var(--bg-panel); border: 1px solid var(--cyan-dim); border-radius: 14px; box-shadow: var(--glow-cyan); padding: 16px; max-width: 420px; width: 100%; max-height: 88vh; overflow-y: auto; }
@@ -73,6 +82,7 @@
   .airline-row.touchless { color: var(--green); }
   .airline-row.touchless .dot { background: var(--green); box-shadow: 0 0 6px rgba(77,232,138,0.6); }
   .loyalty-columns { column-count: 3; column-gap: 14px; }
+  .loyalty-columns .empty-row { column-span: all; }
   .loyalty-group-header { font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cyan-dim); margin: 10px 0 4px; break-after: avoid-column; break-inside: avoid-column; }
   .loyalty-group-header:first-child { margin-top: 0; }
   .loyalty-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--line-soft); break-inside: avoid-column; font-size: 0.8rem; }

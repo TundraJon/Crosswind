@@ -8,7 +8,7 @@
     screens.forEach(s => s.classList.toggle('active', s.id === id));
     navBtns.forEach(b => b.classList.toggle('active', b.dataset.screen === id));
     window.scrollTo(0, 0);
-    if (id === 'screenDash') renderDash();
+    if (id === 'screenDash') { gsPrimaryIsMph = currentUnits().speed !== 'kph'; renderGroundSpeed(); renderDash(); }
   }
   navBtns.forEach(b => b.addEventListener('click', () => showScreen(b.dataset.screen)));
   document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showScreen(b.dataset.goto)));
@@ -16,12 +16,8 @@
   /* ============ SETUP: unit toggles ============ */
   document.querySelectorAll('.unit-switch').forEach(group => {
     group.querySelectorAll('button').forEach(btn => {
-      btn.addEventListener('click', () => { group.querySelectorAll('button').forEach(b => b.classList.remove('on')); btn.classList.add('on'); });
+      btn.addEventListener('click', () => { group.querySelectorAll('button').forEach(b => b.classList.remove('on')); btn.classList.add('on'); saveProfile(); });
     });
-  });
-
-  document.getElementById('suggestAirportBtn').addEventListener('click', () => {
-    document.getElementById('homeAirportInput').value = 'Orlando (MCO)';
   });
 
   /* ============ SMART DATE/TIME PARSING ENGINE ============ */
@@ -163,18 +159,107 @@
   /* ============ WIRE: KTN Expiration (single-date smart field) ============ */
   const ktnExpInput = document.getElementById('ktnExp');
   wireSmartDateInput(ktnExpInput);
+  ktnExpInput.addEventListener('input', saveProfile);
+  ktnExpInput.addEventListener('blur', saveProfile);
   document.getElementById('ktnExpCalBtn').addEventListener('click', () => {
     const parsed = parseSmartDate(ktnExpInput.value, new Date());
-    openCalendar('single', { start: parsed }, (start) => { if (start) ktnExpInput.value = fmtDate(start); });
+    openCalendar('single', { start: parsed }, (start) => { if (start) { ktnExpInput.value = fmtDate(start); saveProfile(); } });
+  });
+
+  /* ============ PROFILE: saving, loading, KTN colour ============ */
+  const PROFILE_KEY = 'crosswindProfile';
+  const addrInput = document.getElementById('addrInput');
+  const homeAirportInput = document.getElementById('homeAirportInput');
+  const ktnInput = document.getElementById('ktnInput');
+  const ktnNote = document.getElementById('ktnNote');
+  const unitGroups = document.querySelectorAll('.unit-switch');
+  const stepSystem = [
+    { sys: 'Home', icon: '🏠' }, { sys: 'Uber', icon: '🚙' },
+    { sys: 'Flight (Initial)', icon: '🛫' }, { sys: 'Layover', icon: '🧳' },
+    { sys: 'Connection', icon: '✈️' }, { sys: 'Flight (Final)', icon: '🛬' },
+    { sys: 'Rental', icon: '🚗' }, { sys: 'Hotel', icon: '🏨' }, { sys: 'Objective / To', icon: '🏥' },
+    { sys: 'Rental Return', icon: '🚗' }, { sys: 'Uber Home', icon: '🚙' }
+  ];
+  let stepCustom = {};
+  function cleanText(t) { return String(t).replace(/[<>]/g, ''); }
+  function stepName(sys) { const c = stepCustom[sys]; return (c && c.name && c.name.trim()) ? cleanText(c.name.trim()) : sys; }
+  function stepIcon(sys) { const c = stepCustom[sys]; return (c && c.icon && c.icon.trim()) ? cleanText(c.icon.trim()) : stepSystem.find(r => r.sys === sys).icon; }
+
+  function emptyProfile() {
+    return { v: 1, address: '', homeAirport: '', programs: [], touchless: {}, ktn: '', ktnExp: '',
+      units: { speed: 'mph', temp: 'f', dist: 'mi' }, stepDefaults: {} };
+  }
+  function normalizeProfile(raw) {
+    const p = emptyProfile();
+    if (!raw || typeof raw !== 'object') return p;
+    const str = v => typeof v === 'string' ? v : '';
+    p.address = str(raw.address); p.homeAirport = str(raw.homeAirport);
+    p.ktn = str(raw.ktn).toUpperCase().slice(0, 9); p.ktnExp = str(raw.ktnExp);
+    if (Array.isArray(raw.programs)) {
+      p.programs = raw.programs
+        .filter(x => x && ['airline', 'rental', 'hotel'].indexOf(x.type) >= 0 && typeof x.name === 'string' && cleanText(x.name).trim())
+        .map(x => ({ type: x.type, name: cleanText(x.name).trim(), id: cleanText(str(x.id)) }));
+    }
+    if (raw.touchless && typeof raw.touchless === 'object') Object.keys(raw.touchless).forEach(k => { if (raw.touchless[k] === true) p.touchless[k] = true; });
+    if (raw.units && typeof raw.units === 'object') {
+      if (['mph', 'kph'].indexOf(raw.units.speed) >= 0) p.units.speed = raw.units.speed;
+      if (['f', 'c'].indexOf(raw.units.temp) >= 0) p.units.temp = raw.units.temp;
+      if (['mi', 'km'].indexOf(raw.units.dist) >= 0) p.units.dist = raw.units.dist;
+    }
+    if (raw.stepDefaults && typeof raw.stepDefaults === 'object') {
+      stepSystem.forEach(r => {
+        const c = raw.stepDefaults[r.sys];
+        if (c && typeof c === 'object') {
+          const n = cleanText(str(c.name)).trim(), i = cleanText(str(c.icon)).trim();
+          if (n || i) p.stepDefaults[r.sys] = { name: n, icon: i };
+        }
+      });
+    }
+    return p;
+  }
+  function loadProfile() {
+    try { const raw = localStorage.getItem(PROFILE_KEY); if (raw) return normalizeProfile(JSON.parse(raw)); } catch (e) {}
+    return emptyProfile();
+  }
+  function currentUnits() {
+    const u = {};
+    unitGroups.forEach(g => { u[g.dataset.unitGroup] = g.querySelector('button.on').dataset.val; });
+    return u;
+  }
+  function snapshotProfile() {
+    const t = {}; Object.keys(touchless).forEach(k => { if (touchless[k]) t[k] = true; });
+    return { v: 1, address: addrInput.value, homeAirport: homeAirportInput.value,
+      programs: programs.map(p => ({ type: p.type, name: p.name, id: p.id })), touchless: t,
+      ktn: ktnInput.value, ktnExp: ktnExpInput.value, units: currentUnits(), stepDefaults: JSON.parse(JSON.stringify(stepCustom)) };
+  }
+  function saveProfile() { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(snapshotProfile())); } catch (e) {} }
+  function updateKtn() {
+    const v = ktnInput.value, good = /^[A-Z0-9]{9}$/.test(v);
+    ktnInput.classList.toggle('ktn-ok', good);
+    ktnInput.classList.toggle('ktn-bad', !!v && !good);
+    ktnNote.style.display = (v && !good) ? 'block' : 'none';
+  }
+  function applyProfile(p) {
+    addrInput.value = p.address; homeAirportInput.value = p.homeAirport;
+    ktnInput.value = p.ktn; ktnExpInput.value = p.ktnExp;
+    programs = p.programs; touchless = p.touchless; stepCustom = p.stepDefaults;
+    unitGroups.forEach(g => g.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.val === p.units[g.dataset.unitGroup])));
+    stepSystem.forEach(r => { const c = stepCustom[r.sys] || { name: '', icon: '' }; defaultsInputs[r.sys].name.value = c.name; defaultsInputs[r.sys].icon.value = c.icon; });
+    updateKtn();
+    renderLoyaltyList(); renderTsaAirlines(); renderNodeTrack(); renderStepForm();
+  }
+  addrInput.addEventListener('input', saveProfile);
+  homeAirportInput.addEventListener('input', saveProfile);
+  ktnInput.addEventListener('input', () => {
+    const pos = ktnInput.selectionStart;
+    ktnInput.value = ktnInput.value.toUpperCase();
+    try { ktnInput.setSelectionRange(pos, pos); } catch (e) {}
+    updateKtn(); saveProfile();
   });
 
   /* ============ LOYALTY PROGRAMS + TSA AIRLINES: shared state ============ */
-  let programs = [
-    { type: 'airline', name: 'Southwest', id: 'A-List 12345' },
-    { type: 'rental',  name: 'National',  id: 'Emerald Club' },
-    { type: 'hotel',   name: 'Marriott',  id: 'Bonvoy Gold' }
-  ];
-  let touchless = { 'southwest': true };
+  let programs = [];
+  let touchless = {};
   const loyaltyList = document.getElementById('loyaltyList');
   const loyaltyFilter = document.getElementById('loyaltyFilter');
   const tsaAirlineList = document.getElementById('tsaAirlineList');
@@ -204,6 +289,7 @@
         loyaltyList.appendChild(row);
       });
     });
+    if (!programs.length) { const e = document.createElement('div'); e.className = 'empty-row'; e.textContent = 'No programs yet'; loyaltyList.appendChild(e); }
   }
 
   function renderTsaAirlines() {
@@ -219,7 +305,7 @@
       const row = document.createElement('div');
       row.className = 'airline-row' + (on ? ' touchless' : '');
       row.innerHTML = '<span class="dot"></span>' + a.name;
-      row.addEventListener('click', () => { touchless[a.name.toLowerCase()] = !touchless[a.name.toLowerCase()]; renderTsaAirlines(); });
+      row.addEventListener('click', () => { touchless[a.name.toLowerCase()] = !touchless[a.name.toLowerCase()]; saveProfile(); renderTsaAirlines(); });
       tsaAirlineList.appendChild(row);
     });
   }
@@ -239,8 +325,11 @@
   const dupWarning = document.getElementById('dupWarning');
   const deleteBtn = document.getElementById('programDeleteBtn');
   let modalType = 'airline', editingIndex = null;
+  let deleteArmTimer = null;
+  function disarmDelete() { clearTimeout(deleteArmTimer); deleteArmTimer = null; deleteBtn.textContent = 'Delete'; }
 
   function openProgramModal(idx) {
+    disarmDelete();
     editingIndex = (typeof idx === 'number') ? idx : null;
     if (editingIndex !== null) {
       const p = programs[editingIndex];
@@ -253,7 +342,7 @@
     dupWarning.style.display = 'none';
     modal.classList.add('open');
   }
-  function closeProgramModal() { modal.classList.remove('open'); }
+  function closeProgramModal() { disarmDelete(); modal.classList.remove('open'); }
   function setModalType(t) {
     modalType = t;
     typeBtnRow.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('on', b.dataset.type === t));
@@ -288,7 +377,11 @@
   programIdInput.addEventListener('input', checkDuplicate);
   document.getElementById('addProgramBtn').addEventListener('click', () => openProgramModal(null));
   document.getElementById('programCancelBtn').addEventListener('click', closeProgramModal);
-  deleteBtn.addEventListener('click', () => { if (editingIndex !== null) { programs.splice(editingIndex, 1); closeProgramModal(); renderAll(); } });
+  deleteBtn.addEventListener('click', () => {
+    if (editingIndex === null) return;
+    if (!deleteArmTimer) { deleteBtn.textContent = 'Tap again to delete'; deleteArmTimer = setTimeout(disarmDelete, 3000); return; }
+    disarmDelete(); programs.splice(editingIndex, 1); closeProgramModal(); saveProfile(); renderAll();
+  });
 
   function commitProgramEntry() {
     const name = programNameInput.value.trim();
@@ -296,6 +389,7 @@
     const id = programIdInput.value.trim();
     if (editingIndex !== null) programs[editingIndex] = { type: modalType, name, id };
     else programs.push({ type: modalType, name, id });
+    saveProfile();
     return true;
   }
   document.getElementById('programSaveBtn').addEventListener('click', () => {
@@ -316,19 +410,24 @@
   modal.addEventListener('click', (e) => { if (e.target === modal) closeProgramModal(); });
 
   /* ============ TRIP STEP DEFAULTS ============ */
-  const stepDefaults = [
-    { sys: 'Home', name: 'Home', icon: '🏠' }, { sys: 'Uber', name: 'Uber', icon: '🚙' },
-    { sys: 'Flight (Initial)', name: 'Flight (Initial)', icon: '🛫' }, { sys: 'Layover', name: 'Layover', icon: '🧳' },
-    { sys: 'Connection', name: 'Connection', icon: '✈️' }, { sys: 'Flight (Final)', name: 'Flight (Final)', icon: '🛬' },
-    { sys: 'Rental', name: 'Rental', icon: '🚗' }, { sys: 'Hotel', name: 'Hotel', icon: '🏨' }, { sys: 'Objective / To', name: 'Objective / To', icon: '🏥' }
-  ];
   const defaultsBody = document.querySelector('#defaultsTable tbody');
-  stepDefaults.forEach(step => {
+  const defaultsInputs = {};
+  function updateStepCustom(sys) {
+    const n = defaultsInputs[sys].name.value.trim(), i = defaultsInputs[sys].icon.value.trim();
+    if (n || i) stepCustom[sys] = { name: n, icon: i }; else delete stepCustom[sys];
+    saveProfile(); renderNodeTrack(); renderStepForm();
+  }
+  stepSystem.forEach(step => {
     const tr = document.createElement('tr');
     const tdSys = document.createElement('td'); tdSys.className = 'sysname'; tdSys.textContent = step.sys;
-    const tdName = document.createElement('td'); const nameInput = document.createElement('input'); nameInput.type = 'text'; nameInput.value = step.name; tdName.appendChild(nameInput);
-    const tdIcon = document.createElement('td'); const iconInput = document.createElement('input'); iconInput.type = 'text'; iconInput.className = 'icon-input'; iconInput.value = step.icon; iconInput.maxLength = 4; tdIcon.appendChild(iconInput);
-    tr.appendChild(tdSys); tr.appendChild(tdName); tr.appendChild(tdIcon);
+    const tdName = document.createElement('td'); const nameInput = document.createElement('input'); nameInput.type = 'text'; nameInput.placeholder = step.sys; tdName.appendChild(nameInput);
+    const tdIcon = document.createElement('td'); const iconInput = document.createElement('input'); iconInput.type = 'text'; iconInput.className = 'icon-input'; iconInput.placeholder = step.icon; iconInput.maxLength = 4; tdIcon.appendChild(iconInput);
+    const tdReset = document.createElement('td'); const resetBtn = document.createElement('button'); resetBtn.className = 'reset-btn'; resetBtn.textContent = '↺'; resetBtn.title = 'Reset to default'; tdReset.appendChild(resetBtn);
+    defaultsInputs[step.sys] = { name: nameInput, icon: iconInput };
+    nameInput.addEventListener('input', () => updateStepCustom(step.sys));
+    iconInput.addEventListener('input', () => updateStepCustom(step.sys));
+    resetBtn.addEventListener('click', () => { nameInput.value = ''; iconInput.value = ''; updateStepCustom(step.sys); });
+    tr.appendChild(tdSys); tr.appendChild(tdName); tr.appendChild(tdIcon); tr.appendChild(tdReset);
     defaultsBody.appendChild(tr);
   });
 
@@ -414,16 +513,19 @@
 
   function flightNodeMeta(flights, fi) {
     const n = flights.length;
-    if (n === 1) return { icon: '🛫', base: 'Flight' };
-    if (fi === 0) return { icon: '🛫', base: 'Flight 1' };
-    if (fi === n - 1) return { icon: '🛬', base: 'Flight ' + (fi + 1) };
-    return { icon: '✈️', base: 'Flight ' + (fi + 1) };
+    let sys = 'Flight (Initial)', num = '';
+    if (n > 1) {
+      if (fi === 0) sys = 'Flight (Initial)';
+      else if (fi === n - 1) sys = 'Flight (Final)';
+      else { sys = 'Connection'; if (n > 3) num = ' ' + fi; }
+    }
+    return { icon: stepIcon(sys), base: stepName(sys) + num };
   }
 
   function buildNodes() {
     const nodes = [];
-    nodes.push({ key: 'home', icon: '🏠', label: 'Home', type: 'home' });
-    nodes.push({ key: 'uber-out', icon: '🚙', label: 'Uber', type: 'uberOut' });
+    nodes.push({ key: 'home', icon: stepIcon('Home'), label: stepName('Home'), type: 'home' });
+    nodes.push({ key: 'uber-out', icon: stepIcon('Uber'), label: stepName('Uber'), type: 'uberOut' });
     const multi = wizardState.stops.length > 1;
 
     wizardState.stops.forEach((stop, si) => {
@@ -432,21 +534,21 @@
         const m = flightNodeMeta(stop.flights, fi);
         const label = multi ? (m.base + ' — ' + tag) : m.base;
         nodes.push({ key: 'stop' + si + '-flight-' + fi, icon: m.icon, label, type: 'flight', stopIndex: si, flightIndex: fi });
-        if (fi < stop.flights.length - 1) nodes.push({ key: 'stop' + si + '-layover-' + fi, icon: '🧳', label: 'Layover', type: 'layover', optional: true, stopIndex: si, betweenIndex: fi });
+        if (fi < stop.flights.length - 1) nodes.push({ key: 'stop' + si + '-layover-' + fi, icon: stepIcon('Layover'), label: stepName('Layover'), type: 'layover', optional: true, stopIndex: si, betweenIndex: fi });
       });
-      nodes.push({ key: 'stop' + si + '-rental', icon: '🚗', label: multi ? ('Rental — ' + tag) : 'Rental', type: 'rental', stopIndex: si });
-      nodes.push({ key: 'stop' + si + '-hotel', icon: '🏨', label: multi ? ('Hotel — ' + tag) : 'Hotel', type: 'hotel', stopIndex: si });
-      nodes.push({ key: 'stop' + si + '-destination', icon: '🏥', label: multi ? ('Destination ' + (si + 1)) : 'To', type: 'destination', stopIndex: si });
-      nodes.push({ key: 'stop' + si + '-rentalreturn', icon: '🚗', label: multi ? ('Return — ' + tag) : 'Rental Return', type: 'rentalReturn', stopIndex: si, optional: true });
+      nodes.push({ key: 'stop' + si + '-rental', icon: stepIcon('Rental'), label: multi ? (stepName('Rental') + ' — ' + tag) : stepName('Rental'), type: 'rental', stopIndex: si });
+      nodes.push({ key: 'stop' + si + '-hotel', icon: stepIcon('Hotel'), label: multi ? (stepName('Hotel') + ' — ' + tag) : stepName('Hotel'), type: 'hotel', stopIndex: si });
+      nodes.push({ key: 'stop' + si + '-destination', icon: stepIcon('Objective / To'), label: multi ? (stepName('Objective / To') + ' ' + (si + 1)) : stepName('Objective / To'), type: 'destination', stopIndex: si });
+      nodes.push({ key: 'stop' + si + '-rentalreturn', icon: stepIcon('Rental Return'), label: multi ? (stepName('Rental Return') + ' — ' + tag) : stepName('Rental Return'), type: 'rentalReturn', stopIndex: si, optional: true });
     });
 
     wizardState.returnFlights.forEach((f, fi) => {
       const m = flightNodeMeta(wizardState.returnFlights, fi);
       nodes.push({ key: 'return-flight-' + fi, icon: m.icon, label: 'Return: ' + m.base, type: 'returnFlight', flightIndex: fi });
-      if (fi < wizardState.returnFlights.length - 1) nodes.push({ key: 'return-layover-' + fi, icon: '🧳', label: 'Layover', type: 'layover', optional: true, betweenIndex: fi, isReturn: true });
+      if (fi < wizardState.returnFlights.length - 1) nodes.push({ key: 'return-layover-' + fi, icon: stepIcon('Layover'), label: stepName('Layover'), type: 'layover', optional: true, betweenIndex: fi, isReturn: true });
     });
 
-    nodes.push({ key: 'uber-home', icon: '🚙', label: 'Uber Home', type: 'uberHome' });
+    nodes.push({ key: 'uber-home', icon: stepIcon('Uber Home'), label: stepName('Uber Home'), type: 'uberHome' });
     return nodes;
   }
 
@@ -503,11 +605,11 @@
     let html = '';
 
     if (node.type === 'home') {
-      html = '<div class="step-head">HOME</div><div class="home-note">This is your saved Home Base from Setup. Edit it there if it needs to change.</div>';
+      html = '<div class="step-head">' + node.label.toUpperCase() + '</div><div class="home-note">This is your saved Home Base from Setup. Edit it there if it needs to change.</div>';
     }
 
     else if (node.type === 'uberOut') {
-      html = '<div class="step-head">UBER</div>' +
+      html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
         '<label class="fld">Date</label><input type="text" value="Trip Start Date" disabled><div class="fld-note">Computed from Active Pipeline</div>' +
         '<div class="fld-grid">' +
         '<div><label class="fld">Pickup Time</label><input type="text" id="wf-uber-pickup" placeholder="e.g. 4:30 PM" value="' + wizardState.uberOut.pickup + '"></div>' +
@@ -528,9 +630,11 @@
 
     else if (node.type === 'layover') {
       const i = node.betweenIndex;
-      const label1 = node.isReturn ? 'Return Flight ' + (i + 1) : 'Flight ' + (i + 1);
-      const label2 = node.isReturn ? 'Return Flight ' + (i + 2) : 'Flight ' + (i + 2);
-      html = '<div class="step-head">LAYOVER</div>' +
+      const list = node.isReturn ? wizardState.returnFlights : wizardState.stops[node.stopIndex].flights;
+      const pre = node.isReturn ? 'Return: ' : '';
+      const label1 = pre + flightNodeMeta(list, i).base;
+      const label2 = pre + flightNodeMeta(list, i + 1).base;
+      html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
         '<div class="layover-strip">🧳 Calculated: <b>' + label1 + ' Landing</b> → <b>' + label2 + ' Boarding</b></div>' +
         '<div class="fld-note" style="margin-top:8px;">Example once flight times are auto-filled: SEA Landing 6:40 PM → MCI Boarding 8:22 PM = <b style="color:var(--amber);">1h 42m layover</b>. Real calculation activates once the Flight Tracker API auto-fill is wired in (Step 4).</div>';
     }
@@ -541,7 +645,7 @@
       const compOpts = companies.map(c => '<option' + (c.name === r.company ? ' selected' : '') + '>' + c.name + '</option>').join('');
       const classes = ['Economy','Compact','Intermediate/Midsize','Standard','Full-Size','Premium','Luxury','SUV (Compact)','SUV (Standard/Full-Size)','Minivan'];
       const classOpts = classes.map(c => '<option' + (c === r.cls ? ' selected' : '') + '>' + c + '</option>').join('');
-      html = '<div class="step-head">RENTAL</div><div class="fld-grid">' +
+      html = '<div class="step-head">' + node.label.toUpperCase() + '</div><div class="fld-grid">' +
         '<div><label class="fld">Company</label><select id="wf-rental-company">' + (compOpts || '<option>No rental programs yet</option>') + '</select></div>' +
         '<div><label class="fld">Class</label><select id="wf-rental-class">' + classOpts + '</select></div>' +
         '<div><label class="fld">Color <span class="fld-opt">(at pickup)</span></label><input type="text" id="wf-rental-color" placeholder="—" value="' + r.color + '"></div>' +
@@ -553,7 +657,7 @@
       const h = wizardState.stops[node.stopIndex].hotel;
       const chains = sortedByType('hotel');
       const chainOpts = chains.map(c => '<option' + (c.name === h.chain ? ' selected' : '') + '>' + c.name + '</option>').join('');
-      html = '<div class="step-head">HOTEL</div><div class="fld-grid">' +
+      html = '<div class="step-head">' + node.label.toUpperCase() + '</div><div class="fld-grid">' +
         '<div><label class="fld">Chain</label><select id="wf-hotel-chain">' + (chainOpts || '<option>No hotel programs yet</option>') + '</select></div>' +
         '<div><label class="fld">Hotel Name</label><input type="text" id="wf-hotel-name" placeholder="e.g. Lambeau Field Hilton" value="' + h.name + '"></div>' +
         '</div>' +
@@ -565,7 +669,7 @@
 
     else if (node.type === 'destination') {
       const d = wizardState.stops[node.stopIndex].destination;
-      html = '<div class="step-head">DESTINATION</div>' +
+      html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
         '<label class="fld">Place Name</label><input type="text" id="wf-dest-name" placeholder="e.g. Hollywood Health Center" value="' + d.name + '">' +
         '<label class="fld">Address</label><input type="text" id="wf-dest-address" placeholder="—" value="' + d.address + '">' +
         '<button class="suggest-btn" id="wf-dest-suggest">📍 Suggest Address</button>' +
@@ -576,7 +680,7 @@
     else if (node.type === 'rentalReturn') {
       const r = wizardState.stops[node.stopIndex].rental;
       const isLastStop = node.stopIndex === wizardState.stops.length - 1;
-      html = '<div class="step-head">RENTAL RETURN</div>' +
+      html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
         '<div class="return-ref">Returning: ' + (r.company || '—') + ' — ' + r.cls +
         '<div class="rr-sub">No time needed — inferred from the next flight\'s boarding time.</div></div>' +
         (isLastStop ? '<button class="add-flight-btn" id="wf-add-stop">+ Add Another Stop</button>' : '');
@@ -592,7 +696,7 @@
     }
 
     else if (node.type === 'uberHome') {
-      html = '<div class="step-head">UBER HOME</div>' +
+      html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
         '<label class="fld">Date</label><input type="text" value="Trip End Date" disabled><div class="fld-note">Computed from Active Pipeline</div>' +
         '<div class="fld-grid">' +
         '<div><label class="fld">Pickup Time <span class="fld-opt">(usually set live at baggage claim)</span></label><input type="text" id="wf-uberhome-pickup" placeholder="e.g. 6:15 PM" value="' + wizardState.uberHome.pickup + '"></div>' +
@@ -928,6 +1032,118 @@
     saveFavorites(); renderFavorites(); closeFavModal();
   });
 
+  /* ============ BACKUP: export, restore points, import ============ */
+  const RESTORE_KEY = 'crosswindRestorePoints';
+  const exportBtn = document.getElementById('exportBtn');
+  const importBtn = document.getElementById('importBtn');
+  const importFile = document.getElementById('importFile');
+  const backupNote = document.getElementById('backupNote');
+  const importModal = document.getElementById('importModal');
+  const restoreList = document.getElementById('restoreList');
+  const importNote = document.getElementById('importNote');
+  const importConfirmModal = document.getElementById('importConfirmModal');
+  let pendingImport = null;
+  let backupNoteTimer = null;
+
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function fileStamp(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + '-' + pad2(d.getHours()) + pad2(d.getMinutes()); }
+  function fmtStamp(iso) {
+    const d = new Date(iso);
+    return isNaN(d) ? 'unknown date' : d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+  function normalizeFavorites(raw) {
+    const out = [null, null, null];
+    if (Array.isArray(raw)) {
+      for (let i = 0; i < 3; i++) {
+        const f = raw[i];
+        if (f && typeof f === 'object' && typeof f.caption === 'string' && cleanText(f.caption).trim() && typeof f.message === 'string' && f.message.trim()) {
+          out[i] = { icon: (typeof f.icon === 'string' && cleanText(f.icon).trim()) ? cleanText(f.icon).trim() : '⭐', caption: cleanText(f.caption).trim(), message: f.message };
+        }
+      }
+    }
+    return out;
+  }
+  function buildBackup() {
+    return { app: 'crosswind', version: 1, created: new Date().toISOString(), profile: snapshotProfile(), favorites: favorites.slice() };
+  }
+  function readRestorePoints() {
+    try {
+      const a = JSON.parse(localStorage.getItem(RESTORE_KEY));
+      return Array.isArray(a) ? a.filter(x => x && typeof x.label === 'string' && x.profile && typeof x.profile === 'object') : [];
+    } catch (e) { return []; }
+  }
+  function addRestorePoint(label, backup) {
+    const pts = readRestorePoints();
+    pts.unshift({ label, created: backup.created, profile: backup.profile, favorites: backup.favorites });
+    try { localStorage.setItem(RESTORE_KEY, JSON.stringify(pts.slice(0, 3))); } catch (e) {}
+  }
+  function summarize(profile, favs) {
+    const np = (profile.programs || []).length, nf = (favs || []).filter(Boolean).length;
+    return np + (np === 1 ? ' program' : ' programs') + ' · ' + nf + (nf === 1 ? ' favorite' : ' favorites');
+  }
+  function showBackupNote(text) {
+    backupNote.textContent = text; backupNote.style.display = 'block';
+    clearTimeout(backupNoteTimer); backupNoteTimer = setTimeout(() => { backupNote.style.display = 'none'; }, 4000);
+  }
+  function showImportNote(text) { importNote.textContent = text; importNote.style.display = 'block'; }
+  function renderRestoreList() {
+    restoreList.innerHTML = '';
+    const pts = readRestorePoints();
+    if (!pts.length) { const e = document.createElement('div'); e.className = 'empty-row'; e.textContent = 'None yet'; restoreList.appendChild(e); return; }
+    pts.forEach(pt => {
+      const row = document.createElement('div'); row.className = 'restore-row';
+      const info = document.createElement('div');
+      const b = document.createElement('b'); b.textContent = pt.label;
+      info.appendChild(b); info.appendChild(document.createTextNode(' — ' + fmtStamp(pt.created)));
+      const sm = document.createElement('small'); sm.textContent = summarize(pt.profile, pt.favorites); info.appendChild(sm);
+      const btn = document.createElement('button'); btn.className = 'btn ghost small'; btn.textContent = 'Restore';
+      btn.addEventListener('click', () => askImport({ name: pt.label, created: pt.created, profile: normalizeProfile(pt.profile), favorites: normalizeFavorites(pt.favorites) }));
+      row.appendChild(info); row.appendChild(btn); restoreList.appendChild(row);
+    });
+  }
+  function askImport(pending) {
+    pendingImport = pending;
+    document.getElementById('importConfirmName').textContent = pending.name;
+    document.getElementById('importConfirmDate').textContent = fmtStamp(pending.created);
+    importModal.classList.remove('open');
+    importConfirmModal.classList.add('open');
+  }
+  exportBtn.addEventListener('click', () => {
+    const backup = buildBackup();
+    const name = 'crosswind-backup-' + fileStamp(new Date(backup.created)) + '.json';
+    const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }));
+    const a = document.createElement('a'); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    addRestorePoint('Export', backup);
+    showBackupNote('✓ Exported ' + name + ' — restore point saved');
+  });
+  importBtn.addEventListener('click', () => { importNote.style.display = 'none'; renderRestoreList(); importModal.classList.add('open'); });
+  document.getElementById('importCancelBtn').addEventListener('click', () => importModal.classList.remove('open'));
+  importModal.addEventListener('click', (e) => { if (e.target === importModal) importModal.classList.remove('open'); });
+  document.getElementById('importChooseBtn').addEventListener('click', () => importFile.click());
+  importFile.addEventListener('change', async () => {
+    const f = importFile.files[0];
+    if (!f) return;
+    let obj = null;
+    try { obj = JSON.parse(await f.text()); } catch (e) {}
+    importFile.value = '';
+    if (!obj || obj.app !== 'crosswind' || !obj.profile || typeof obj.profile !== 'object') { showImportNote("That file isn't a Crosswind backup."); return; }
+    askImport({ name: f.name, created: obj.created, profile: normalizeProfile(obj.profile), favorites: normalizeFavorites(obj.favorites) });
+  });
+  document.getElementById('importConfirmCancel').addEventListener('click', () => { pendingImport = null; importConfirmModal.classList.remove('open'); });
+  importConfirmModal.addEventListener('click', (e) => { if (e.target === importConfirmModal) { pendingImport = null; importConfirmModal.classList.remove('open'); } });
+  document.getElementById('importReplaceBtn').addEventListener('click', () => {
+    if (!pendingImport) return;
+    addRestorePoint('Before import', buildBackup());
+    applyProfile(pendingImport.profile); saveProfile();
+    favorites = pendingImport.favorites; saveFavorites(); renderFavorites();
+    pendingImport = null;
+    importConfirmModal.classList.remove('open');
+    showBackupNote('✓ Backup imported');
+  });
+
+  applyProfile(loadProfile());
   updateLastUsed();
   renderFavorites();
   renderAll();
