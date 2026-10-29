@@ -204,7 +204,19 @@ A Brand field next to Chain, with a list per chain.
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Hotel Chain dropdown lists every major chain
+Not yet authorized to build. Settled with Jon (Rental Company and Airline stay as they are: he only uses companies he has a program with). Open point: the extra-chain list below is a proposal.
+
+- The Hotel step's Chain dropdown shows the user's Setup hotel programs first (alphabetical, as today), then a dashed separator line (a disabled option), then the major chains alphabetically.
+- No repeats: a major chain is left out when one of the user's programs matches it by the same keyword rule as the brand picker (a "Marriott Bonvoy" program hides "Marriott"; a "Wyndham Rewards" program hides "Wyndham").
+- Major chains (proposed): Best Western, Choice Hotels, Drury Hotels, Extended Stay America, Hilton, Hyatt, IHG, Marriott, Motel 6, Omni, Radisson, Red Roof, Wyndham. The list lives in `hotel-brands.js` so it is easy to correct.
+- Choosing a major chain stores its name as the chain and works like any chain: the Brand list matches by keyword (Wyndham gives AmericInn), and the Dashboard shows `CHAIN: Wyndham`.
+- A stored chain not in either list (deleted program, or older trip) stays visible, as today. The separator is never selectable or stored.
+- No Setup change; the dropdown's "Select…" blank stays first.
+
+**Reuse:** `selectOptionsHTML()`, `brandListFor()`, `hotel-brands.js`.
+
+**Verification plan:** no programs (all chains listed, alphabetical); with Marriott Bonvoy and Wyndham Rewards programs (those two first, separator, the rest without Marriott or Wyndham); picking Wyndham brings up AmericInn and prefills; Dashboard line; the separator cannot be picked; a trip with a deleted program's chain still shows it; reload; 390px screenshot.
 
 ## Build Planner
 
