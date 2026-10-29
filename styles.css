@@ -90,6 +90,10 @@
   .airline-row.touchless .dot { background: var(--green); box-shadow: 0 0 6px rgba(77,232,138,0.6); }
   .loyalty-columns { column-count: 3; column-gap: 14px; }
   .loyalty-columns .empty-row { column-span: all; }
+  .suggest-list { background: var(--bg-input); border: 1px solid var(--cyan-dim); border-radius: 8px; margin-top: 4px; overflow: hidden; }
+  .suggest-item { padding: 9px 10px; font-size: 0.9rem; cursor: pointer; color: var(--text); border-bottom: 1px solid var(--line-soft); }
+  .suggest-item:last-child { border-bottom: none; }
+  .suggest-item.hl, .suggest-item:hover { background: rgba(77, 216, 255, 0.12); color: var(--cyan); }
   .loyalty-group-header { font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cyan-dim); margin: 10px 0 4px; break-after: avoid-column; break-inside: avoid-column; }
   .loyalty-group-header:first-child { margin-top: 0; }
   .loyalty-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--line-soft); break-inside: avoid-column; font-size: 0.8rem; }

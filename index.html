@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v0.92) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v0.93) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -10,7 +10,7 @@
 <title>Crosswind</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Michroma&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=4">
+<link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
 
@@ -38,7 +38,8 @@
       <div style="margin-top:6px;"><span class="badge off" id="cassBadge">CASS Validated</span></div>
       <div class="fld-note">Needs online lookup — coming soon</div>
       <label class="fld" for="homeAirportInput">Home Airport</label>
-      <input type="text" id="homeAirportInput" placeholder="Not set">
+      <input type="text" id="homeAirportInput" placeholder="Not set" autocomplete="off">
+      <div class="suggest-list" id="airportSuggest" style="display:none;"></div>
       <button class="suggest-btn" id="suggestAirportBtn" disabled title="Needs online lookup — coming soon">📍 Suggest Nearest Airport</button>
       <div class="fld-note">Needs online lookup — coming soon</div>
     </div>
@@ -309,7 +310,8 @@
   </div>
 </div>
 
-<script src="script.js?v=6"></script>
+<script src="airports.js?v=1"></script>
+<script src="script.js?v=7"></script>
 
 </body>
 </html>

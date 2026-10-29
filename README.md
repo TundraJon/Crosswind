@@ -140,10 +140,19 @@ A project is now one saved trip instead of display text over a shared itinerary.
 - **Found and fixed during verification:** (1) the older-backup warning read "Oct 28 vs. your current Oct 28" when both were the same day, which is exactly the "back up, then break it an hour later" case; it now shows times when the dates match. (2) With no name and an unresolved `S+N`, Save showed the S+N message instead of "Missing: Trip Name…"; the name check now comes first, as before.
 - **Not an app bug:** a flaky "everything lost after reload" (3 of 20) turned out to come from seeding storage from a test init script on `file://`; it reproduced on the already-shipped Build 15 code (4 of 30) and never without the script (0 of 30, also over a local server). Tests now seed storage after the page loads.
 
+### Build 17 (completed): Home Airport autocomplete with a built-in US airport table
+Jon asked for airport codes to auto-complete as he types, formatted like `MCO - Orlando FL`, from a built-in list. Design settled in conversation (spec was in the Build Queue). Version: v0.92→v0.93.
+- [x] New file `airports.js`: 634 US airports with scheduled airline service (large 95, medium 407, small 132; seaplane bases and heliports left out; the 50 states plus DC), each `[code, city, state, latitude, longitude, size]`, about 28 KB, no network use at run time. Source: the public-domain OurAirports database, pulled 2026-10-29 (recorded in the file header). Seven city names were shortened by hand (CVG, GCN, GRK, GSP, GTR, PKB, XNA). The queued spec said "plus DC and territories"; the data has no territories.
+- [x] `script.js` AIRPORT AUTOCOMPLETE section: `findAirports(text)` (typed text upper-cased with spaces ignored for codes, so "m c" works as "MC"; code-prefix matches first with an exact code first, then city-prefix matches; within a group large, medium, then small, then by code; no duplicates; at most 8) and a reusable `attachAirportSuggest(input, listEl, onPick)`, wired to the Home Airport field. Our own suggestion list is used because the browser's built-in list cannot do "starts with".
+- [x] Picking: tap fills `MCO - Orlando FL`, closes the list, saves through the normal Setup auto-save, and dismisses the keyboard; Arrow keys plus Enter pick, Escape closes; leaving the field closes the list (after 150 ms so a tap still lands). Free text still allowed. *Added (approved in the spec):* leaving the field holding exactly a valid code expands it ("mco" → "MCO - Orlando FL"). If `airports.js` fails to load the field simply behaves as plain text.
+- [x] `index.html`: `#airportSuggest` under the field, `autocomplete="off"`, `airports.js` loaded before `script.js`; `styles.css`: `.suggest-list` / `.suggest-item`. The disabled "Suggest Nearest Airport" button is unchanged; the coordinates are in the table for it later.
+- [x] Cache-bust: `airports.js?v=1` (new), `script.js?v=6→7`, `styles.css?v=4→5`. Version: v0.92→v0.93.
+- **Verification:** headless Chromium at 390px, 67 new checks, zero JS errors. Table: 634 unique, well-formed entries, size mix 95/407/132, 51 states and DC, hand fixes applied, file loads before the script. Matching checked against an independent re-implementation of the rules for 17 inputs ("m", "mc", "m c", "MC", "Mc", "orl", "dallas", "new y", "gr", "den", "chi", "san", "f", "ny", "lax", "xna", "fayetteville", "utq") plus "xyz" (no list), the 8-item cap, no duplicates, big airports first ("mc" → MCI, MCO, then the smaller ones; "orl" → MCO and SFB; "dallas" → DAL and DFW; "den" → DEN first). Tap fills the field, closes the list, blurs, saves, survives a reload, and shows on the Dashboard's Home card. Keyboard: ArrowDown, ArrowUp wrap, Escape, Enter with nothing highlighted does nothing, ArrowDown + Enter picks. Leaving the field closes the list and keeps free text; exact-code expansion for "mco", "MCI", "  sea " and not for "mcx" or "mc"; clearing hides the list. Longest label fits at 390px with no horizontal scroll; 0.08 ms per keystroke over 400 keystrokes. With `airports.js` missing: no list, no errors, typing still saved. Screenshot checked. Earlier suites re-run (dates, `S+N`, blocked save, End-before-Start, In-Flight, split serving, Dashboard 61, Setup 138, Wizard Part 1 157): same results, zero JS errors.
+
 ## Build Queue
 
 ### Trip Wizard Part 2: step dates, new fields, validation, honesty
-Not yet authorized to build. Second half of the Trip Wizard spec (Part 1 shipped as Build 16). Settled with Jon over three rounds; items marked *added* are for his review. Touches `index.html`, `script.js`, `styles.css`; includes cache-bust bumps for every local file that changes and the header version bump (v0.92→v0.93). Trips are saved per project, so every field below lives inside the active trip's itinerary and counts as a change to that trip's `modified` time.
+Not yet authorized to build. Second half of the Trip Wizard spec (Part 1 shipped as Build 16). Settled with Jon over three rounds; items marked *added* are for his review. Touches `index.html`, `script.js`, `styles.css`; includes cache-bust bumps for every local file that changes and the header version bump (v0.93→v0.94). Trips are saved per project, so every field below lives inside the active trip's itinerary and counts as a change to that trip's `modified` time.
 
 **1. Step dates: editable, with smart defaults**
 - Every date field is a smart date input with a 📅 calendar button (same behaviour as the other date fields), and `S+N` counts from the project's Start. Clearing a field returns it to its default. A date the user has typed or picked is kept even if project dates later change.
@@ -170,23 +179,6 @@ Not yet authorized to build. Second half of the Trip Wizard spec (Part 1 shipped
 
 **Verification plan:** all date defaults and the order they are computed in; a typed date surviving a project date change; clearing back to default; `S+N`; the outside-range note; new fields and Dashboard lines; flight confirmation colour; disabled stubs; "Select…" dropdowns; every date and field saving with the trip; screenshots; all earlier suites re-run.
 
-### Home Airport autocomplete with a built-in US airport table
-Not yet authorized to build. Design settled with Jon. Touches `index.html`, `script.js`, `styles.css`, plus a new file `airports.js`; includes cache-bust bumps for every local file that changes (`airports.js` starts at `?v=1`) and the header version bump (next 0.01 after the current one).
-
-**1. The airport table (`airports.js`)**
-- All US airports with scheduled airline service and a 3-letter IATA code: **634** (large 95, medium 407, small 132; seaplane bases and heliports excluded; all 50 states plus DC and territories). One entry per airport: code, city, state, latitude, longitude (rounded to two decimals), size. About 24 KB. Loaded before `script.js`; no network use at run time, so it works offline.
-- Source: the public-domain OurAirports database (pulled 2026-10-29); the file header records the source and date. City names come from the source (e.g. "Dallas-Fort Worth", "Fayetteville/Springdale/Rogers AR"); any that look dated or too long are adjusted by hand when the file is built.
-- Coordinates are included so the later "Suggest Nearest Airport" (Step 4) can work offline against a geocoded home address; that button stays disabled in this build.
-
-**2. Home Airport field behaviour**
-- A small suggestion list under the field (our own, because the built-in browser list cannot do "starts with"), updated on every keystroke from the first character. Typed text is upper-cased and spaces are ignored for codes ("m c" works as "MC").
-- Matches: airports whose **code starts with** the typed letters, then airports whose **city starts with** the typed text ("orl" finds MCO and SFB; "dallas" finds DAL and DFW). Codes first, exact code first; within each group biggest airports first (large, medium, small), then by code; an airport matching both is listed once; at most 8 shown.
-- Each suggestion reads `MCO - Orlando FL`. Tapping one (or Arrow keys plus Enter on a keyboard; Escape closes) fills the field with that exact text and saves it through the normal Setup auto-save. Leaving the field closes the list.
-- Free typing is still allowed: text that matches nothing stays as typed, no error. *Added:* if the field is left holding exactly a valid 3-letter code (e.g. "MCO"), it is expanded to "MCO - Orlando FL".
-- Built as a reusable helper (`attachAirportSuggest(input)`) so other airport fields (Wizard, later) can use the same list. The Dashboard's Home card shows the new text automatically. The saved profile format does not change (still one text value).
-
-**Verification plan:** table checks (634 unique codes, every entry has city, state, coordinates, and size; no heliports or seaplane bases; file size); suggestions for "m", "mc", "m c", "MC", "orl", "dallas", "new y", "gr", "xyz" (none), ordering and the 8-item cap, no duplicate airports; tap, Arrow and Enter, Escape, blur; free text kept; exact-code expansion; saved across reload; shown on the Dashboard; filter speed measured on all 634; screenshot at 390px with the list open; all earlier suites re-run.
-
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
@@ -195,7 +187,7 @@ Resolved, built, dropped, or superseded items are not kept here. Their history l
 Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished but does nothing real; "Missing" = not built or not designed yet. Setup saves for real (Build 15) and so do trips (Build 16).
 
 **Setup, what is still missing**
-- Real address verification (USPS / CASS) and cached lat/long, and a nearest-airports list: Step 4, behind the disabled buttons.
+- Real address verification (USPS / CASS), cached lat/long for the home address, and the nearest-airports suggestion: Step 4, behind the disabled buttons. The airport table with coordinates now exists (Build 17), so only the address geocoding needs a network.
 - Profile details (name, demographics): skipped on purpose, nothing uses them yet. **Saved Addresses** (recurring hotels and client sites that could autofill the Wizard): held for the Wizard spec.
 - Temperature and Distance units are saved but nothing shows a temperature or distance yet (weather, Distance to Home: Step 4).
 - Per-trip ✎ overrides on top of the step defaults: Wizard spec.
@@ -217,6 +209,9 @@ Found while verifying Build 14. With about 14 steps (a two-stop trip) the labels
 ### Inconsistency: some typed text is inserted into the page without escaping
 Found while building Build 15. Loyalty names and IDs, Favorite captions and icons, and the destination name inside step labels are put into the page as HTML, so typing `<` and `>` can break the layout. The Dashboard escapes its own text. Import now strips `<` and `>` from backup files as a stopgap, and step names are cleaned the same way. Open question: escape everywhere text is shown?
 
+### Check: airport city names
+The airport table's city names come straight from the OurAirports source. Only the odd-looking ones (long, slashes, dated) were reviewed and shortened by hand in Build 17. Tell me any that look wrong or that you would call differently (e.g. a name you search by) and they can be adjusted in `airports.js`.
+
 ### Other screens not yet designed
 - Compass-only fallback view (similar to the in-flight cockpit, minus flight data).
 - Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal).
@@ -230,7 +225,7 @@ Found while building Build 15. Loyalty names and IDs, Favorite captions and icon
 
 ### Step 4: real logic (needs data, API, or hardware)
 - Flight tracker auto-fill (Aviationstack or AirLabs, provider not chosen); layover math, tap to show how it was calculated.
-- Home Airport lookup (short list of nearby airports from cached geocode) and USPS/CASS address validation, reused for Hotel/Destination addresses.
+- Nearest-airports suggestion (a short list of nearby airports from the geocoded home address, using the coordinates already in `airports.js`) and USPS/CASS address validation, reused for Hotel/Destination addresses.
 - Text Clipboard Parser per step type, one segment at a time from a Concur itinerary (full-itinerary auto-build was explicitly dropped).
 - WhatsApp Report (content and layout not designed; Markdown to clipboard).
 - SQLite persistence (profile, loyalty, Touchless, units, step defaults, projects, per-project wizard data). Today only `crosswindLastRequest` and `crosswindFavorites` use localStorage.

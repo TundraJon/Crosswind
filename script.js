@@ -267,6 +267,51 @@
     updateKtn(); saveProfile();
   });
 
+  /* ============ AIRPORT AUTOCOMPLETE (US table in airports.js) ============ */
+  const airportData = (window.CROSSWIND_AIRPORTS || []).map(a => ({ code: a[0], city: a[1], state: a[2], lat: a[3], lon: a[4], size: a[5], label: a[0] + ' - ' + a[1] + ' ' + a[2] }));
+  const airportSizeRank = { L: 0, M: 1, S: 2 };
+  function findAirports(text) {
+    const raw = String(text || '').trim();
+    if (!raw) return [];
+    const code = raw.replace(/\s+/g, '').toUpperCase(), city = raw.replace(/\s+/g, ' ').toLowerCase();
+    const rank = (a, b) => (airportSizeRank[a.size] - airportSizeRank[b.size]) || a.code.localeCompare(b.code);
+    const byCode = airportData.filter(a => a.code.startsWith(code)).sort((a, b) => ((b.code === code) - (a.code === code)) || rank(a, b));
+    const byCity = airportData.filter(a => !a.code.startsWith(code) && a.city.toLowerCase().startsWith(city)).sort(rank);
+    return byCode.concat(byCity).slice(0, 8);
+  }
+  function attachAirportSuggest(input, listEl, onPick) {
+    let items = [], hl = -1, closeTimer = null;
+    function close() { listEl.style.display = 'none'; listEl.innerHTML = ''; items = []; hl = -1; }
+    function paint() { listEl.querySelectorAll('.suggest-item').forEach((el, i) => el.classList.toggle('hl', i === hl)); }
+    function pick(a) { clearTimeout(closeTimer); input.value = a.label; close(); onPick(a); input.blur(); }
+    function show() {
+      clearTimeout(closeTimer);
+      items = findAirports(input.value); hl = -1; listEl.innerHTML = '';
+      if (!items.length) { listEl.style.display = 'none'; return; }
+      items.forEach(a => {
+        const d = document.createElement('div'); d.className = 'suggest-item'; d.textContent = a.label;
+        d.addEventListener('mousedown', e => e.preventDefault());
+        d.addEventListener('click', () => pick(a));
+        listEl.appendChild(d);
+      });
+      listEl.style.display = 'block';
+    }
+    input.addEventListener('input', show);
+    input.addEventListener('keydown', e => {
+      if (!items.length) return;
+      if (e.key === 'ArrowDown') { hl = (hl + 1) % items.length; paint(); e.preventDefault(); }
+      else if (e.key === 'ArrowUp') { hl = (hl - 1 + items.length) % items.length; paint(); e.preventDefault(); }
+      else if (e.key === 'Enter' && hl >= 0) { pick(items[hl]); e.preventDefault(); }
+      else if (e.key === 'Escape') close();
+    });
+    input.addEventListener('blur', () => {
+      const exact = airportData.find(a => a.code === input.value.trim().toUpperCase());
+      if (exact && input.value !== exact.label) { input.value = exact.label; onPick(exact); }
+      closeTimer = setTimeout(close, 150);
+    });
+  }
+  attachAirportSuggest(homeAirportInput, document.getElementById('airportSuggest'), () => saveProfile());
+
   /* ============ LOYALTY PROGRAMS + TSA AIRLINES: shared state ============ */
   let programs = [];
   let touchless = {};
