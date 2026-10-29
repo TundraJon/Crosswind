@@ -211,7 +211,11 @@ The airport table's city names come straight from the OurAirports source. Only t
 - ✎ per-trip step overrides (rename or re-icon a step for one trip only) and making them persist.
 
 ### Step 4: real logic (needs data, API, or hardware)
-- Flight tracker auto-fill (Aviationstack or AirLabs, provider not chosen); layover math, tap to show how it was calculated.
+- Flight tracker auto-fill (Aviationstack or AirLabs, provider not chosen); layover math, tap to show how it was calculated. Notes from a discussion with Jon (parked for when this is built):
+  - A confirmation number plus last name only works inside an airline's own booking system; flight-data services do not accept it (they take flight number plus date, or route plus date). Reaching the reservation from outside would mean scraping each airline's site, which is brittle, breaks their rules, and sends the confirmation number and name to a third party.
+  - Two ways to avoid typing the flight number: (1) the Text Clipboard Parser, pasting the Concur or airline email text (flight number, times, route, confirmation are all in it; works offline, no account); (2) a route lookup from airline + date + from-airport + to-airport (the airport table in `airports.js` helps), listing candidate flights to pick from, then filling the number, gate, and times (needs internet and an API key).
+  - Recommendation: parser first, route lookup later for gates and live times. The app is a static site, so an API key cannot be hidden; each user would enter their own key in Setup (or a small backend proxy is needed). Provider free-tier limits are unchecked.
+  - Needed to start the parser: one real flight confirmation or Concur segment from Jon (name and confirmation number blanked out), so it is designed against real text.
 - Nearest-airports suggestion (a short list of nearby airports from the geocoded home address, using the coordinates already in `airports.js`) and USPS/CASS address validation, reused for Hotel/Destination addresses.
 - Text Clipboard Parser per step type, one segment at a time from a Concur itinerary (full-itinerary auto-build was explicitly dropped).
 - WhatsApp Report (content and layout not designed; Markdown to clipboard).
