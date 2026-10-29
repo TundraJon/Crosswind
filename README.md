@@ -237,6 +237,11 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Cosmetic: ✎ pins only toggle a look; a step counts as "done" only because it sits before the selected one.
 - Missing: removing or reordering stops and flights; per-trip ✎ overrides; real step completion.
 
+### Idea: phone numbers cleaned to digits and shown in telephone format
+From Jon: any phone number typed in should be stripped of special characters down to pure digits, then formatted as a telephone number. Today the only phone field is Destination > Contact Phone (and its Dashboard line); a shared helper would serve any later phone field.
+- Proposed (awaiting Jon's answers): format `(253) 555-0100`; a leading country code 1 is dropped (`1-253-555-0100` and `+1 253.555.0100` give the same result); a 7-digit number becomes `555-0100`; any other length stays as plain digits (nothing guessed); an "x", "ext", or "extension" before the last digits is kept as ` x12`; applied when the user leaves the field (not while typing); only the digits (plus extension) are stored and the display is formatted; phone numbers already saved or imported are cleaned the same way when loaded; the Dashboard shows the formatted number. Tap-to-call is not included unless Jon asks.
+- Open: confirm the format, format-on-leave with extensions kept, and digits-only storage.
+
 ### Inconsistency: step labels overlap on long trips
 Found while verifying Build 14. With about 14 steps (a two-stop trip) the labels in the step row run into their neighbours. It happens identically on the Wizard's row (same styles, confirmed before and after Build 14), so the Dashboard inherited it. Open question: wrap labels, shorten them, or widen the steps?
 
