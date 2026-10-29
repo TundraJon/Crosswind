@@ -196,6 +196,28 @@ Not yet authorized to build. Settled with Jon. Can be built on its own; if built
 
 **Verification plan:** the button is hidden with one flight or one stop; two-tap arms, reverts, and removes; removing the first, a middle, and the last outbound flight and a return flight; names, icons, and layover steps renumber; selection moves to the previous step; typed dates stay and defaults recalculate; removing the first, a middle, and the last stop; stop labels and suffixes renumber; an add-then-remove round trip leaves the trip unchanged; the removal saves, survives a reload, and updates `modified`; the Dashboard follows. All earlier suites re-run.
 
+### Hotel brand picker under the hotel chain
+Not yet authorized to build. Settled with Jon (he accepted all of the recommendations and the proposed lists). Can be built on its own. Touches `index.html`, `script.js`, and a new data file `hotel-brands.js` (starts at `?v=1`); includes cache-bust bumps for every local file that changes and the header version bump (next 0.01).
+
+- **What:** on the Hotel step, a new **Brand** field next to Chain (Chain and Brand share the first row; Hotel Name moves to its own full-width row below). The hotel stores a `brand` text value (blank allowed; `<` and `>` stripped). Trips saved before this build open with a blank brand, and backups carry it.
+- **Which list:** the chain is matched by keyword (case-insensitive "contains", first match wins) against the Chain the user picked, which comes from their own Setup program name: Marriott (`marriott`, `bonvoy`), Hilton (`hilton`), IHG (`ihg`), Hyatt (`hyatt`), Best Western (`best western`), Wyndham (`wyndham`), Choice (`choice`), Radisson (`radisson`). A chain with no list, or no chain chosen, gives a plain text box for Brand.
+- **Behaviour:** tapping or focusing the Brand field shows the chain's **whole list** (no cap; lists are 6 to 14 brands); typing narrows it to brands containing the typed text; tapping one fills it; **anything else can be typed** and is kept as typed. Changing the chain later leaves the typed Brand alone (user input is never deleted).
+- **Prefill:** picking a brand from the list while **Hotel Name is empty** sets Hotel Name to "<Brand> " and moves the cursor into Hotel Name so only the location needs typing. A non-empty Hotel Name is never touched; a free-typed brand never prefills.
+- **Dashboard:** the Hotel card's first line becomes `CHAIN: … | BRAND: …`.
+- **Brand data (`hotel-brands.js`, from general knowledge, not a live source; easy to correct in the file):**
+  - **Marriott:** Courtyard, Residence Inn, Fairfield, TownePlace Suites, SpringHill Suites, Marriott, Sheraton, Four Points, Element, Aloft, Renaissance, AC Hotels, Westin, Ritz-Carlton
+  - **Hilton:** Hampton, Hilton Garden Inn, Homewood Suites, Home2 Suites, DoubleTree, Embassy Suites, Hilton, Tru, Canopy, Curio, Conrad, Waldorf Astoria
+  - **IHG:** Holiday Inn Express, Holiday Inn, Candlewood Suites, Staybridge Suites, Crowne Plaza, Hotel Indigo, avid, EVEN Hotels, InterContinental, Kimpton
+  - **Hyatt:** Hyatt Place, Hyatt House, Hyatt Regency, Grand Hyatt, Park Hyatt, Hyatt Centric, Andaz
+  - **Best Western:** Best Western, Best Western Plus, Best Western Premier, SureStay, SureStay Plus, SureStay Collection
+  - **Wyndham:** Days Inn, Super 8, La Quinta, Ramada, Wingate, Microtel, Baymont, Howard Johnson, Travelodge, AmericInn, Wyndham, Wyndham Garden, Wyndham Grand, Hawthorn Suites
+  - **Choice:** Comfort Inn, Comfort Suites, Quality Inn, Sleep Inn, Clarion, Econo Lodge, Rodeway Inn, MainStay Suites, Cambria, WoodSpring Suites, Suburban Studios
+  - **Radisson:** Radisson, Radisson Blu, Radisson RED, Country Inn & Suites, Park Inn, Park Plaza
+
+**Reuse:** the airport suggestion list. Its logic is generalised into one shared helper (the airport field keeps behaving exactly as before, and its test suite re-runs to prove it), plus the existing `.suggest-list` style, `commitTrips()`, and `normalizeItinerary`.
+
+**Verification plan:** each chain's list appears whole on tap and narrows as typed; a chain name that merely contains the keyword (e.g. "Marriott Bonvoy") matches; an unlisted chain and no chain give a plain text box; free text is kept; tapping a brand prefills an empty Hotel Name with the cursor in it and never touches a filled one; changing the chain leaves the brand; saved, reloaded, and backed up; old trips open blank; Dashboard line; data checks (no duplicate brands in a chain, no blanks); layout at 390px; the airport autocomplete suite re-run unchanged; all earlier suites re-run.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
@@ -214,20 +236,6 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
 - Cosmetic: ✎ pins only toggle a look; a step counts as "done" only because it sits before the selected one.
 - Missing: removing or reordering stops and flights; per-trip ✎ overrides; real step completion.
-
-### Idea: hotel brand picker under the hotel chain
-From Jon: after choosing the hotel chain (e.g. Marriott) on the Hotel step, pick the brand (Courtyard, Residence Inn, ...) from that chain's popular brands, or type anything not listed.
-- Proposed (awaiting Jon's choices and go-ahead): a **Brand** field under Chain, stored with the hotel. Tapping it shows that chain's whole list (about 10 to 15 brands); typing narrows it; any typed text is accepted; uses the same suggestion-list component as the airport field. The chain is matched by keyword against the user's own Setup program name (e.g. contains "marriott" or "bonvoy"); a chain with no list gets a plain text box. Optional: picking a brand prefills an empty Hotel Name with "<Brand> " so only the location needs typing. The Dashboard hotel card would show the brand.
-- Proposed brand data (from general knowledge, not a live source; lives in a data file so it is easy to correct):
-  - **Marriott** (Bonvoy): Courtyard, Residence Inn, Fairfield, TownePlace Suites, SpringHill Suites, Marriott, Sheraton, Four Points, Element, Aloft, Renaissance, AC Hotels, Westin, Ritz-Carlton
-  - **Hilton** (Honors): Hampton, Hilton Garden Inn, Homewood Suites, Home2 Suites, DoubleTree, Embassy Suites, Hilton, Tru, Canopy, Curio, Conrad, Waldorf Astoria
-  - **IHG**: Holiday Inn Express, Holiday Inn, Candlewood Suites, Staybridge Suites, Crowne Plaza, Hotel Indigo, avid, EVEN Hotels, InterContinental, Kimpton
-  - **Hyatt**: Hyatt Place, Hyatt House, Hyatt Regency, Grand Hyatt, Park Hyatt, Hyatt Centric, Andaz
-  - **Best Western**: Best Western, Best Western Plus, Best Western Premier, SureStay, SureStay Plus, SureStay Collection
-  - **Wyndham**: Days Inn, Super 8, La Quinta, Ramada, Wingate, Microtel, Baymont, Howard Johnson, Travelodge, AmericInn, Wyndham, Wyndham Garden, Wyndham Grand, Hawthorn Suites
-  - **Choice** (not in Jon's list; has the most US hotels): Comfort Inn, Comfort Suites, Quality Inn, Sleep Inn, Clarion, Econo Lodge, Rodeway Inn, MainStay Suites, Cambria, WoodSpring Suites, Suburban Studios
-  - **Radisson** (not in Jon's list): Radisson, Radisson Blu, Radisson RED, Country Inn & Suites, Park Inn, Park Plaza
-- Open: Brand behaviour (full list on tap, narrow as you type, free text allowed: recommended); prefill Hotel Name (recommended, only when empty); add the Choice and Radisson chains and the extra brands above (recommended); Jon to correct any brand names.
 
 ### Inconsistency: step labels overlap on long trips
 Found while verifying Build 14. With about 14 steps (a two-stop trip) the labels in the step row run into their neighbours. It happens identically on the Wizard's row (same styles, confirmed before and after Build 14), so the Dashboard inherited it. Open question: wrap labels, shorten them, or widen the steps?
