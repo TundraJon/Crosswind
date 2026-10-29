@@ -183,6 +183,11 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Cosmetic: ✎ pins only toggle a look; a step counts as "done" only because it sits before the selected one.
 - Missing: removing or reordering stops and flights; per-trip ✎ overrides; real step completion.
 
+### Bug: icon fields accept more than one icon
+Reported by Jon; reproduced in a browser. The Trip Step Defaults icon fields (and the Favorites icon field on the In-Flight screen) are capped at 4 text characters (`maxlength`), not at one icon. That allows 2 emoji (🛫🛬) or 4 letters/symbols (`ABCD`), and it also cuts multi-part icons in half (🛏️ is two parts, so 🛏️🏨 keeps only the bed; 👨‍👩‍👧 becomes a broken half-emoji).
+- Proposed (awaiting Jon's go-ahead): hold exactly one visible icon (one grapheme, counted with `Intl.Segmenter`, so multi-part emoji, flags, and skin tones count as one; a single letter or symbol still works); typing or pasting a second icon replaces the first (keeps the latest); saved values and imported backups holding several icons are trimmed to the first; applies to both icon fields; remove the 4-character `maxlength`.
+- Open: replace versus reject the extra icon, and whether to include the Favorites field (both recommended).
+
 ### Inconsistency: step labels overlap on long trips
 Found while verifying Build 14. With about 14 steps (a two-stop trip) the labels in the step row run into their neighbours. It happens identically on the Wizard's row (same styles, confirmed before and after Build 14), so the Dashboard inherited it. Open question: wrap labels, shorten them, or widen the steps?
 
