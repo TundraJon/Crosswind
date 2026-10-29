@@ -162,8 +162,8 @@ The second half of the Trip Wizard spec. Every step now has real, editable dates
 
 ## Build Queue
 
-### One icon per icon field, and carry the flight confirmation forward
-Not yet authorized to build. Two small items, both settled with Jon. Touches `script.js` and `index.html`; includes a cache-bust bump for `script.js` and the header version bump (next 0.01).
+### One icon per icon field, carry the flight confirmation forward, and remove a flight or stop
+Not yet authorized to build. Three small items, all settled with Jon. Touches `script.js` and `index.html`; includes a cache-bust bump for `script.js` and the header version bump (next 0.01).
 
 **1. One icon per icon field**
 - Applies to the Trip Step Defaults icon fields and the Favorites icon field. The 4-character `maxlength` is removed from both (it allowed 2 emoji or 4 letters, and cut multi-part icons like 🛏️ and 👨‍👩‍👧 in half).
@@ -175,9 +175,15 @@ Not yet authorized to build. Two small items, both settled with Jon. Touches `sc
 - Only the confirmation is copied (not flight number or seat). It fills only an empty field, never overwrites typed text, stays editable, and is saved as normal data (it counts as an edit to the trip). It happens on choosing the airline, not on viewing, so opening a trip never changes it.
 - A small note under the field says where it came from ("Copied from Flight (Initial) — change it if this is a separate booking"), using the step's own label; it disappears when the field is edited or the form is reopened. The live green/red confirmation colour updates on copy.
 
-**Reuse:** the existing `upperInput()`, `updateConfColor()`, `buildNodes()` labels, `commitTrips()`, and the `.fld-note` style.
+**3. Remove a flight or a stop** (Jon's trip had an accidental extra outbound flight and there was no way to delete it)
+- **Remove this flight:** a button at the bottom of every flight form (outbound and return), two-tap like the other deletes (first tap reads "Tap again to remove", reverts after 3 seconds or when another step is opened). Shown only when that group has two or more flights (an outbound group is one stop's flights; the return group is the return flights), because a trip needs at least one of each. Removing it deletes that flight's data.
+- After removing a flight the Wizard moves to the previous flight in the same group (or the new first flight); the remaining flights take their names and icons by position (Initial, Connection, Final, with numbering only when a name repeats); dates Jon typed on other flights stay and the defaults recalculate; the layover step between the removed flight and its neighbour disappears.
+- **Remove this stop:** a button on every stop's Rental Return step, two-tap, shown only when there are two or more stops. It deletes that stop's flights, rental, hotel, and destination. Afterwards the Wizard moves to the previous stop's Rental Return (or the new first stop's first flight when stop 1 was removed); stop labels renumber, and the " — Stop N" suffix disappears when one stop is left. "+ Add Another Stop" stays on the last stop's Rental Return.
+- Each removal saves like any other edit (updates the trip's `modified` time), and the Dashboard's step row and selection follow (its existing fall-back to the first step when the selected step no longer exists). Reordering flights or stops is not part of this.
 
-**Verification plan:** icons: typing, pasting, and holding many emoji, symbols, letters, flags, skin tones, and ZWJ families in both fields; replace-with-latest; empty falls back; saved multi-icon values and an imported backup trimmed to the first; saves and reloads; the Wizard, Dashboard, and Favorites show one icon. Confirmation: same airline copies (outbound connection, return from outbound, across stops); different airline stays blank; a typed value is never overwritten; no match; note text and its disappearance; colour updates; nothing changes on viewing (`modified` unchanged); saves and reloads; all earlier suites re-run.
+**Reuse:** the existing `upperInput()`, `updateConfColor()`, `buildNodes()` labels, `commitTrips()`, the two-tap delete pattern, and the `.fld-note` style.
+
+**Verification plan:** icons: typing, pasting, and holding many emoji, symbols, letters, flags, skin tones, and ZWJ families in both fields; replace-with-latest; empty falls back; saved multi-icon values and an imported backup trimmed to the first; saves and reloads; the Wizard, Dashboard, and Favorites show one icon. Confirmation: same airline copies (outbound connection, return from outbound, across stops); different airline stays blank; a typed value is never overwritten; no match; note text and its disappearance; colour updates; nothing changes on viewing (`modified` unchanged); saves and reloads. Removal: the button is hidden with one flight or one stop; two-tap arms, reverts, and removes; removing the first, a middle, and the last outbound flight and a return flight; names, icons, and layover steps renumber; selection moves to the previous step; typed dates stay and defaults recalculate; removing the first, a middle, and the last stop; stop labels and suffixes renumber; an add-then-remove round trip leaves the trip unchanged; the removal saves, survives a reload, and updates `modified`; the Dashboard follows. All earlier suites re-run.
 
 ## Build Planner
 
@@ -197,11 +203,6 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
 - Cosmetic: ✎ pins only toggle a look; a step counts as "done" only because it sits before the selected one.
 - Missing: removing or reordering stops and flights; per-trip ✎ overrides; real step completion.
-
-### Gap: no way to remove a flight or a stop
-Reported by Jon: an accidental extra outbound flight cannot be deleted (it also changes the step names and adds a layover step). The same is true for stops. Today only "+ Add Another Flight" and "+ Add Another Stop" exist.
-- Proposed (awaiting Jon's choice and go-ahead): a **Remove this flight** button at the bottom of each flight form (outbound and return), two-tap ("Tap again to remove"), shown only when the group has two or more flights; the Wizard then moves to the previous step, remaining flights are renamed to fit, typed dates stay, defaults recalculate. A **Remove this stop** button on each stop's Rental Return step (two-tap, only with two or more stops) removing that stop's flights, rental, hotel, and destination.
-- Open: flights only, or flights and stops (both recommended). Reordering flights or stops is not part of this.
 
 ### Inconsistency: step labels overlap on long trips
 Found while verifying Build 14. With about 14 steps (a two-stop trip) the labels in the step row run into their neighbours. It happens identically on the Wizard's row (same styles, confirmed before and after Build 14), so the Dashboard inherited it. Open question: wrap labels, shorten them, or widen the steps?
