@@ -170,6 +170,23 @@ Not yet authorized to build. Second half of the Trip Wizard spec (Part 1 shipped
 
 **Verification plan:** all date defaults and the order they are computed in; a typed date surviving a project date change; clearing back to default; `S+N`; the outside-range note; new fields and Dashboard lines; flight confirmation colour; disabled stubs; "Select…" dropdowns; every date and field saving with the trip; screenshots; all earlier suites re-run.
 
+### Home Airport autocomplete with a built-in US airport table
+Not yet authorized to build. Design settled with Jon. Touches `index.html`, `script.js`, `styles.css`, plus a new file `airports.js`; includes cache-bust bumps for every local file that changes (`airports.js` starts at `?v=1`) and the header version bump (next 0.01 after the current one).
+
+**1. The airport table (`airports.js`)**
+- All US airports with scheduled airline service and a 3-letter IATA code: **634** (large 95, medium 407, small 132; seaplane bases and heliports excluded; all 50 states plus DC and territories). One entry per airport: code, city, state, latitude, longitude (rounded to two decimals), size. About 24 KB. Loaded before `script.js`; no network use at run time, so it works offline.
+- Source: the public-domain OurAirports database (pulled 2026-10-29); the file header records the source and date. City names come from the source (e.g. "Dallas-Fort Worth", "Fayetteville/Springdale/Rogers AR"); any that look dated or too long are adjusted by hand when the file is built.
+- Coordinates are included so the later "Suggest Nearest Airport" (Step 4) can work offline against a geocoded home address; that button stays disabled in this build.
+
+**2. Home Airport field behaviour**
+- A small suggestion list under the field (our own, because the built-in browser list cannot do "starts with"), updated on every keystroke from the first character. Typed text is upper-cased and spaces are ignored for codes ("m c" works as "MC").
+- Matches: airports whose **code starts with** the typed letters, then airports whose **city starts with** the typed text ("orl" finds MCO and SFB; "dallas" finds DAL and DFW). Codes first, exact code first; within each group biggest airports first (large, medium, small), then by code; an airport matching both is listed once; at most 8 shown.
+- Each suggestion reads `MCO - Orlando FL`. Tapping one (or Arrow keys plus Enter on a keyboard; Escape closes) fills the field with that exact text and saves it through the normal Setup auto-save. Leaving the field closes the list.
+- Free typing is still allowed: text that matches nothing stays as typed, no error. *Added:* if the field is left holding exactly a valid 3-letter code (e.g. "MCO"), it is expanded to "MCO - Orlando FL".
+- Built as a reusable helper (`attachAirportSuggest(input)`) so other airport fields (Wizard, later) can use the same list. The Dashboard's Home card shows the new text automatically. The saved profile format does not change (still one text value).
+
+**Verification plan:** table checks (634 unique codes, every entry has city, state, coordinates, and size; no heliports or seaplane bases; file size); suggestions for "m", "mc", "m c", "MC", "orl", "dallas", "new y", "gr", "xyz" (none), ordering and the 8-item cap, no duplicate airports; tap, Arrow and Enter, Escape, blur; free text kept; exact-code expansion; saved across reload; shown on the Dashboard; filter speed measured on all 634; screenshot at 390px with the list open; all earlier suites re-run.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
