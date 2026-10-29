@@ -182,8 +182,30 @@
   ];
   let stepCustom = {};
   function cleanText(t) { return String(t).replace(/[<>]/g, ''); }
+  /* One visible icon = one grapheme (multi-part emoji, flags, and skin tones count as one) */
+  const graphemeSegmenter = (typeof Intl !== 'undefined' && Intl.Segmenter) ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
+  function iconParts(text) {
+    const t = String(text == null ? '' : text).trim();
+    if (!t) return [];
+    if (graphemeSegmenter) return Array.from(graphemeSegmenter.segment(t), x => x.segment).filter(g => g.trim());
+    const out = [];
+    let prev = 0;
+    Array.from(t).forEach(ch => {
+      const c = ch.codePointAt(0);
+      const joiner = c === 0x200D || (c >= 0xFE00 && c <= 0xFE0F) || (c >= 0x1F3FB && c <= 0x1F3FF) || c === 0x20E3 || (c >= 0xE0020 && c <= 0xE007F);
+      const regional = c >= 0x1F1E6 && c <= 0x1F1FF;
+      const lastCps = out.length ? Array.from(out[out.length - 1]) : [];
+      const pairsFlag = regional && lastCps.length === 1 && lastCps[0].codePointAt(0) >= 0x1F1E6 && lastCps[0].codePointAt(0) <= 0x1F1FF;
+      if (out.length && (joiner || prev === 0x200D || pairsFlag)) out[out.length - 1] += ch; else out.push(ch);
+      prev = c;
+    });
+    return out.filter(g => g.trim());
+  }
+  function firstIcon(text) { const p = iconParts(text); return p.length ? p[0] : ''; }
+  function lastIcon(text) { const p = iconParts(text); return p.length ? p[p.length - 1] : ''; }
+  function keepOneIcon(input) { const k = lastIcon(input.value); if (input.value !== k) input.value = k; }
   function stepName(sys) { const c = stepCustom[sys]; return (c && c.name && c.name.trim()) ? cleanText(c.name.trim()) : sys; }
-  function stepIcon(sys) { const c = stepCustom[sys]; return (c && c.icon && c.icon.trim()) ? cleanText(c.icon.trim()) : stepSystem.find(r => r.sys === sys).icon; }
+  function stepIcon(sys) { const c = stepCustom[sys]; const ic = (c && c.icon) ? firstIcon(cleanText(c.icon)) : ''; return ic || stepSystem.find(r => r.sys === sys).icon; }
 
   function emptyProfile() {
     return { v: 1, address: '', homeAirport: '', programs: [], touchless: {}, ktn: '', ktnExp: '',
@@ -211,7 +233,7 @@
       stepSystem.forEach(r => {
         const c = raw.stepDefaults[r.sys];
         if (c && typeof c === 'object') {
-          const n = cleanText(str(c.name)).trim(), i = cleanText(str(c.icon)).trim();
+          const n = cleanText(str(c.name)).trim(), i = firstIcon(cleanText(str(c.icon)));
           if (n || i) p.stepDefaults[r.sys] = { name: n, icon: i };
         }
       });
@@ -279,14 +301,16 @@
     const byCity = airportData.filter(a => !a.code.startsWith(code) && a.city.toLowerCase().startsWith(city)).sort(rank);
     return byCode.concat(byCity).slice(0, 8);
   }
-  function attachAirportSuggest(input, listEl, onPick) {
+  /* Shared suggestion list. opts: find(text) -> [{ label }], onPick(item), showOnFocus (show the list when the field is focused),
+     exactOnBlur(text) -> item (expand text left in the field to that item when leaving it) */
+  function attachSuggest(input, listEl, opts) {
     let items = [], hl = -1, closeTimer = null;
     function close() { listEl.style.display = 'none'; listEl.innerHTML = ''; items = []; hl = -1; }
     function paint() { listEl.querySelectorAll('.suggest-item').forEach((el, i) => el.classList.toggle('hl', i === hl)); }
-    function pick(a) { clearTimeout(closeTimer); input.value = a.label; close(); onPick(a); input.blur(); }
-    function show() {
+    function pick(a) { clearTimeout(closeTimer); input.value = a.label; close(); opts.onPick(a); input.blur(); }
+    function show(whole) {
       clearTimeout(closeTimer);
-      items = findAirports(input.value); hl = -1; listEl.innerHTML = '';
+      items = opts.find(whole === true ? '' : input.value); hl = -1; listEl.innerHTML = '';
       if (!items.length) { listEl.style.display = 'none'; return; }
       items.forEach(a => {
         const d = document.createElement('div'); d.className = 'suggest-item'; d.textContent = a.label;
@@ -296,7 +320,8 @@
       });
       listEl.style.display = 'block';
     }
-    input.addEventListener('input', show);
+    input.addEventListener('input', () => show());
+    if (opts.showOnFocus) input.addEventListener('focus', () => show(true));
     input.addEventListener('keydown', e => {
       if (!items.length) return;
       if (e.key === 'ArrowDown') { hl = (hl + 1) % items.length; paint(); e.preventDefault(); }
@@ -305,12 +330,16 @@
       else if (e.key === 'Escape') close();
     });
     input.addEventListener('blur', () => {
-      const exact = airportData.find(a => a.code === input.value.trim().toUpperCase());
-      if (exact && input.value !== exact.label) { input.value = exact.label; onPick(exact); }
+      const exact = opts.exactOnBlur ? opts.exactOnBlur(input.value) : null;
+      if (exact && input.value !== exact.label) { input.value = exact.label; opts.onPick(exact); }
       closeTimer = setTimeout(close, 150);
     });
   }
-  attachAirportSuggest(homeAirportInput, document.getElementById('airportSuggest'), () => saveProfile());
+  attachSuggest(homeAirportInput, document.getElementById('airportSuggest'), {
+    find: findAirports,
+    onPick: () => saveProfile(),
+    exactOnBlur: text => airportData.find(a => a.code === text.trim().toUpperCase())
+  });
 
   /* ============ LOYALTY PROGRAMS + TSA AIRLINES: shared state ============ */
   let programs = [];
@@ -476,10 +505,11 @@
     const tr = document.createElement('tr');
     const tdSys = document.createElement('td'); tdSys.className = 'sysname'; tdSys.textContent = step.sys;
     const tdName = document.createElement('td'); const nameInput = document.createElement('input'); nameInput.type = 'text'; nameInput.placeholder = step.sys; tdName.appendChild(nameInput);
-    const tdIcon = document.createElement('td'); const iconInput = document.createElement('input'); iconInput.type = 'text'; iconInput.className = 'icon-input'; iconInput.placeholder = step.icon; iconInput.maxLength = 4; tdIcon.appendChild(iconInput);
+    const tdIcon = document.createElement('td'); const iconInput = document.createElement('input'); iconInput.type = 'text'; iconInput.className = 'icon-input'; iconInput.placeholder = step.icon; tdIcon.appendChild(iconInput);
     const tdReset = document.createElement('td'); const resetBtn = document.createElement('button'); resetBtn.className = 'reset-btn'; resetBtn.textContent = '↺'; resetBtn.title = 'Reset to default'; tdReset.appendChild(resetBtn);
     defaultsInputs[step.sys] = { name: nameInput, icon: iconInput };
     nameInput.addEventListener('input', () => updateStepCustom(step.sys));
+    iconInput.addEventListener('input', () => keepOneIcon(iconInput));
     iconInput.addEventListener('input', () => updateStepCustom(step.sys));
     resetBtn.addEventListener('click', () => { nameInput.value = ''; iconInput.value = ''; updateStepCustom(step.sys); });
     tr.appendChild(tdSys); tr.appendChild(tdName); tr.appendChild(tdIcon); tr.appendChild(tdReset);
@@ -522,7 +552,7 @@
       destination: { name: '', address: '', contact: '', phone: '' },
       flights: [ newFlight() ],
       rental: { company: '', cls: 'Economy', color: '', plate: '', pickup: '', ret: '', conf: '' },
-      hotel: { chain: '', name: '', address: '', room: '', checkIn: '', checkOut: '', conf: '' }
+      hotel: { chain: '', brand: '', name: '', address: '', room: '', checkIn: '', checkOut: '', conf: '' }
     };
   }
   const wizardState = {
@@ -720,6 +750,77 @@
     noteEl.style.display = (v && !good) ? 'block' : 'none';
   }
 
+  /* ---- Phone numbers: stored as digits (plus an extension), shown in telephone format ---- */
+  function parsePhone(text) {
+    let t = String(text == null ? '' : text), ext = '';
+    const m = t.match(/(?<![A-Za-z])(?:extension|ext\.?|x)\s*[:#.]?\s*(\d+)\s*$/i);
+    if (m) { ext = m[1]; t = t.slice(0, m.index); }
+    let digits = t.replace(/\D/g, '');
+    if (digits.length === 11 && digits[0] === '1') digits = digits.slice(1);
+    return digits ? digits + (ext ? 'x' + ext : '') : '';
+  }
+  function formatPhone(stored) {
+    const p = parsePhone(stored), i = p.indexOf('x');
+    const num = i >= 0 ? p.slice(0, i) : p, ext = i >= 0 ? p.slice(i + 1) : '';
+    let f = num;
+    if (num.length === 10) f = '(' + num.slice(0, 3) + ') ' + num.slice(3, 6) + '-' + num.slice(6);
+    else if (num.length === 7) f = num.slice(0, 3) + '-' + num.slice(3);
+    return f + (ext ? ' x' + ext : '');
+  }
+
+  /* ---- Two-tap confirm on a button: first tap arms it, second tap does it, reverts after 3 seconds ---- */
+  function twoTap(btn, armedText, onConfirm) {
+    const normal = btn.textContent;
+    let timer = null;
+    btn.addEventListener('click', () => {
+      if (!timer) { btn.textContent = armedText; timer = setTimeout(() => { timer = null; btn.textContent = normal; }, 3000); return; }
+      clearTimeout(timer); timer = null; btn.textContent = normal; onConfirm();
+    });
+  }
+
+  /* ---- Hotel brands for the chain the user picked (keyword match against their own chain name) ---- */
+  const hotelBrandData = window.CROSSWIND_HOTEL_BRANDS || [];
+  function brandListFor(chain) {
+    const c = String(chain || '').toLowerCase();
+    if (!c) return null;
+    const hit = hotelBrandData.find(x => x.match.some(k => c.indexOf(k) >= 0));
+    return hit ? hit.brands : null;
+  }
+  function brandItems(chain, text) {
+    const list = brandListFor(chain);
+    if (!list) return [];
+    const t = String(text || '').trim().toLowerCase();
+    return list.filter(b => !t || b.toLowerCase().indexOf(t) >= 0).map(b => ({ label: b }));
+  }
+
+  /* ---- Flight confirmation: copy it from the nearest earlier flight with the same airline ---- */
+  function allFlightsInOrder() {
+    const list = [];
+    wizardState.stops.forEach((st, si) => st.flights.forEach((f, fi) => list.push({ f, key: 'stop' + si + '-flight-' + fi })));
+    wizardState.returnFlights.forEach((f, fi) => list.push({ f, key: 'return-flight-' + fi }));
+    return list;
+  }
+  function copyConfirmationFrom(f) {
+    if (!f.airline || f.conf) return null;
+    const list = allFlightsInOrder(), idx = list.findIndex(x => x.f === f);
+    for (let i = idx - 1; i >= 0; i--) {
+      if (list[i].f.airline === f.airline && list[i].f.conf) {
+        f.conf = list[i].f.conf;
+        const node = buildNodes().find(n => n.key === list[i].key);
+        return node ? node.label : 'an earlier flight';
+      }
+    }
+    return null;
+  }
+  function onAirlineChosen(f) {
+    const from = copyConfirmationFrom(f);
+    if (!from) return;
+    const confEl = document.getElementById('wf-flight-conf'), note = document.getElementById('wf-copy-note');
+    confEl.value = f.conf; updateConfColor(confEl, document.getElementById('wf-conf-note'));
+    note.textContent = 'Copied from ' + from + ' — change it if this is a separate booking';
+    note.style.display = 'block';
+  }
+
   function parserButtonHTML(label) {
     return '<button class="parser-btn" disabled title="Coming soon">Text Clipboard Parser<small>Coming soon</small></button>';
   }
@@ -736,6 +837,7 @@
       '<div class="fseat"><label class="fld">Seat #</label><input type="text" id="wf-flight-seat" placeholder="4C" maxlength="3" value="' + f.seat + '"></div>' +
       '</div>' +
       '<div class="fld-note val-note" id="wf-conf-note" style="display:none;">Confirmation is usually 6 letters/numbers</div>' +
+      '<div class="fld-note" id="wf-copy-note" style="display:none;"></div>' +
       '<div class="autofill-box"><div class="af-label">Auto-Filled via Flight Tracker API</div><div class="fld-grid">' +
       '<div><label class="fld">Gate</label><input type="text" value="—" disabled></div>' +
       '<div><label class="fld">Destination</label><input type="text" value="—" disabled></div>' +
@@ -768,7 +870,8 @@
       const f = wizardState.stops[node.stopIndex].flights[node.flightIndex];
       html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
         flightFormHTML(f, 'f:' + node.stopIndex + ':' + node.flightIndex) + parserButtonHTML('Flight') +
-        (node.flightIndex === wizardState.stops[node.stopIndex].flights.length - 1 ? '<button class="add-flight-btn" id="wf-add-flight">+ Add Another Flight</button>' : '');
+        (node.flightIndex === wizardState.stops[node.stopIndex].flights.length - 1 ? '<button class="add-flight-btn" id="wf-add-flight">+ Add Another Flight</button>' : '') +
+        (wizardState.stops[node.stopIndex].flights.length > 1 ? '<button class="add-flight-btn remove-btn" id="wf-remove-flight">Remove this flight</button>' : '');
     }
 
     else if (node.type === 'layover') {
@@ -803,8 +906,10 @@
       const chainOpts = selectOptionsHTML(sortedByType('hotel').map(c => c.name), h.chain, 'No hotel programs yet');
       html = '<div class="step-head">' + node.label.toUpperCase() + '</div><div class="fld-grid">' +
         '<div><label class="fld">Chain</label><select id="wf-hotel-chain">' + chainOpts + '</select></div>' +
-        '<div><label class="fld">Hotel Name</label><input type="text" id="wf-hotel-name" placeholder="e.g. Lambeau Field Hilton" value="' + h.name + '"></div>' +
+        '<div><label class="fld">Brand</label><input type="text" id="wf-hotel-brand" placeholder="e.g. Courtyard" autocomplete="off" value="' + esc(h.brand) + '"></div>' +
         '</div>' +
+        '<div class="suggest-list" id="wf-brand-suggest" style="display:none;"></div>' +
+        '<label class="fld">Hotel Name</label><input type="text" id="wf-hotel-name" placeholder="e.g. Lambeau Field Hilton" value="' + h.name + '">' +
         '<label class="fld">Address</label><input type="text" id="wf-hotel-address" placeholder="—" value="' + h.address + '">' +
         '<button class="suggest-btn" id="wf-hotel-suggest" disabled title="Needs online lookup — coming soon">📍 Suggest Address</button>' +
         '<div class="fld-note">Needs online lookup — coming soon</div>' +
@@ -823,7 +928,7 @@
         '<label class="fld">Address</label><input type="text" id="wf-dest-address" placeholder="—" value="' + d.address + '">' +
         '<button class="suggest-btn" id="wf-dest-suggest" disabled title="Needs online lookup — coming soon">📍 Suggest Address</button>' +
         '<div class="fld-note">Needs online lookup — coming soon</div>' +
-        '<div class="fld-grid"><div><label class="fld">Contact Name</label><input type="text" id="wf-dest-contact" value="' + d.contact + '"></div><div><label class="fld">Contact Phone</label><input type="text" id="wf-dest-phone" value="' + d.phone + '"></div></div>' +
+        '<div class="fld-grid"><div><label class="fld">Contact Name</label><input type="text" id="wf-dest-contact" value="' + d.contact + '"></div><div><label class="fld">Contact Phone</label><input type="text" id="wf-dest-phone" value="' + formatPhone(d.phone) + '"></div></div>' +
         parserButtonHTML('Destination');
     }
 
@@ -834,14 +939,16 @@
         '<div class="return-ref">Returning: ' + (r.company || '—') + ' — ' + r.cls +
         '<div class="rr-sub">Return date: ' + (effDateText('rRet:' + node.stopIndex + ':0') || '—') + '</div>' +
         '<div class="rr-sub">No time needed — inferred from the next flight\'s boarding time.</div></div>' +
-        (isLastStop ? '<button class="add-flight-btn" id="wf-add-stop">+ Add Another Stop</button>' : '');
+        (isLastStop ? '<button class="add-flight-btn" id="wf-add-stop">+ Add Another Stop</button>' : '') +
+        (wizardState.stops.length > 1 ? '<button class="add-flight-btn remove-btn" id="wf-remove-stop">Remove this stop</button>' : '');
     }
 
     else if (node.type === 'returnFlight') {
       const f = wizardState.returnFlights[node.flightIndex];
       html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
         flightFormHTML(f, 'rf:' + node.flightIndex + ':0') + parserButtonHTML('Flight') +
-        (node.flightIndex === wizardState.returnFlights.length - 1 ? '<button class="add-flight-btn" id="wf-add-return-flight">+ Add Another Flight</button>' : '');
+        (node.flightIndex === wizardState.returnFlights.length - 1 ? '<button class="add-flight-btn" id="wf-add-return-flight">+ Add Another Flight</button>' : '') +
+        (wizardState.returnFlights.length > 1 ? '<button class="add-flight-btn remove-btn" id="wf-remove-flight">Remove this flight</button>' : '');
     }
 
     else if (node.type === 'uberHome') {
@@ -870,10 +977,10 @@
     else if (node.type === 'flight') {
       const f = wizardState.stops[node.stopIndex].flights[node.flightIndex];
       const sel = document.getElementById('wf-flight-airline');
-      if (sel) sel.addEventListener('change', e => f.airline = e.target.value);
+      if (sel) sel.addEventListener('change', e => { f.airline = e.target.value; onAirlineChosen(f); });
       document.getElementById('wf-flight-num').addEventListener('input', e => f.flightNum = e.target.value);
       const confEl = document.getElementById('wf-flight-conf'), confNote = document.getElementById('wf-conf-note');
-      upperInput(confEl, v => f.conf = v, () => updateConfColor(confEl, confNote));
+      upperInput(confEl, v => f.conf = v, () => { updateConfColor(confEl, confNote); document.getElementById('wf-copy-note').style.display = 'none'; });
       updateConfColor(confEl, confNote);
       upperInput(document.getElementById('wf-flight-seat'), v => f.seat = v);
       const addBtn = document.getElementById('wf-add-flight');
@@ -882,6 +989,12 @@
         flights.push(newFlight());
         wizardState.selected = 'stop' + node.stopIndex + '-flight-' + (flights.length - 1);
         renderNodeTrack(); renderStepForm();
+      });
+      const rmBtn = document.getElementById('wf-remove-flight');
+      if (rmBtn) twoTap(rmBtn, 'Tap again to remove', () => {
+        wizardState.stops[node.stopIndex].flights.splice(node.flightIndex, 1);
+        wizardState.selected = 'stop' + node.stopIndex + '-flight-' + Math.max(0, node.flightIndex - 1);
+        renderNodeTrack(); renderStepForm(); commitTrips();
       });
     }
     else if (node.type === 'rental') {
@@ -897,7 +1010,18 @@
       const h = wizardState.stops[node.stopIndex].hotel;
       const chainSel = document.getElementById('wf-hotel-chain');
       if (chainSel) chainSel.addEventListener('change', e => h.chain = e.target.value);
-      document.getElementById('wf-hotel-name').addEventListener('input', e => h.name = e.target.value);
+      const nameEl = document.getElementById('wf-hotel-name'), brandEl = document.getElementById('wf-hotel-brand');
+      nameEl.addEventListener('input', e => h.name = e.target.value);
+      brandEl.addEventListener('input', e => h.brand = e.target.value);
+      attachSuggest(brandEl, document.getElementById('wf-brand-suggest'), {
+        find: text => brandItems(h.chain, text),
+        showOnFocus: true,
+        onPick: item => {
+          h.brand = item.label;
+          if (!h.name.trim()) { h.name = item.label + ' '; nameEl.value = h.name; nameEl.focus(); nameEl.setSelectionRange(h.name.length, h.name.length); }
+          commitTrips();
+        }
+      });
       document.getElementById('wf-hotel-address').addEventListener('input', e => h.address = e.target.value);
       document.getElementById('wf-hotel-room').addEventListener('input', e => h.room = e.target.value);
       upperInput(document.getElementById('wf-hotel-conf'), v => h.conf = v);
@@ -907,7 +1031,9 @@
       document.getElementById('wf-dest-name').addEventListener('input', e => { d.name = e.target.value; renderNodeTrack(); });
       document.getElementById('wf-dest-address').addEventListener('input', e => d.address = e.target.value);
       document.getElementById('wf-dest-contact').addEventListener('input', e => d.contact = e.target.value);
-      document.getElementById('wf-dest-phone').addEventListener('input', e => d.phone = e.target.value);
+      const phoneEl = document.getElementById('wf-dest-phone');
+      phoneEl.addEventListener('input', e => { d.phone = parsePhone(e.target.value); });
+      phoneEl.addEventListener('blur', () => { phoneEl.value = formatPhone(d.phone); });
     }
     else if (node.type === 'rentalReturn') {
       const addStopBtn = document.getElementById('wf-add-stop');
@@ -917,14 +1043,21 @@
         wizardState.selected = 'stop' + newIdx + '-flight-0';
         renderNodeTrack(); renderStepForm();
       });
+      const rmStop = document.getElementById('wf-remove-stop');
+      if (rmStop) twoTap(rmStop, 'Tap again to remove', () => {
+        wizardState.stops.splice(node.stopIndex, 1);
+        wizardState.selected = node.stopIndex > 0 ? 'stop' + (node.stopIndex - 1) + '-rentalreturn' : 'stop0-flight-0';
+        dashSelected = '';
+        renderNodeTrack(); renderStepForm(); commitTrips();
+      });
     }
     else if (node.type === 'returnFlight') {
       const f = wizardState.returnFlights[node.flightIndex];
       const sel = document.getElementById('wf-flight-airline');
-      if (sel) sel.addEventListener('change', e => f.airline = e.target.value);
+      if (sel) sel.addEventListener('change', e => { f.airline = e.target.value; onAirlineChosen(f); });
       document.getElementById('wf-flight-num').addEventListener('input', e => f.flightNum = e.target.value);
       const confEl = document.getElementById('wf-flight-conf'), confNote = document.getElementById('wf-conf-note');
-      upperInput(confEl, v => f.conf = v, () => updateConfColor(confEl, confNote));
+      upperInput(confEl, v => f.conf = v, () => { updateConfColor(confEl, confNote); document.getElementById('wf-copy-note').style.display = 'none'; });
       updateConfColor(confEl, confNote);
       upperInput(document.getElementById('wf-flight-seat'), v => f.seat = v);
       const addBtn = document.getElementById('wf-add-return-flight');
@@ -932,6 +1065,12 @@
         wizardState.returnFlights.push(newFlight());
         wizardState.selected = 'return-flight-' + (wizardState.returnFlights.length - 1);
         renderNodeTrack(); renderStepForm();
+      });
+      const rmBtn = document.getElementById('wf-remove-flight');
+      if (rmBtn) twoTap(rmBtn, 'Tap again to remove', () => {
+        wizardState.returnFlights.splice(node.flightIndex, 1);
+        wizardState.selected = 'return-flight-' + Math.max(0, node.flightIndex - 1);
+        renderNodeTrack(); renderStepForm(); commitTrips();
       });
     }
     else if (node.type === 'uberHome') {
@@ -1003,7 +1142,7 @@
     }
     else if (node.type === 'hotel') {
       const h = wizardState.stops[node.stopIndex].hotel;
-      html += line('CHAIN: <b>' + dv(h.chain) + '</b>') + line('NAME: <b>' + dv(h.name) + '</b>') + line('ADDRESS: <b>' + dv(h.address) + '</b>') +
+      html += line('CHAIN: <b>' + dv(h.chain) + '</b> | BRAND: <b>' + dv(h.brand) + '</b>') + line('NAME: <b>' + dv(h.name) + '</b>') + line('ADDRESS: <b>' + dv(h.address) + '</b>') +
         line('CHECK-IN: <b>' + dv(effDateText('hIn:' + node.stopIndex + ':0')) + '</b> | CHECK-OUT: <b>' + dv(effDateText('hOut:' + node.stopIndex + ':0')) + '</b>') +
         line('CONFIRMATION: <b>' + dv(h.conf) + '</b>') +
         '<div class="qc-inputs one"><div><label class="fld">Room #</label><input type="text" id="dash-room"></div></div>';
@@ -1011,7 +1150,7 @@
     else if (node.type === 'destination') {
       const d = wizardState.stops[node.stopIndex].destination;
       html += line('PLACE: <b>' + dv(d.name) + '</b>') + line('ADDRESS: <b>' + dv(d.address) + '</b>') +
-        line('CONTACT: <b>' + dv(d.contact) + '</b> | PHONE: <b>' + dv(d.phone) + '</b>');
+        line('CONTACT: <b>' + dv(d.contact) + '</b> | PHONE: <b>' + dv(formatPhone(d.phone)) + '</b>');
     }
     else if (node.type === 'rentalReturn') {
       const r = wizardState.stops[node.stopIndex].rental;
@@ -1136,10 +1275,10 @@
       const d = st.destination || {}, r = st.rental || {}, h = st.hotel || {};
       const flights = (Array.isArray(st.flights) ? st.flights : []).map(normalizeFlight);
       out.stops.push({
-        destination: { name: s(d.name), address: s(d.address), contact: s(d.contact), phone: s(d.phone) },
+        destination: { name: s(d.name), address: s(d.address), contact: s(d.contact), phone: parsePhone(s(d.phone)) },
         flights: flights.length ? flights : [ normalizeFlight() ],
         rental: { company: s(r.company), cls: s(r.cls) || 'Economy', color: s(r.color), plate: s(r.plate), pickup: isoOrBlank(r.pickup), ret: isoOrBlank(r.ret), conf: s(r.conf) },
-        hotel: { chain: s(h.chain), name: s(h.name), address: s(h.address), room: s(h.room), checkIn: isoOrBlank(h.checkIn), checkOut: isoOrBlank(h.checkOut), conf: s(h.conf) }
+        hotel: { chain: s(h.chain), brand: s(h.brand), name: s(h.name), address: s(h.address), room: s(h.room), checkIn: isoOrBlank(h.checkIn), checkOut: isoOrBlank(h.checkOut), conf: s(h.conf) }
       });
     });
     if (!out.stops.length) out.stops.push(newStop());
@@ -1375,7 +1514,7 @@
   let favorites = [null, null, null];
   try {
     const stored = localStorage.getItem('crosswindFavorites');
-    if (stored) favorites = JSON.parse(stored);
+    if (stored) favorites = normalizeFavorites(JSON.parse(stored));
   } catch(e) {}
   const favGrid = document.getElementById('favGrid');
   const favModal = document.getElementById('favModal');
@@ -1384,6 +1523,7 @@
   const favMessageInput = document.getElementById('favMessageInput');
   const favDeleteBtn = document.getElementById('favDeleteBtn');
   let favEditingIndex = null;
+  favIconInput.addEventListener('input', () => keepOneIcon(favIconInput));
 
   function saveFavorites() { try { localStorage.setItem('crosswindFavorites', JSON.stringify(favorites)); } catch(e) {} touchProfile(); }
 
@@ -1423,7 +1563,7 @@
     if (favEditingIndex !== null) { favorites[favEditingIndex] = null; saveFavorites(); renderFavorites(); closeFavModal(); }
   });
   document.getElementById('favSaveBtn').addEventListener('click', () => {
-    const icon = favIconInput.value.trim() || '⭐';
+    const icon = lastIcon(favIconInput.value) || '⭐';
     const caption = favCaptionInput.value.trim();
     const message = favMessageInput.value.trim();
     if (!caption || !message) { (caption ? favMessageInput : favCaptionInput).focus(); return; }
@@ -1464,7 +1604,7 @@
       for (let i = 0; i < 3; i++) {
         const f = raw[i];
         if (f && typeof f === 'object' && typeof f.caption === 'string' && cleanText(f.caption).trim() && typeof f.message === 'string' && f.message.trim()) {
-          out[i] = { icon: (typeof f.icon === 'string' && cleanText(f.icon).trim()) ? cleanText(f.icon).trim() : '⭐', caption: cleanText(f.caption).trim(), message: f.message };
+          out[i] = { icon: (typeof f.icon === 'string' && firstIcon(cleanText(f.icon))) ? firstIcon(cleanText(f.icon)) : '⭐', caption: cleanText(f.caption).trim(), message: f.message };
         }
       }
     }

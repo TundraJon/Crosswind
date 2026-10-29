@@ -160,78 +160,42 @@ The second half of the Trip Wizard spec. Every step now has real, editable dates
 - [x] Cache-bust: `script.js?v=7→8`, `styles.css?v=5→6` (`airports.js?v=1` unchanged). Version: v0.93→v0.94.
 - **Verification:** headless Chromium at 390px, 122 new checks, zero JS errors. Defaults on every form for a one-stop trip; the cascade with two flights (typed flight 1 moves flight 2, hotel check-in, and rental pickup, not the return flight; typing flight 2 moves check-in; clearing chains back to Start); typed dates kept when the project dates are edited while untyped ones follow the new Start and End, with the "Outside the trip dates" note appearing where a kept date now falls outside; calendar pick; `S+4`, `S`, `T+1`, a full formatted date, and junk text (reverts, nothing junk stored); stored data holds only typed dates; focusing and tabbing leaves `modified` alone; multi-stop (stop 2's first flight follows stop 1's typed check-out, check-ins and rental dates follow, stop 2's last check-out uses the first return flight, or the project End when Ends at home is off); confirmations uppercase and save; Dashboard date and confirmation lines for every card type; flight confirmation colours (empty, 3, 6, 7 characters, a dash), restored after reopening and reload; all parser buttons and both Suggest Address buttons disabled and inert; "Select…" dropdowns (blank stored, choosing and clearing, deleted program stays visible, no-programs message, Dashboard dash then name); backups carry the new fields, an old-shape trip imports repaired with junk dates dropped; no horizontal overflow on any of the seven forms; screenshots checked. Earlier suites re-run (dates, `S+N`, blocked save, End-before-Start, In-Flight, split serving, airport autocomplete 67, Dashboard 61, Setup 138, Wizard Part 1 157): same results, zero JS errors; the Dashboard suite's card text, the Setup suite's dropdown list, and the airport suite's version numbers were updated for the intended changes.
 
+### Build 19 (completed): One icon per icon field
+Built together with Builds 20 to 23 as one change. The Trip Step Defaults icon fields and the Favorites icon field now hold exactly one icon. Version: v0.94→v0.95 (shared by Builds 19 to 23).
+- [x] `script.js`: `iconParts()` / `firstIcon()` / `lastIcon()` / `keepOneIcon()`; `Intl.Segmenter` by grapheme, with a code-point fallback that keeps ZWJ joins, variation selectors, skin tones, keycaps, tag sequences, and flag pairs together.
+- [x] The 4-character `maxlength` is removed from the step icon fields (`.icon-input`) and from `#favIconInput` (`index.html`). After any edit the field keeps the LAST icon; empty falls back to the default icon (⭐ for Favorites).
+- [x] Saved and imported values are trimmed to the FIRST icon: `normalizeProfile`, `normalizeFavorites` (saved favorites are now also normalized on load), and `stepIcon()` on read.
+- [x] Cache-bust bumped: `script.js?v=8→9` (shared by Builds 19 to 23). Version: v0.94→v0.95.
+- **Verification:** `verify14` section 1 in headless Chromium, zero JS errors: one, two, and three emoji typed or pasted, two-part emoji, a ZWJ family, flags, skin tones, letters, empty fallback, saved and imported many-icon values trimmed, and the same cases with `Intl.Segmenter` disabled.
+
+### Build 20 (completed): Carry the flight confirmation forward
+Choosing an airline on a flight now copies the confirmation number from the nearest earlier flight with the same airline.
+- [x] `script.js`: `allFlightsInOrder()`, `copyConfirmationFrom()`, `onAirlineChosen()`. Search runs backward through outbound flights by stop, then return flights. Only fills an empty field; a different airline or no match leaves it blank; fires on airline choice only.
+- [x] A `#wf-copy-note` under the field reads "Copied from <label> — change it if this is a separate booking"; it disappears on editing or reopening the form. The copied value is coloured (`updateConfColor()`), uppercased, and saved like typed text.
+- **Verification:** `verify14` section 2: no match stays blank, same airline copies, the nearest earlier match wins, a different airline is blank, a typed value is never overwritten, Select… copies nothing, the note shows and hides, and the value survives a reload.
+
+### Build 21 (completed): Remove a flight or a stop
+Two-tap removal for a mistaken extra flight or stop.
+- [x] `script.js`: `twoTap()` (3-second revert). `#wf-remove-flight` at the bottom of each outbound and return flight form when the group has 2 or more flights; `#wf-remove-stop` on each Rental Return when there are 2 or more stops. Selection moves to the previous flight (or new first flight) / the previous stop's Rental Return (or `stop0-flight-0`); names renumber, typed dates stay, `modified` updates.
+- [x] `styles.css`: `.add-flight-btn.remove-btn` (red). Cache-bust bumped: `styles.css?v=6→7`.
+- **Verification:** `verify14` section 3: button hidden with one flight or stop; arms, reverts, removes; first, middle, and last outbound flights; return flights; a typed date kept after removing another flight; three stops with first and middle removal and data intact; add then remove leaves the itinerary unchanged.
+- Found and fixed during verification: none in the app (three test-script mistakes only).
+
+### Build 22 (completed): Hotel brand picker
+A Brand field next to Chain, with a list per chain.
+- [x] New `hotel-brands.js?v=1` (`window.CROSSWIND_HOTEL_BRANDS`, eight chains), loaded before `script.js` in `index.html`. `brandListFor()` / `brandItems()` match the chain by keyword.
+- [x] Reuse: `attachAirportSuggest` generalised into `attachSuggest(input, list, opts)` (`find`, `onPick`, `showOnFocus`, `exactOnBlur`); the airport field is wired through it unchanged. Tapping Brand shows the whole list; typing narrows ("contains"); free text allowed; unlisted or no chain gives a plain box.
+- [x] Picking a brand with an empty Hotel Name prefills "<Brand> " and moves the cursor into it; a filled name is untouched; changing the chain leaves the brand. `brand` added to `newStop()` and `normalizeItinerary`. Dashboard hotel line is `CHAIN: … | BRAND: …`.
+- **Verification:** `verify14` section 4 plus the 67-check airport suite and a 390px screenshot of the list.
+- Found and fixed during verification: tapping a field that already held a brand showed only the narrowed list; `attachSuggest` now shows the whole list on focus.
+
+### Build 23 (completed): Phone numbers in telephone format
+- [x] `script.js`: `parsePhone()` (digits plus `x<ext>`, a leading 1 on 11 digits dropped) and `formatPhone()` (`(253) 555-0100`, `555-0100`, other lengths plain, ` x12`). Destination > Contact Phone stores while typing and reformats on leave; Dashboard PHONE line uses `formatPhone`; saved and imported text is cleaned in `normalizeItinerary`.
+- **Verification:** `verify14` section 5, zero JS errors. Regression: suites 2c, 3, 4, 5b, 7, 8b, 10b, 11, 13 pass. In `verify9c` and `verify12`, 5 old expectations were updated to the new intended output (brand on the hotel line, formatted phone, new version and script tags).
+
 ## Build Queue
 
-### One icon per icon field
-Not yet authorized to build. Settled with Jon. Can be built on its own; if built together with other Queue entries, one version bump and one cache-bust bump cover them all and the log says so. Touches `script.js` and `index.html`; includes a cache-bust bump for `script.js` and the header version bump (next 0.01).
-
-- Applies to the Trip Step Defaults icon fields and the Favorites icon field. The 4-character `maxlength` is removed from both (it allowed 2 emoji or 4 letters, and cut multi-part icons like 🛏️ and 👨‍👩‍👧 in half).
-- The field holds exactly one visible icon (one grapheme, counted with `Intl.Segmenter`, with a code-point fallback; multi-part emoji, flags, and skin tones count as one; a single letter or symbol is fine). After any edit, if more than one icon is present the **last** one is kept, so typing or tapping a new emoji replaces the old one; pasting several keeps the last. The cleanup runs before the existing save handlers.
-- Saved values and imported backups that hold several icons are trimmed to the **first** one (`normalizeProfile`, `normalizeFavorites`, and `stepIcon()` on read). An empty field still falls back to the default icon.
-
-**Reuse:** the existing step-defaults save handlers (`updateStepCustom`), `normalizeProfile`, `normalizeFavorites`, and `stepIcon()`.
-
-**Verification plan:** typing, pasting, and holding many emoji, symbols, letters, flags, skin tones, and ZWJ families in both fields; replace-with-latest; empty falls back; saved multi-icon values and an imported backup trimmed to the first; saves and reloads; the Wizard, Dashboard, and Favorites show one icon. All earlier suites re-run.
-
-### Carry the flight confirmation forward
-Not yet authorized to build. Settled with Jon. Can be built on its own; if built together with other Queue entries, one version bump and one cache-bust bump cover them all and the log says so. Touches `script.js`; includes a cache-bust bump for `script.js` and the header version bump (next 0.01).
-
-- When the user picks an airline on a flight (outbound or return) whose Confirmation # is empty, the app looks back for the nearest earlier flight in the trip with the **same airline and a confirmation** and copies that number. Search order for an outbound flight: earlier flights in the same stop, then earlier stops (latest first). For a return flight: earlier return flights, then the outbound flights (last stop's last flight first). A different airline, or no match, leaves the field blank.
-- Only the confirmation is copied (not flight number or seat). It fills only an empty field, never overwrites typed text, stays editable, and is saved as normal data (it counts as an edit to the trip). It happens on choosing the airline, not on viewing, so opening a trip never changes it.
-- A small note under the field says where it came from ("Copied from Flight (Initial) — change it if this is a separate booking"), using the step's own label; it disappears when the field is edited or the form is reopened. The live green/red confirmation colour updates on copy.
-
-**Reuse:** the existing `upperInput()`, `updateConfColor()`, `buildNodes()` labels, `commitTrips()`, and the `.fld-note` style.
-
-**Verification plan:** same airline copies (outbound connection, return from outbound, across stops); different airline stays blank; a typed value is never overwritten; no match; note text and its disappearance; colour updates; nothing changes on viewing (`modified` unchanged); saves and reloads. All earlier suites re-run.
-
-### Remove a flight or a stop
-Not yet authorized to build. Settled with Jon. Can be built on its own; if built together with other Queue entries, one version bump and one cache-bust bump cover them all and the log says so. Touches `script.js` (and `styles.css` only if the buttons need their own style); includes cache-bust bumps for each local file that changes and the header version bump (next 0.01). Background: Jon's trip had an accidental extra outbound flight and there was no way to delete it.
-
-- **Remove this flight:** a button at the bottom of every flight form (outbound and return), two-tap like the other deletes (first tap reads "Tap again to remove", reverts after 3 seconds or when another step is opened). Shown only when that group has two or more flights (an outbound group is one stop's flights; the return group is the return flights), because a trip needs at least one of each. Removing it deletes that flight's data.
-- After removing a flight the Wizard moves to the previous flight in the same group (or the new first flight); the remaining flights take their names and icons by position (Initial, Connection, Final, with numbering only when a name repeats); dates Jon typed on other flights stay and the defaults recalculate; the layover step between the removed flight and its neighbour disappears.
-- **Remove this stop:** a button on every stop's Rental Return step, two-tap, shown only when there are two or more stops. It deletes that stop's flights, rental, hotel, and destination. Afterwards the Wizard moves to the previous stop's Rental Return (or the new first stop's first flight when stop 1 was removed); stop labels renumber, and the " — Stop N" suffix disappears when one stop is left. "+ Add Another Stop" stays on the last stop's Rental Return.
-- Each removal saves like any other edit (updates the trip's `modified` time), and the Dashboard's step row and selection follow (its existing fall-back to the first step when the selected step no longer exists). Reordering flights or stops is not part of this.
-
-**Reuse:** the two-tap delete pattern (as in the loyalty and project popups), `buildNodes()`, `commitTrips()`, and the Add Another Flight / Add Another Stop buttons' style.
-
-**Verification plan:** the button is hidden with one flight or one stop; two-tap arms, reverts, and removes; removing the first, a middle, and the last outbound flight and a return flight; names, icons, and layover steps renumber; selection moves to the previous step; typed dates stay and defaults recalculate; removing the first, a middle, and the last stop; stop labels and suffixes renumber; an add-then-remove round trip leaves the trip unchanged; the removal saves, survives a reload, and updates `modified`; the Dashboard follows. All earlier suites re-run.
-
-### Hotel brand picker under the hotel chain
-Not yet authorized to build. Settled with Jon (he accepted all of the recommendations and the proposed lists). Can be built on its own. Touches `index.html`, `script.js`, and a new data file `hotel-brands.js` (starts at `?v=1`); includes cache-bust bumps for every local file that changes and the header version bump (next 0.01).
-
-- **What:** on the Hotel step, a new **Brand** field next to Chain (Chain and Brand share the first row; Hotel Name moves to its own full-width row below). The hotel stores a `brand` text value (blank allowed; `<` and `>` stripped). Trips saved before this build open with a blank brand, and backups carry it.
-- **Which list:** the chain is matched by keyword (case-insensitive "contains", first match wins) against the Chain the user picked, which comes from their own Setup program name: Marriott (`marriott`, `bonvoy`), Hilton (`hilton`), IHG (`ihg`), Hyatt (`hyatt`), Best Western (`best western`), Wyndham (`wyndham`), Choice (`choice`), Radisson (`radisson`). A chain with no list, or no chain chosen, gives a plain text box for Brand.
-- **Behaviour:** tapping or focusing the Brand field shows the chain's **whole list** (no cap; lists are 6 to 14 brands); typing narrows it to brands containing the typed text; tapping one fills it; **anything else can be typed** and is kept as typed. Changing the chain later leaves the typed Brand alone (user input is never deleted).
-- **Prefill:** picking a brand from the list while **Hotel Name is empty** sets Hotel Name to "<Brand> " and moves the cursor into Hotel Name so only the location needs typing. A non-empty Hotel Name is never touched; a free-typed brand never prefills.
-- **Dashboard:** the Hotel card's first line becomes `CHAIN: … | BRAND: …`.
-- **Brand data (`hotel-brands.js`, from general knowledge, not a live source; easy to correct in the file):**
-  - **Marriott:** Courtyard, Residence Inn, Fairfield, TownePlace Suites, SpringHill Suites, Marriott, Sheraton, Four Points, Element, Aloft, Renaissance, AC Hotels, Westin, Ritz-Carlton
-  - **Hilton:** Hampton, Hilton Garden Inn, Homewood Suites, Home2 Suites, DoubleTree, Embassy Suites, Hilton, Tru, Canopy, Curio, Conrad, Waldorf Astoria
-  - **IHG:** Holiday Inn Express, Holiday Inn, Candlewood Suites, Staybridge Suites, Crowne Plaza, Hotel Indigo, avid, EVEN Hotels, InterContinental, Kimpton
-  - **Hyatt:** Hyatt Place, Hyatt House, Hyatt Regency, Grand Hyatt, Park Hyatt, Hyatt Centric, Andaz
-  - **Best Western:** Best Western, Best Western Plus, Best Western Premier, SureStay, SureStay Plus, SureStay Collection
-  - **Wyndham:** Days Inn, Super 8, La Quinta, Ramada, Wingate, Microtel, Baymont, Howard Johnson, Travelodge, AmericInn, Wyndham, Wyndham Garden, Wyndham Grand, Hawthorn Suites
-  - **Choice:** Comfort Inn, Comfort Suites, Quality Inn, Sleep Inn, Clarion, Econo Lodge, Rodeway Inn, MainStay Suites, Cambria, WoodSpring Suites, Suburban Studios
-  - **Radisson:** Radisson, Radisson Blu, Radisson RED, Country Inn & Suites, Park Inn, Park Plaza
-
-**Reuse:** the airport suggestion list. Its logic is generalised into one shared helper (the airport field keeps behaving exactly as before, and its test suite re-runs to prove it), plus the existing `.suggest-list` style, `commitTrips()`, and `normalizeItinerary`.
-
-**Verification plan:** each chain's list appears whole on tap and narrows as typed; a chain name that merely contains the keyword (e.g. "Marriott Bonvoy") matches; an unlisted chain and no chain give a plain text box; free text is kept; tapping a brand prefills an empty Hotel Name with the cursor in it and never touches a filled one; changing the chain leaves the brand; saved, reloaded, and backed up; old trips open blank; Dashboard line; data checks (no duplicate brands in a chain, no blanks); layout at 390px; the airport autocomplete suite re-run unchanged; all earlier suites re-run.
-
-### Phone numbers cleaned to digits and shown in telephone format
-Not yet authorized to build. Settled with Jon (yes to the proposed format, format-on-leave with extensions, and digits-only storage). Can be built on its own. Touches `script.js`; includes a cache-bust bump for `script.js` and the header version bump (next 0.01).
-
-- **Shared helper** (`parsePhone(text)` and `formatPhone(stored)`) so any phone field added later works the same way. Today the only phone field is Destination > Contact Phone (`#wf-dest-phone`) and the PHONE line on the Dashboard's Destination card.
-- **Cleaning (`parsePhone`):** first split off an extension: an "x", "ext", "ext.", or "extension" followed by digits at the end of the text. Then strip everything except digits from the rest. If that leaves 11 digits starting with 1, drop the leading 1. The stored value is the digits, plus `x` and the extension digits when there is one (e.g. `2535550100x12`). Empty, or text with no digits, stores as empty. It gives the same result when run again on a stored value.
-- **Display (`formatPhone`):** 10 digits show as `(253) 555-0100`; 7 digits as `555-0100`; any other length (non-US numbers, short codes) shows as the plain digits, nothing guessed; an extension shows as ` x12` after the number.
-- **When it applies:** the stored value is updated as the user types (so a save never holds punctuation), but the field is only reformatted when the user **leaves** it, so typing is never disturbed. A form opened later shows the formatted number.
-- **Dashboard:** the PHONE line shows the formatted number (`—` when empty).
-- **Saved and imported data:** phone numbers already saved (typed text like `253-555-0100`) or inside imported backups are cleaned to digits when loaded (`normalizeItinerary`), so old trips display correctly with no migration step. Backups carry the digits.
-- Not included: tap-to-call (unless Jon asks later).
-
-**Reuse:** `normalizeItinerary`, `commitTrips()`, the Dashboard card builder, and the existing blur-to-reformat approach used for dates and times.
-
-**Verification plan:** typed and pasted `253-555-0100`, `(253) 555-0100`, `253.555.0100`, `+1 253 555 0100`, `1-253-555-0100`, `2535550100` all give `(253) 555-0100`; a 7-digit number; 5 digits and a 12-digit international number stay plain digits; extensions with `x`, `ext`, `ext.`, and `extension`; an `ext` with no digits; letters only; empty; text mixed with digits; stored value is digits only while typing and after leaving; the field is not reformatted mid-typing; a reload, a backup export, and an import round trip; old saved text cleaned at load; hostile text reduced to digits; the Dashboard line; `modified` changes on a real edit and not on viewing; all earlier suites re-run.
+_Empty — nothing queued right now._
 
 ## Build Planner
 
