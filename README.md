@@ -188,6 +188,11 @@ Reported by Jon; reproduced in a browser. The Trip Step Defaults icon fields (an
 - Proposed (awaiting Jon's go-ahead): hold exactly one visible icon (one grapheme, counted with `Intl.Segmenter`, so multi-part emoji, flags, and skin tones count as one; a single letter or symbol still works); typing or pasting a second icon replaces the first (keeps the latest); saved values and imported backups holding several icons are trimmed to the first; applies to both icon fields; remove the 4-character `maxlength`.
 - Open: replace versus reject the extra icon, and whether to include the Favorites field (both recommended).
 
+### Idea: carry the flight confirmation number forward
+From Jon: all flights in one booking normally share one confirmation number (connections, and usually the return of a round trip); it differs for a different airline or separately booked legs.
+- Proposed (awaiting Jon's choice and go-ahead): when a flight's airline is set and its confirmation is empty, copy the confirmation from the nearest earlier flight in the trip (outbound, earlier stops, then the outbound flights for a return flight) with the same airline and a confirmation; a different airline stays blank; only the confirmation is copied (not flight number or seat); typed values are never overwritten and a copied value stays editable; a small note says where it was copied from.
+- Open: automatic fill with a note (recommended) versus a tap-to-fill suggestion chip; whether return flights are included (recommended yes).
+
 ### Inconsistency: step labels overlap on long trips
 Found while verifying Build 14. With about 14 steps (a two-stop trip) the labels in the step row run into their neighbours. It happens identically on the Wizard's row (same styles, confirmed before and after Build 14), so the Dashboard inherited it. Open question: wrap labels, shorten them, or widen the steps?
 
