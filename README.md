@@ -198,6 +198,11 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Cosmetic: ✎ pins only toggle a look; a step counts as "done" only because it sits before the selected one.
 - Missing: removing or reordering stops and flights; per-trip ✎ overrides; real step completion.
 
+### Gap: no way to remove a flight or a stop
+Reported by Jon: an accidental extra outbound flight cannot be deleted (it also changes the step names and adds a layover step). The same is true for stops. Today only "+ Add Another Flight" and "+ Add Another Stop" exist.
+- Proposed (awaiting Jon's choice and go-ahead): a **Remove this flight** button at the bottom of each flight form (outbound and return), two-tap ("Tap again to remove"), shown only when the group has two or more flights; the Wizard then moves to the previous step, remaining flights are renamed to fit, typed dates stay, defaults recalculate. A **Remove this stop** button on each stop's Rental Return step (two-tap, only with two or more stops) removing that stop's flights, rental, hotel, and destination.
+- Open: flights only, or flights and stops (both recommended). Reordering flights or stops is not part of this.
+
 ### Inconsistency: step labels overlap on long trips
 Found while verifying Build 14. With about 14 steps (a two-stop trip) the labels in the step row run into their neighbours. It happens identically on the Wizard's row (same styles, confirmed before and after Build 14), so the Dashboard inherited it. Open question: wrap labels, shorten them, or widen the steps?
 
