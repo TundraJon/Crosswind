@@ -204,6 +204,20 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Cosmetic: ✎ pins only toggle a look; a step counts as "done" only because it sits before the selected one.
 - Missing: removing or reordering stops and flights; per-trip ✎ overrides; real step completion.
 
+### Idea: hotel brand picker under the hotel chain
+From Jon: after choosing the hotel chain (e.g. Marriott) on the Hotel step, pick the brand (Courtyard, Residence Inn, ...) from that chain's popular brands, or type anything not listed.
+- Proposed (awaiting Jon's choices and go-ahead): a **Brand** field under Chain, stored with the hotel. Tapping it shows that chain's whole list (about 10 to 15 brands); typing narrows it; any typed text is accepted; uses the same suggestion-list component as the airport field. The chain is matched by keyword against the user's own Setup program name (e.g. contains "marriott" or "bonvoy"); a chain with no list gets a plain text box. Optional: picking a brand prefills an empty Hotel Name with "<Brand> " so only the location needs typing. The Dashboard hotel card would show the brand.
+- Proposed brand data (from general knowledge, not a live source; lives in a data file so it is easy to correct):
+  - **Marriott** (Bonvoy): Courtyard, Residence Inn, Fairfield, TownePlace Suites, SpringHill Suites, Marriott, Sheraton, Four Points, Element, Aloft, Renaissance, AC Hotels, Westin, Ritz-Carlton
+  - **Hilton** (Honors): Hampton, Hilton Garden Inn, Homewood Suites, Home2 Suites, DoubleTree, Embassy Suites, Hilton, Tru, Canopy, Curio, Conrad, Waldorf Astoria
+  - **IHG**: Holiday Inn Express, Holiday Inn, Candlewood Suites, Staybridge Suites, Crowne Plaza, Hotel Indigo, avid, EVEN Hotels, InterContinental, Kimpton
+  - **Hyatt**: Hyatt Place, Hyatt House, Hyatt Regency, Grand Hyatt, Park Hyatt, Hyatt Centric, Andaz
+  - **Best Western**: Best Western, Best Western Plus, Best Western Premier, SureStay, SureStay Plus, SureStay Collection
+  - **Wyndham**: Days Inn, Super 8, La Quinta, Ramada, Wingate, Microtel, Baymont, Howard Johnson, Travelodge, AmericInn, Wyndham, Wyndham Garden, Wyndham Grand, Hawthorn Suites
+  - **Choice** (not in Jon's list; has the most US hotels): Comfort Inn, Comfort Suites, Quality Inn, Sleep Inn, Clarion, Econo Lodge, Rodeway Inn, MainStay Suites, Cambria, WoodSpring Suites, Suburban Studios
+  - **Radisson** (not in Jon's list): Radisson, Radisson Blu, Radisson RED, Country Inn & Suites, Park Inn, Park Plaza
+- Open: Brand behaviour (full list on tap, narrow as you type, free text allowed: recommended); prefill Hotel Name (recommended, only when empty); add the Choice and Radisson chains and the extra brands above (recommended); Jon to correct any brand names.
+
 ### Inconsistency: step labels overlap on long trips
 Found while verifying Build 14. With about 14 steps (a two-stop trip) the labels in the step row run into their neighbours. It happens identically on the Wizard's row (same styles, confirmed before and after Build 14), so the Dashboard inherited it. Open question: wrap labels, shorten them, or widen the steps?
 
