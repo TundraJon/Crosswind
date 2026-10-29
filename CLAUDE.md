@@ -111,4 +111,5 @@ The header comment at the top of `index.html` carries the app version in hundred
 - **Log inconsistencies, don't fix them,** even trivial ones, even when you're already in the file. Surface them and let the user decide.
 - **Cleanup that a build itself makes stale rides along.** If an authorized build makes a Queue entry or Planner item obsolete, delete it in the same commit. Fixing an unrelated thing you noticed is still logged, not fixed.
 - **Audit every reference when editing numbered or cross-referenced text** (numbered sections, tables of contents, "see section N"). Update all of them and confirm with a script, not a visual skim.
+- **Keep Queue and Planner status to one short line** ("Added to the Planner.", "Promoted to the Build Queue.", "Queue: five entries."). Don't explain why an item went where, how the sections work, or that each entry stands alone; the user already knows.
 - **Don't clean up, optimize, modernize, or reformat** anything that wasn't asked for. Keep existing formatting, spacing, and structure. Don't add or remove features unless asked.
