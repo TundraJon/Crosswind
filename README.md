@@ -162,28 +162,39 @@ The second half of the Trip Wizard spec. Every step now has real, editable dates
 
 ## Build Queue
 
-### One icon per icon field, carry the flight confirmation forward, and remove a flight or stop
-Not yet authorized to build. Three small items, all settled with Jon. Touches `script.js` and `index.html`; includes a cache-bust bump for `script.js` and the header version bump (next 0.01).
+### One icon per icon field
+Not yet authorized to build. Settled with Jon. Can be built on its own; if built together with other Queue entries, one version bump and one cache-bust bump cover them all and the log says so. Touches `script.js` and `index.html`; includes a cache-bust bump for `script.js` and the header version bump (next 0.01).
 
-**1. One icon per icon field**
 - Applies to the Trip Step Defaults icon fields and the Favorites icon field. The 4-character `maxlength` is removed from both (it allowed 2 emoji or 4 letters, and cut multi-part icons like 🛏️ and 👨‍👩‍👧 in half).
 - The field holds exactly one visible icon (one grapheme, counted with `Intl.Segmenter`, with a code-point fallback; multi-part emoji, flags, and skin tones count as one; a single letter or symbol is fine). After any edit, if more than one icon is present the **last** one is kept, so typing or tapping a new emoji replaces the old one; pasting several keeps the last. The cleanup runs before the existing save handlers.
 - Saved values and imported backups that hold several icons are trimmed to the **first** one (`normalizeProfile`, `normalizeFavorites`, and `stepIcon()` on read). An empty field still falls back to the default icon.
 
-**2. Carry the flight confirmation forward**
+**Reuse:** the existing step-defaults save handlers (`updateStepCustom`), `normalizeProfile`, `normalizeFavorites`, and `stepIcon()`.
+
+**Verification plan:** typing, pasting, and holding many emoji, symbols, letters, flags, skin tones, and ZWJ families in both fields; replace-with-latest; empty falls back; saved multi-icon values and an imported backup trimmed to the first; saves and reloads; the Wizard, Dashboard, and Favorites show one icon. All earlier suites re-run.
+
+### Carry the flight confirmation forward
+Not yet authorized to build. Settled with Jon. Can be built on its own; if built together with other Queue entries, one version bump and one cache-bust bump cover them all and the log says so. Touches `script.js`; includes a cache-bust bump for `script.js` and the header version bump (next 0.01).
+
 - When the user picks an airline on a flight (outbound or return) whose Confirmation # is empty, the app looks back for the nearest earlier flight in the trip with the **same airline and a confirmation** and copies that number. Search order for an outbound flight: earlier flights in the same stop, then earlier stops (latest first). For a return flight: earlier return flights, then the outbound flights (last stop's last flight first). A different airline, or no match, leaves the field blank.
 - Only the confirmation is copied (not flight number or seat). It fills only an empty field, never overwrites typed text, stays editable, and is saved as normal data (it counts as an edit to the trip). It happens on choosing the airline, not on viewing, so opening a trip never changes it.
 - A small note under the field says where it came from ("Copied from Flight (Initial) — change it if this is a separate booking"), using the step's own label; it disappears when the field is edited or the form is reopened. The live green/red confirmation colour updates on copy.
 
-**3. Remove a flight or a stop** (Jon's trip had an accidental extra outbound flight and there was no way to delete it)
+**Reuse:** the existing `upperInput()`, `updateConfColor()`, `buildNodes()` labels, `commitTrips()`, and the `.fld-note` style.
+
+**Verification plan:** same airline copies (outbound connection, return from outbound, across stops); different airline stays blank; a typed value is never overwritten; no match; note text and its disappearance; colour updates; nothing changes on viewing (`modified` unchanged); saves and reloads. All earlier suites re-run.
+
+### Remove a flight or a stop
+Not yet authorized to build. Settled with Jon. Can be built on its own; if built together with other Queue entries, one version bump and one cache-bust bump cover them all and the log says so. Touches `script.js` (and `styles.css` only if the buttons need their own style); includes cache-bust bumps for each local file that changes and the header version bump (next 0.01). Background: Jon's trip had an accidental extra outbound flight and there was no way to delete it.
+
 - **Remove this flight:** a button at the bottom of every flight form (outbound and return), two-tap like the other deletes (first tap reads "Tap again to remove", reverts after 3 seconds or when another step is opened). Shown only when that group has two or more flights (an outbound group is one stop's flights; the return group is the return flights), because a trip needs at least one of each. Removing it deletes that flight's data.
 - After removing a flight the Wizard moves to the previous flight in the same group (or the new first flight); the remaining flights take their names and icons by position (Initial, Connection, Final, with numbering only when a name repeats); dates Jon typed on other flights stay and the defaults recalculate; the layover step between the removed flight and its neighbour disappears.
 - **Remove this stop:** a button on every stop's Rental Return step, two-tap, shown only when there are two or more stops. It deletes that stop's flights, rental, hotel, and destination. Afterwards the Wizard moves to the previous stop's Rental Return (or the new first stop's first flight when stop 1 was removed); stop labels renumber, and the " — Stop N" suffix disappears when one stop is left. "+ Add Another Stop" stays on the last stop's Rental Return.
 - Each removal saves like any other edit (updates the trip's `modified` time), and the Dashboard's step row and selection follow (its existing fall-back to the first step when the selected step no longer exists). Reordering flights or stops is not part of this.
 
-**Reuse:** the existing `upperInput()`, `updateConfColor()`, `buildNodes()` labels, `commitTrips()`, the two-tap delete pattern, and the `.fld-note` style.
+**Reuse:** the two-tap delete pattern (as in the loyalty and project popups), `buildNodes()`, `commitTrips()`, and the Add Another Flight / Add Another Stop buttons' style.
 
-**Verification plan:** icons: typing, pasting, and holding many emoji, symbols, letters, flags, skin tones, and ZWJ families in both fields; replace-with-latest; empty falls back; saved multi-icon values and an imported backup trimmed to the first; saves and reloads; the Wizard, Dashboard, and Favorites show one icon. Confirmation: same airline copies (outbound connection, return from outbound, across stops); different airline stays blank; a typed value is never overwritten; no match; note text and its disappearance; colour updates; nothing changes on viewing (`modified` unchanged); saves and reloads. Removal: the button is hidden with one flight or one stop; two-tap arms, reverts, and removes; removing the first, a middle, and the last outbound flight and a return flight; names, icons, and layover steps renumber; selection moves to the previous step; typed dates stay and defaults recalculate; removing the first, a middle, and the last stop; stop labels and suffixes renumber; an add-then-remove round trip leaves the trip unchanged; the removal saves, survives a reload, and updates `modified`; the Dashboard follows. All earlier suites re-run.
+**Verification plan:** the button is hidden with one flight or one stop; two-tap arms, reverts, and removes; removing the first, a middle, and the last outbound flight and a return flight; names, icons, and layover steps renumber; selection moves to the previous step; typed dates stay and defaults recalculate; removing the first, a middle, and the last stop; stop labels and suffixes renumber; an add-then-remove round trip leaves the trip unchanged; the removal saves, survives a reload, and updates `modified`; the Dashboard follows. All earlier suites re-run.
 
 ## Build Planner
 

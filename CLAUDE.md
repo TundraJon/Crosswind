@@ -39,6 +39,7 @@ Never edit an old entry to look right. Corrections become a new entry.
 
 **Build Queue** (`## Build Queue`): fully specified work that is not yet built.
 - Only settled designs land here: exact UI behavior, edge cases, and code to reuse.
+- **One entry per item the user can approve separately.** Never combine items into one entry; the user may say "build this one". Count and describe the queue by its number of entries (items), e.g. "three entries", never as one entry with parts.
 - State "Not yet authorized to build" on each entry. Queuing is not authorization.
 - When the user says build it: build, verify, add the Log entry, and remove it from the Queue, all in one commit.
 - Empty state: `_Empty — nothing queued right now._`
