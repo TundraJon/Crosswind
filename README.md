@@ -162,7 +162,22 @@ The second half of the Trip Wizard spec. Every step now has real, editable dates
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### One icon per icon field, and carry the flight confirmation forward
+Not yet authorized to build. Two small items, both settled with Jon. Touches `script.js` and `index.html`; includes a cache-bust bump for `script.js` and the header version bump (next 0.01).
+
+**1. One icon per icon field**
+- Applies to the Trip Step Defaults icon fields and the Favorites icon field. The 4-character `maxlength` is removed from both (it allowed 2 emoji or 4 letters, and cut multi-part icons like 🛏️ and 👨‍👩‍👧 in half).
+- The field holds exactly one visible icon (one grapheme, counted with `Intl.Segmenter`, with a code-point fallback; multi-part emoji, flags, and skin tones count as one; a single letter or symbol is fine). After any edit, if more than one icon is present the **last** one is kept, so typing or tapping a new emoji replaces the old one; pasting several keeps the last. The cleanup runs before the existing save handlers.
+- Saved values and imported backups that hold several icons are trimmed to the **first** one (`normalizeProfile`, `normalizeFavorites`, and `stepIcon()` on read). An empty field still falls back to the default icon.
+
+**2. Carry the flight confirmation forward**
+- When the user picks an airline on a flight (outbound or return) whose Confirmation # is empty, the app looks back for the nearest earlier flight in the trip with the **same airline and a confirmation** and copies that number. Search order for an outbound flight: earlier flights in the same stop, then earlier stops (latest first). For a return flight: earlier return flights, then the outbound flights (last stop's last flight first). A different airline, or no match, leaves the field blank.
+- Only the confirmation is copied (not flight number or seat). It fills only an empty field, never overwrites typed text, stays editable, and is saved as normal data (it counts as an edit to the trip). It happens on choosing the airline, not on viewing, so opening a trip never changes it.
+- A small note under the field says where it came from ("Copied from Flight (Initial) — change it if this is a separate booking"), using the step's own label; it disappears when the field is edited or the form is reopened. The live green/red confirmation colour updates on copy.
+
+**Reuse:** the existing `upperInput()`, `updateConfColor()`, `buildNodes()` labels, `commitTrips()`, and the `.fld-note` style.
+
+**Verification plan:** icons: typing, pasting, and holding many emoji, symbols, letters, flags, skin tones, and ZWJ families in both fields; replace-with-latest; empty falls back; saved multi-icon values and an imported backup trimmed to the first; saves and reloads; the Wizard, Dashboard, and Favorites show one icon. Confirmation: same airline copies (outbound connection, return from outbound, across stops); different airline stays blank; a typed value is never overwritten; no match; note text and its disappearance; colour updates; nothing changes on viewing (`modified` unchanged); saves and reloads; all earlier suites re-run.
 
 ## Build Planner
 
@@ -182,16 +197,6 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
 - Cosmetic: ✎ pins only toggle a look; a step counts as "done" only because it sits before the selected one.
 - Missing: removing or reordering stops and flights; per-trip ✎ overrides; real step completion.
-
-### Bug: icon fields accept more than one icon
-Reported by Jon; reproduced in a browser. The Trip Step Defaults icon fields (and the Favorites icon field on the In-Flight screen) are capped at 4 text characters (`maxlength`), not at one icon. That allows 2 emoji (🛫🛬) or 4 letters/symbols (`ABCD`), and it also cuts multi-part icons in half (🛏️ is two parts, so 🛏️🏨 keeps only the bed; 👨‍👩‍👧 becomes a broken half-emoji).
-- Proposed (awaiting Jon's go-ahead): hold exactly one visible icon (one grapheme, counted with `Intl.Segmenter`, so multi-part emoji, flags, and skin tones count as one; a single letter or symbol still works); typing or pasting a second icon replaces the first (keeps the latest); saved values and imported backups holding several icons are trimmed to the first; applies to both icon fields; remove the 4-character `maxlength`.
-- Open: replace versus reject the extra icon, and whether to include the Favorites field (both recommended).
-
-### Idea: carry the flight confirmation number forward
-From Jon: all flights in one booking normally share one confirmation number (connections, and usually the return of a round trip); it differs for a different airline or separately booked legs.
-- Proposed (awaiting Jon's choice and go-ahead): when a flight's airline is set and its confirmation is empty, copy the confirmation from the nearest earlier flight in the trip (outbound, earlier stops, then the outbound flights for a return flight) with the same airline and a confirmation; a different airline stays blank; only the confirmation is copied (not flight number or seat); typed values are never overwritten and a copied value stays editable; a small note says where it was copied from.
-- Open: automatic fill with a note (recommended) versus a tap-to-fill suggestion chip; whether return flights are included (recommended yes).
 
 ### Inconsistency: step labels overlap on long trips
 Found while verifying Build 14. With about 14 steps (a two-stop trip) the labels in the step row run into their neighbours. It happens identically on the Wizard's row (same styles, confirmed before and after Build 14), so the Dashboard inherited it. Open question: wrap labels, shorten them, or widen the steps?
