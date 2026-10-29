@@ -955,7 +955,7 @@
       html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
         dateFieldHTML('wf-date', 'Date', 'uberHome') +
         '<div class="fld-grid">' +
-        '<div><label class="fld">Pickup Time <span class="fld-opt">(usually set live at baggage claim)</span></label><input type="text" id="wf-uberhome-pickup" placeholder="e.g. 6:15 PM" value="' + wizardState.uberHome.pickup + '"></div>' +
+        '<div><label class="fld">Pickup Time</label><input type="text" id="wf-uberhome-pickup" placeholder="e.g. 6:15 PM" value="' + wizardState.uberHome.pickup + '"><div class="fld-note">(usually set live at baggage claim)</div></div>' +
         '<div><label class="fld">Drop-off Time <span class="fld-opt">(optional)</span></label><input type="text" id="wf-uberhome-dropoff" placeholder="e.g. 6:50 PM" value="' + wizardState.uberHome.dropoff + '"></div>' +
         '</div>';
     }
@@ -1004,7 +1004,7 @@
       document.getElementById('wf-rental-class').addEventListener('change', e => r.cls = e.target.value);
       upperInput(document.getElementById('wf-rental-conf'), v => r.conf = v);
       document.getElementById('wf-rental-color').addEventListener('input', e => r.color = e.target.value);
-      document.getElementById('wf-rental-plate').addEventListener('input', e => r.plate = e.target.value);
+      upperInput(document.getElementById('wf-rental-plate'), v => r.plate = v);
     }
     else if (node.type === 'hotel') {
       const h = wizardState.stops[node.stopIndex].hotel;
@@ -1163,7 +1163,7 @@
       const r = wizardState.stops[node.stopIndex].rental;
       const plate = document.getElementById('dash-plate'), color = document.getElementById('dash-color');
       plate.value = r.plate; color.value = r.color;
-      plate.addEventListener('input', e => r.plate = e.target.value);
+      upperInput(plate, v => r.plate = v);
       color.addEventListener('input', e => r.color = e.target.value);
     }
     else if (node.type === 'hotel') {
@@ -1277,7 +1277,7 @@
       out.stops.push({
         destination: { name: s(d.name), address: s(d.address), contact: s(d.contact), phone: parsePhone(s(d.phone)) },
         flights: flights.length ? flights : [ normalizeFlight() ],
-        rental: { company: s(r.company), cls: s(r.cls) || 'Economy', color: s(r.color), plate: s(r.plate), pickup: isoOrBlank(r.pickup), ret: isoOrBlank(r.ret), conf: s(r.conf) },
+        rental: { company: s(r.company), cls: s(r.cls) || 'Economy', color: s(r.color), plate: s(r.plate).toUpperCase(), pickup: isoOrBlank(r.pickup), ret: isoOrBlank(r.ret), conf: s(r.conf) },
         hotel: { chain: s(h.chain), brand: s(h.brand), name: s(h.name), address: s(h.address), room: s(h.room), checkIn: isoOrBlank(h.checkIn), checkOut: isoOrBlank(h.checkOut), conf: s(h.conf) }
       });
     });

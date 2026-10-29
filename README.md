@@ -193,27 +193,18 @@ A Brand field next to Chain, with a list per chain.
 - [x] `script.js`: `parsePhone()` (digits plus `x<ext>`, a leading 1 on 11 digits dropped) and `formatPhone()` (`(253) 555-0100`, `555-0100`, other lengths plain, ` x12`). Destination > Contact Phone stores while typing and reformats on leave; Dashboard PHONE line uses `formatPhone`; saved and imported text is cleaned in `normalizeItinerary`.
 - **Verification:** `verify14` section 5, zero JS errors. Regression: suites 2c, 3, 4, 5b, 7, 8b, 10b, 11, 13 pass. In `verify9c` and `verify12`, 5 old expectations were updated to the new intended output (brand on the hotel line, formatted phone, new version and script tags).
 
+### Build 24 (completed): Rental license plate in all caps
+- [x] `script.js`: Wizard `#wf-rental-plate` and Dashboard `#dash-plate` now use `upperInput()` (they stored raw text before); `normalizeItinerary` uppercases saved and imported plates.
+- [x] Cache-bust bumped: `script.js?v=9→10` (shared with Build 25). Version: v0.95→v0.96 (shared with Build 25).
+- **Verification:** `verify15` in headless Chromium at 390px, zero JS errors: typed lowercase into both fields shows and stores uppercase; a lowercase plate seeded in storage loads uppercased on the Dashboard.
+
+### Build 25 (completed): Uber Home times on one line
+- [x] `script.js` (Uber Home form): the "(usually set live at baggage claim)" hint moved out of the Pickup Time label into a `.fld-note` under the input, so both labels are one line. Uber (outbound) has no long hint and already lined up, so it is unchanged.
+- **Verification:** `verify15`: Pickup and Drop-off inputs have the same top position on Uber Home and Uber (both 562px at 390px); hint text still present; screenshot checked. Regression: suites 10b, 11, 13, 14 pass; `verify9c` still shows its 3 expected-output differences from Builds 22 and 23.
+
 ## Build Queue
 
-### Rental license plate in all caps
-Not yet authorized to build. Settled from Jon's screenshot request.
-
-- The Wizard's Rental License Plate field (`#wf-rental-plate`) and the Dashboard quick-capture Plate # field (`#dash-plate`) auto-uppercase as typed, like the confirmation fields.
-- Saved and imported plates are uppercased when loaded (`normalizeItinerary`).
-
-**Reuse:** `upperInput()`.
-
-**Verification plan:** type lowercase into both fields and read back the stored value; reload; import an old backup with a lowercase plate.
-
-### Uber times on one line
-Not yet authorized to build. Settled from Jon's screenshot request.
-
-- On Uber Home, the Pickup Time label ("(usually set live at baggage claim)") wraps to two lines and pushes its input below the Drop-off Time input. Fix so both time inputs sit on the same line. Uber (outbound) has the same two-column layout and gets the same treatment.
-- Likely approach: keep the long hint out of the label line (move it to a `.fld-note` under the input) so both labels are one line. Open point: that hint wording stays the same.
-
-**Reuse:** the `.fld-note` style.
-
-**Verification plan:** 390px screenshots of Uber (out) and Uber Home; compare the two inputs' top positions.
+_Empty — nothing queued right now._
 
 ## Build Planner
 
