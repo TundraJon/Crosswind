@@ -516,20 +516,21 @@
   /* ============ TRIP WIZARD: full round-trip, multi-stop state ============ */
   let trips = [];
   let activeTripId = '';
+  function newFlight() { return { airline: '', flightNum: '', conf: '', seat: '', date: '' }; }
   function newStop() {
     return {
       destination: { name: '', address: '', contact: '', phone: '' },
-      flights: [ { airline: '', flightNum: '', conf: '', seat: '' } ],
-      rental: { company: '', cls: 'Economy', color: '', plate: '' },
-      hotel: { chain: '', name: '', address: '', room: '' }
+      flights: [ newFlight() ],
+      rental: { company: '', cls: 'Economy', color: '', plate: '', pickup: '', ret: '', conf: '' },
+      hotel: { chain: '', name: '', address: '', room: '', checkIn: '', checkOut: '', conf: '' }
     };
   }
   const wizardState = {
     selected: 'uber-out',
-    uberOut: { pickup: '', dropoff: '' },
+    uberOut: { pickup: '', dropoff: '', date: '' },
     stops: [ newStop() ],
-    returnFlights: [ { airline: '', flightNum: '', conf: '', seat: '' } ],
-    uberHome: { pickup: '', dropoff: '' },
+    returnFlights: [ newFlight() ],
+    uberHome: { pickup: '', dropoff: '', date: '' },
     editingPins: {}
   };
 
@@ -607,24 +608,134 @@
     });
   }
 
-  function parserButtonHTML(label) {
-    return '<button class="parser-btn" onclick="return false;">Text Clipboard Parser<small>Paste ' + label + ' confirmation — Pattern Matching / Regex</small></button>';
+  /* ---- Step dates: smart defaults, user entries kept ---- */
+  let stepDateFields = [];
+  function dateRef(key) {
+    const k = key.split(':'), i = +k[1], j = +k[2];
+    switch (k[0]) {
+      case 'uberOut': return { o: wizardState.uberOut, p: 'date' };
+      case 'uberHome': return { o: wizardState.uberHome, p: 'date' };
+      case 'f': return { o: wizardState.stops[i].flights[j], p: 'date' };
+      case 'rf': return { o: wizardState.returnFlights[i], p: 'date' };
+      case 'hIn': return { o: wizardState.stops[i].hotel, p: 'checkIn' };
+      case 'hOut': return { o: wizardState.stops[i].hotel, p: 'checkOut' };
+      case 'rPick': return { o: wizardState.stops[i].rental, p: 'pickup' };
+      default: return { o: wizardState.stops[i].rental, p: 'ret' };
+    }
+  }
+  /* Effective date of every date field: what the user entered, else the default worked out from the trip */
+  function effDates() {
+    const trip = activeTrip(), out = {};
+    if (!trip) return out;
+    const start = fromISODate(trip.start), end = fromISODate(trip.end);
+    const user = (o, p) => fromISODate(o[p]);
+    out.uberOut = user(wizardState.uberOut, 'date') || start;
+    let prev = null;
+    wizardState.stops.forEach((st, si) => {
+      st.flights.forEach((f, fi) => {
+        let def;
+        if (si === 0 && fi === 0) def = start;
+        else if (fi === 0) def = user(wizardState.stops[si - 1].hotel, 'checkOut') || prev;
+        else def = prev;
+        prev = user(f, 'date') || def;
+        out['f:' + si + ':' + fi] = prev;
+      });
+    });
+    let prevR = null;
+    wizardState.returnFlights.forEach((f, fi) => {
+      prevR = user(f, 'date') || (fi === 0 ? end : prevR);
+      out['rf:' + fi + ':0'] = prevR;
+    });
+    out.uberHome = user(wizardState.uberHome, 'date') || out['rf:' + (wizardState.returnFlights.length - 1) + ':0'];
+    wizardState.stops.forEach((st, si) => {
+      const arrival = out['f:' + si + ':' + (st.flights.length - 1)];
+      out['hIn:' + si + ':0'] = user(st.hotel, 'checkIn') || arrival;
+      const nextFlight = si < wizardState.stops.length - 1 ? out['f:' + (si + 1) + ':0'] : (trip.endsAtHome ? out['rf:0:0'] : end);
+      out['hOut:' + si + ':0'] = user(st.hotel, 'checkOut') || nextFlight;
+      out['rPick:' + si + ':0'] = user(st.rental, 'pickup') || out['hIn:' + si + ':0'];
+      out['rRet:' + si + ':0'] = user(st.rental, 'ret') || out['hOut:' + si + ':0'];
+    });
+    return out;
+  }
+  function effDateText(key) { const d = effDates()[key]; return d ? fmtDate(d) : ''; }
+  function dateFieldHTML(id, label, key) {
+    stepDateFields.push({ id, key });
+    return '<label class="fld">' + label + '</label><div style="display:flex; gap:6px; align-items:center;"><input type="text" id="' + id + '" placeholder="e.g. T+1">' +
+      '<button class="suggest-btn" id="' + id + '-cal" style="margin-top:0;">📅</button></div>' +
+      '<div class="fld-note date-note" id="' + id + '-note" style="display:none;">Outside the trip dates</div>';
+  }
+  function refreshStepDates() {
+    const trip = activeTrip();
+    if (!trip) return;
+    const eff = effDates(), s0 = fromISODate(trip.start), e0 = fromISODate(trip.end);
+    stepDateFields.forEach(f => {
+      const el = document.getElementById(f.id), d = eff[f.key];
+      if (!el) return;
+      if (document.activeElement !== el) el.value = d ? fmtDate(d) : '';
+      document.getElementById(f.id + '-note').style.display = (d && (d < s0 || d > e0)) ? 'block' : 'none';
+    });
+  }
+  function wireDateFields() {
+    stepDateFields.forEach(f => {
+      const el = document.getElementById(f.id), cal = document.getElementById(f.id + '-cal');
+      let dirty = false;
+      el.addEventListener('input', () => { dirty = true; });
+      el.addEventListener('blur', () => {
+        if (!dirty) return;
+        dirty = false;
+        const txt = el.value.trim(), ref = dateRef(f.key);
+        if (!txt) ref.o[ref.p] = '';
+        else { const d = parseSmartDate(txt, new Date(), fromISODate(activeTrip().start)); if (d) ref.o[ref.p] = toISODate(d); }
+        refreshStepDates();
+      });
+      cal.addEventListener('click', () => {
+        openCalendar('single', { start: effDates()[f.key] }, (start) => {
+          if (start) { const ref = dateRef(f.key); ref.o[ref.p] = toISODate(start); refreshStepDates(); commitTrips(); }
+        });
+      });
+    });
+    refreshStepDates();
+  }
+  /* Dropdowns start on a blank "Select…" so what is shown is what is stored */
+  function selectOptionsHTML(names, current, emptyText) {
+    if (!names.length && !current) return '<option value="">' + emptyText + '</option>';
+    const list = names.slice();
+    if (current && list.indexOf(current) < 0) list.unshift(current);
+    return '<option value="">Select…</option>' + list.map(n => '<option' + (n === current ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+  }
+  /* Auto-uppercase while typing (cursor kept); optional live check after each change */
+  function upperInput(el, setter, live) {
+    el.addEventListener('input', () => {
+      const pos = el.selectionStart;
+      el.value = el.value.toUpperCase();
+      try { el.setSelectionRange(pos, pos); } catch (e) {}
+      setter(el.value);
+      if (live) live();
+    });
+  }
+  function updateConfColor(el, noteEl) {
+    const v = el.value, good = /^[A-Z0-9]{6}$/.test(v);
+    el.classList.toggle('val-ok', good);
+    el.classList.toggle('val-bad', !!v && !good);
+    noteEl.style.display = (v && !good) ? 'block' : 'none';
   }
 
-  const stepFormContainer = document.getElementById('stepFormContainer');
+  function parserButtonHTML(label) {
+    return '<button class="parser-btn" disabled title="Coming soon">Text Clipboard Parser<small>Coming soon</small></button>';
+  }
 
-  function flightFormHTML(f, dateNote) {
-    const airlines = sortedByType('airline');
-    const airlineOpts = airlines.map(a => '<option' + (a.name === f.airline ? ' selected' : '') + '>' + a.name + '</option>').join('');
+  function flightFormHTML(f, dateKey) {
+    const airlineOpts = selectOptionsHTML(sortedByType('airline').map(a => a.name), f.airline, 'No airlines yet — add in Setup');
     return '<div class="fld-grid">' +
-      '<div><label class="fld">Date</label><input type="text" value="' + dateNote.value + '" disabled><div class="fld-note">' + dateNote.note + '</div></div>' +
-      '<div><label class="fld">Airline</label><select id="wf-flight-airline">' + (airlineOpts || '<option>No airlines yet — add in Setup</option>') + '</select></div>' +
+      '<div>' + dateFieldHTML('wf-date', 'Date', dateKey) + '</div>' +
+      '<div><label class="fld">Airline</label><select id="wf-flight-airline">' + airlineOpts + '</select></div>' +
       '</div>' +
       '<div class="flight-row3">' +
       '<div class="fnum"><label class="fld">Flight #</label><input type="text" id="wf-flight-num" placeholder="402" maxlength="6" value="' + f.flightNum + '"></div>' +
       '<div class="fconf"><label class="fld">Confirmation #</label><input type="text" id="wf-flight-conf" placeholder="NZ82X1" maxlength="8" value="' + f.conf + '"></div>' +
       '<div class="fseat"><label class="fld">Seat #</label><input type="text" id="wf-flight-seat" placeholder="4C" maxlength="3" value="' + f.seat + '"></div>' +
       '</div>' +
+      '<div class="fld-note val-note" id="wf-conf-note" style="display:none;">Confirmation is usually 6 letters/numbers</div>' +
       '<div class="autofill-box"><div class="af-label">Auto-Filled via Flight Tracker API</div><div class="fld-grid">' +
       '<div><label class="fld">Gate</label><input type="text" value="—" disabled></div>' +
       '<div><label class="fld">Destination</label><input type="text" value="—" disabled></div>' +
@@ -634,6 +745,7 @@
 
   function renderStepForm() {
     ensureWizardSelection();
+    stepDateFields = [];
     const nodes = buildNodes();
     const node = nodes.find(n => n.key === wizardState.selected);
     if (!node) return;
@@ -645,7 +757,7 @@
 
     else if (node.type === 'uberOut') {
       html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
-        '<label class="fld">Date</label><input type="text" value="Trip Start Date" disabled><div class="fld-note">Computed from Active Pipeline</div>' +
+        dateFieldHTML('wf-date', 'Date', 'uberOut') +
         '<div class="fld-grid">' +
         '<div><label class="fld">Pickup Time</label><input type="text" id="wf-uber-pickup" placeholder="e.g. 4:30 PM" value="' + wizardState.uberOut.pickup + '"></div>' +
         '<div><label class="fld">Drop-off Time <span class="fld-opt">(optional)</span></label><input type="text" id="wf-uber-dropoff" placeholder="e.g. 5:10 PM" value="' + wizardState.uberOut.dropoff + '"></div>' +
@@ -654,12 +766,8 @@
 
     else if (node.type === 'flight') {
       const f = wizardState.stops[node.stopIndex].flights[node.flightIndex];
-      const isFirstStopFirstFlight = node.stopIndex === 0 && node.flightIndex === 0;
-      const dateNote = isFirstStopFirstFlight
-        ? { value: 'Trip Start Date', note: 'Computed from Active Pipeline' }
-        : { value: 'Apr 29, 2026', note: 'Computed from previous leg' };
       html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
-        flightFormHTML(f, dateNote) + parserButtonHTML('Flight') +
+        flightFormHTML(f, 'f:' + node.stopIndex + ':' + node.flightIndex) + parserButtonHTML('Flight') +
         (node.flightIndex === wizardState.stops[node.stopIndex].flights.length - 1 ? '<button class="add-flight-btn" id="wf-add-flight">+ Add Another Flight</button>' : '');
     }
 
@@ -675,31 +783,37 @@
     }
 
     else if (node.type === 'rental') {
-      const r = wizardState.stops[node.stopIndex].rental;
-      const companies = sortedByType('rental');
-      const compOpts = companies.map(c => '<option' + (c.name === r.company ? ' selected' : '') + '>' + c.name + '</option>').join('');
+      const r = wizardState.stops[node.stopIndex].rental, si = node.stopIndex;
+      const compOpts = selectOptionsHTML(sortedByType('rental').map(c => c.name), r.company, 'No rental programs yet');
       const classes = ['Economy','Compact','Intermediate/Midsize','Standard','Full-Size','Premium','Luxury','SUV (Compact)','SUV (Standard/Full-Size)','Minivan'];
       const classOpts = classes.map(c => '<option' + (c === r.cls ? ' selected' : '') + '>' + c + '</option>').join('');
       html = '<div class="step-head">' + node.label.toUpperCase() + '</div><div class="fld-grid">' +
-        '<div><label class="fld">Company</label><select id="wf-rental-company">' + (compOpts || '<option>No rental programs yet</option>') + '</select></div>' +
+        '<div><label class="fld">Company</label><select id="wf-rental-company">' + compOpts + '</select></div>' +
         '<div><label class="fld">Class</label><select id="wf-rental-class">' + classOpts + '</select></div>' +
+        '<div>' + dateFieldHTML('wf-rental-pick', 'Pickup Date', 'rPick:' + si + ':0') + '</div>' +
+        '<div>' + dateFieldHTML('wf-rental-ret', 'Return Date', 'rRet:' + si + ':0') + '</div>' +
+        '<div><label class="fld">Confirmation # <span class="fld-opt">(optional)</span></label><input type="text" id="wf-rental-conf" placeholder="—" value="' + r.conf + '"></div><div></div>' +
         '<div><label class="fld">Color <span class="fld-opt">(at pickup)</span></label><input type="text" id="wf-rental-color" placeholder="—" value="' + r.color + '"></div>' +
         '<div><label class="fld">License Plate <span class="fld-opt">(at pickup)</span></label><input type="text" id="wf-rental-plate" placeholder="—" value="' + r.plate + '"></div>' +
         '</div>' + parserButtonHTML('Rental');
     }
 
     else if (node.type === 'hotel') {
-      const h = wizardState.stops[node.stopIndex].hotel;
-      const chains = sortedByType('hotel');
-      const chainOpts = chains.map(c => '<option' + (c.name === h.chain ? ' selected' : '') + '>' + c.name + '</option>').join('');
+      const h = wizardState.stops[node.stopIndex].hotel, si = node.stopIndex;
+      const chainOpts = selectOptionsHTML(sortedByType('hotel').map(c => c.name), h.chain, 'No hotel programs yet');
       html = '<div class="step-head">' + node.label.toUpperCase() + '</div><div class="fld-grid">' +
-        '<div><label class="fld">Chain</label><select id="wf-hotel-chain">' + (chainOpts || '<option>No hotel programs yet</option>') + '</select></div>' +
+        '<div><label class="fld">Chain</label><select id="wf-hotel-chain">' + chainOpts + '</select></div>' +
         '<div><label class="fld">Hotel Name</label><input type="text" id="wf-hotel-name" placeholder="e.g. Lambeau Field Hilton" value="' + h.name + '"></div>' +
         '</div>' +
         '<label class="fld">Address</label><input type="text" id="wf-hotel-address" placeholder="—" value="' + h.address + '">' +
-        '<button class="suggest-btn" id="wf-hotel-suggest">📍 Suggest Address</button>' +
-        '<div class="fld-grid"><div><label class="fld">Room # <span class="fld-opt">(at check-in)</span></label><input type="text" id="wf-hotel-room" placeholder="—" value="' + h.room + '"></div><div></div></div>' +
-        parserButtonHTML('Hotel');
+        '<button class="suggest-btn" id="wf-hotel-suggest" disabled title="Needs online lookup — coming soon">📍 Suggest Address</button>' +
+        '<div class="fld-note">Needs online lookup — coming soon</div>' +
+        '<div class="fld-grid">' +
+        '<div>' + dateFieldHTML('wf-hotel-in', 'Check-in Date', 'hIn:' + si + ':0') + '</div>' +
+        '<div>' + dateFieldHTML('wf-hotel-out', 'Check-out Date', 'hOut:' + si + ':0') + '</div>' +
+        '<div><label class="fld">Room # <span class="fld-opt">(at check-in)</span></label><input type="text" id="wf-hotel-room" placeholder="—" value="' + h.room + '"></div>' +
+        '<div><label class="fld">Confirmation # <span class="fld-opt">(optional)</span></label><input type="text" id="wf-hotel-conf" placeholder="—" value="' + h.conf + '"></div>' +
+        '</div>' + parserButtonHTML('Hotel');
     }
 
     else if (node.type === 'destination') {
@@ -707,7 +821,8 @@
       html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
         '<label class="fld">Place Name</label><input type="text" id="wf-dest-name" placeholder="e.g. Hollywood Health Center" value="' + d.name + '">' +
         '<label class="fld">Address</label><input type="text" id="wf-dest-address" placeholder="—" value="' + d.address + '">' +
-        '<button class="suggest-btn" id="wf-dest-suggest">📍 Suggest Address</button>' +
+        '<button class="suggest-btn" id="wf-dest-suggest" disabled title="Needs online lookup — coming soon">📍 Suggest Address</button>' +
+        '<div class="fld-note">Needs online lookup — coming soon</div>' +
         '<div class="fld-grid"><div><label class="fld">Contact Name</label><input type="text" id="wf-dest-contact" value="' + d.contact + '"></div><div><label class="fld">Contact Phone</label><input type="text" id="wf-dest-phone" value="' + d.phone + '"></div></div>' +
         parserButtonHTML('Destination');
     }
@@ -717,22 +832,21 @@
       const isLastStop = node.stopIndex === wizardState.stops.length - 1;
       html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
         '<div class="return-ref">Returning: ' + (r.company || '—') + ' — ' + r.cls +
+        '<div class="rr-sub">Return date: ' + (effDateText('rRet:' + node.stopIndex + ':0') || '—') + '</div>' +
         '<div class="rr-sub">No time needed — inferred from the next flight\'s boarding time.</div></div>' +
         (isLastStop ? '<button class="add-flight-btn" id="wf-add-stop">+ Add Another Stop</button>' : '');
     }
 
     else if (node.type === 'returnFlight') {
       const f = wizardState.returnFlights[node.flightIndex];
-      const isFirst = node.flightIndex === 0;
-      const dateNote = { value: isFirst ? 'Trip End Date' : 'Apr 29, 2026', note: isFirst ? 'Computed from Active Pipeline' : 'Computed from previous leg' };
       html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
-        flightFormHTML(f, dateNote) + parserButtonHTML('Flight') +
+        flightFormHTML(f, 'rf:' + node.flightIndex + ':0') + parserButtonHTML('Flight') +
         (node.flightIndex === wizardState.returnFlights.length - 1 ? '<button class="add-flight-btn" id="wf-add-return-flight">+ Add Another Flight</button>' : '');
     }
 
     else if (node.type === 'uberHome') {
       html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
-        '<label class="fld">Date</label><input type="text" value="Trip End Date" disabled><div class="fld-note">Computed from Active Pipeline</div>' +
+        dateFieldHTML('wf-date', 'Date', 'uberHome') +
         '<div class="fld-grid">' +
         '<div><label class="fld">Pickup Time <span class="fld-opt">(usually set live at baggage claim)</span></label><input type="text" id="wf-uberhome-pickup" placeholder="e.g. 6:15 PM" value="' + wizardState.uberHome.pickup + '"></div>' +
         '<div><label class="fld">Drop-off Time <span class="fld-opt">(optional)</span></label><input type="text" id="wf-uberhome-dropoff" placeholder="e.g. 6:50 PM" value="' + wizardState.uberHome.dropoff + '"></div>' +
@@ -741,6 +855,7 @@
 
     stepFormContainer.innerHTML = html;
     wireStepFormInputs(node);
+    wireDateFields();
   }
 
   function wireStepFormInputs(node) {
@@ -757,12 +872,14 @@
       const sel = document.getElementById('wf-flight-airline');
       if (sel) sel.addEventListener('change', e => f.airline = e.target.value);
       document.getElementById('wf-flight-num').addEventListener('input', e => f.flightNum = e.target.value);
-      document.getElementById('wf-flight-conf').addEventListener('input', e => f.conf = e.target.value);
-      document.getElementById('wf-flight-seat').addEventListener('input', e => f.seat = e.target.value);
+      const confEl = document.getElementById('wf-flight-conf'), confNote = document.getElementById('wf-conf-note');
+      upperInput(confEl, v => f.conf = v, () => updateConfColor(confEl, confNote));
+      updateConfColor(confEl, confNote);
+      upperInput(document.getElementById('wf-flight-seat'), v => f.seat = v);
       const addBtn = document.getElementById('wf-add-flight');
       if (addBtn) addBtn.addEventListener('click', () => {
         const flights = wizardState.stops[node.stopIndex].flights;
-        flights.push({ airline: '', flightNum: '', conf: '', seat: '' });
+        flights.push(newFlight());
         wizardState.selected = 'stop' + node.stopIndex + '-flight-' + (flights.length - 1);
         renderNodeTrack(); renderStepForm();
       });
@@ -772,6 +889,7 @@
       const compSel = document.getElementById('wf-rental-company');
       if (compSel) compSel.addEventListener('change', e => r.company = e.target.value);
       document.getElementById('wf-rental-class').addEventListener('change', e => r.cls = e.target.value);
+      upperInput(document.getElementById('wf-rental-conf'), v => r.conf = v);
       document.getElementById('wf-rental-color').addEventListener('input', e => r.color = e.target.value);
       document.getElementById('wf-rental-plate').addEventListener('input', e => r.plate = e.target.value);
     }
@@ -782,7 +900,7 @@
       document.getElementById('wf-hotel-name').addEventListener('input', e => h.name = e.target.value);
       document.getElementById('wf-hotel-address').addEventListener('input', e => h.address = e.target.value);
       document.getElementById('wf-hotel-room').addEventListener('input', e => h.room = e.target.value);
-      document.getElementById('wf-hotel-suggest').addEventListener('click', () => { h.address = '1265 Lombardi Ave, Green Bay, WI'; renderStepForm(); });
+      upperInput(document.getElementById('wf-hotel-conf'), v => h.conf = v);
     }
     else if (node.type === 'destination') {
       const d = wizardState.stops[node.stopIndex].destination;
@@ -790,7 +908,6 @@
       document.getElementById('wf-dest-address').addEventListener('input', e => d.address = e.target.value);
       document.getElementById('wf-dest-contact').addEventListener('input', e => d.contact = e.target.value);
       document.getElementById('wf-dest-phone').addEventListener('input', e => d.phone = e.target.value);
-      document.getElementById('wf-dest-suggest').addEventListener('click', () => { d.address = '1000 Universal Studios Plaza, Orlando, FL'; renderStepForm(); });
     }
     else if (node.type === 'rentalReturn') {
       const addStopBtn = document.getElementById('wf-add-stop');
@@ -806,11 +923,13 @@
       const sel = document.getElementById('wf-flight-airline');
       if (sel) sel.addEventListener('change', e => f.airline = e.target.value);
       document.getElementById('wf-flight-num').addEventListener('input', e => f.flightNum = e.target.value);
-      document.getElementById('wf-flight-conf').addEventListener('input', e => f.conf = e.target.value);
-      document.getElementById('wf-flight-seat').addEventListener('input', e => f.seat = e.target.value);
+      const confEl = document.getElementById('wf-flight-conf'), confNote = document.getElementById('wf-conf-note');
+      upperInput(confEl, v => f.conf = v, () => updateConfColor(confEl, confNote));
+      updateConfColor(confEl, confNote);
+      upperInput(document.getElementById('wf-flight-seat'), v => f.seat = v);
       const addBtn = document.getElementById('wf-add-return-flight');
       if (addBtn) addBtn.addEventListener('click', () => {
-        wizardState.returnFlights.push({ airline: '', flightNum: '', conf: '', seat: '' });
+        wizardState.returnFlights.push(newFlight());
         wizardState.selected = 'return-flight-' + (wizardState.returnFlights.length - 1);
         renderNodeTrack(); renderStepForm();
       });
@@ -857,12 +976,15 @@
     }
     else if (node.type === 'uberOut' || node.type === 'uberHome') {
       const u = node.type === 'uberOut' ? wizardState.uberOut : wizardState.uberHome;
-      html += line('PICKUP: <b>' + dv(u.pickup) + '</b> | DROP-OFF: <b>' + dv(u.dropoff) + '</b>');
+      html += line('DATE: <b>' + dv(effDateText(node.type === 'uberOut' ? 'uberOut' : 'uberHome')) + '</b>') +
+        line('PICKUP: <b>' + dv(u.pickup) + '</b> | DROP-OFF: <b>' + dv(u.dropoff) + '</b>');
     }
     else if (node.type === 'flight' || node.type === 'returnFlight') {
       const f = dashFlightFor(node);
       const fl = [f.airline, f.flightNum].filter(x => x && String(x).trim()).join(' ');
+      const dateKey = node.type === 'flight' ? 'f:' + node.stopIndex + ':' + node.flightIndex : 'rf:' + node.flightIndex + ':0';
       html += '<div class="qc-route"><span class="apt">—</span><span class="arr">⟶</span><span class="apt">—</span></div>' +
+        line('DATE: <b>' + dv(effDateText(dateKey)) + '</b>') +
         line('FLIGHT: <b>' + dv(fl) + '</b> | SEAT: <b>' + dv(f.seat) + '</b>') +
         line('CONFIRMATION: <b>' + dv(f.conf) + '</b> | GATE: <b>—</b>') +
         line('BOARDING: <b>—</b> | LANDING: <b>—</b>') +
@@ -874,12 +996,16 @@
     else if (node.type === 'rental') {
       const r = wizardState.stops[node.stopIndex].rental;
       html += line('COMPANY: <b>' + dv(r.company) + '</b> | CLASS: <b>' + dv(r.cls) + '</b>') +
+        line('PICKUP: <b>' + dv(effDateText('rPick:' + node.stopIndex + ':0')) + '</b> | RETURN: <b>' + dv(effDateText('rRet:' + node.stopIndex + ':0')) + '</b>') +
+        line('CONFIRMATION: <b>' + dv(r.conf) + '</b>') +
         '<div class="qc-inputs"><div><label class="fld">Plate #</label><input type="text" id="dash-plate"></div>' +
         '<div><label class="fld">Color</label><input type="text" id="dash-color"></div></div>';
     }
     else if (node.type === 'hotel') {
       const h = wizardState.stops[node.stopIndex].hotel;
       html += line('CHAIN: <b>' + dv(h.chain) + '</b>') + line('NAME: <b>' + dv(h.name) + '</b>') + line('ADDRESS: <b>' + dv(h.address) + '</b>') +
+        line('CHECK-IN: <b>' + dv(effDateText('hIn:' + node.stopIndex + ':0')) + '</b> | CHECK-OUT: <b>' + dv(effDateText('hOut:' + node.stopIndex + ':0')) + '</b>') +
+        line('CONFIRMATION: <b>' + dv(h.conf) + '</b>') +
         '<div class="qc-inputs one"><div><label class="fld">Room #</label><input type="text" id="dash-room"></div></div>';
     }
     else if (node.type === 'destination') {
@@ -982,7 +1108,7 @@
   let pastOpen = false;
 
   function newItinerary() {
-    return { uberOut: { pickup: '', dropoff: '' }, stops: [ newStop() ], returnFlights: [ { airline: '', flightNum: '', conf: '', seat: '' } ], uberHome: { pickup: '', dropoff: '' } };
+    return { uberOut: { pickup: '', dropoff: '', date: '' }, stops: [ newStop() ], returnFlights: [ newFlight() ], uberHome: { pickup: '', dropoff: '', date: '' } };
   }
   function newTripId() { return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function toISODate(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
@@ -994,15 +1120,16 @@
   }
   function activeTrip() { return trips.find(t => t.id === activeTripId) || null; }
 
+  function isoOrBlank(v) { return (typeof v === 'string' && fromISODate(v)) ? v : ''; }
   function normalizeFlight(f) {
     const s = v => typeof v === 'string' ? cleanText(v) : '';
     f = (f && typeof f === 'object') ? f : {};
-    return { airline: s(f.airline), flightNum: s(f.flightNum), conf: s(f.conf), seat: s(f.seat) };
+    return { airline: s(f.airline), flightNum: s(f.flightNum), conf: s(f.conf), seat: s(f.seat), date: isoOrBlank(f.date) };
   }
   function normalizeItinerary(raw) {
     if (!raw || typeof raw !== 'object') return newItinerary();
     const s = v => typeof v === 'string' ? cleanText(v) : '';
-    const times = o => ({ pickup: s(o && o.pickup), dropoff: s(o && o.dropoff) });
+    const times = o => ({ pickup: s(o && o.pickup), dropoff: s(o && o.dropoff), date: isoOrBlank(o && o.date) });
     const out = { uberOut: times(raw.uberOut), uberHome: times(raw.uberHome), stops: [], returnFlights: [] };
     (Array.isArray(raw.stops) ? raw.stops : []).forEach(st => {
       if (!st || typeof st !== 'object') return;
@@ -1011,8 +1138,8 @@
       out.stops.push({
         destination: { name: s(d.name), address: s(d.address), contact: s(d.contact), phone: s(d.phone) },
         flights: flights.length ? flights : [ normalizeFlight() ],
-        rental: { company: s(r.company), cls: s(r.cls) || 'Economy', color: s(r.color), plate: s(r.plate) },
-        hotel: { chain: s(h.chain), name: s(h.name), address: s(h.address), room: s(h.room) }
+        rental: { company: s(r.company), cls: s(r.cls) || 'Economy', color: s(r.color), plate: s(r.plate), pickup: isoOrBlank(r.pickup), ret: isoOrBlank(r.ret), conf: s(r.conf) },
+        hotel: { chain: s(h.chain), name: s(h.name), address: s(h.address), room: s(h.room), checkIn: isoOrBlank(h.checkIn), checkOut: isoOrBlank(h.checkOut), conf: s(h.conf) }
       });
     });
     if (!out.stops.length) out.stops.push(newStop());

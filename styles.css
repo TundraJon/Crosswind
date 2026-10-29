@@ -63,6 +63,11 @@
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .proj-edit { background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.85rem; padding: 0 4px; }
   .proj-edit:hover { color: var(--cyan); }
+  input.val-ok { color: var(--green); border-bottom-color: var(--green); }
+  input.val-bad { color: var(--red); border-bottom-color: var(--red); }
+  .val-note { color: var(--red); }
+  .date-note { color: var(--amber); }
+  .parser-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .past-toggle { padding: 8px 4px; font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); cursor: pointer; }
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(4, 8, 12, 0.78); align-items: center; justify-content: center; z-index: 100; padding: 16px; }
   .modal-overlay.open { display: flex; }

@@ -149,42 +149,27 @@ Jon asked for airport codes to auto-complete as he types, formatted like `MCO - 
 - [x] Cache-bust: `airports.js?v=1` (new), `script.js?v=6→7`, `styles.css?v=4→5`. Version: v0.92→v0.93.
 - **Verification:** headless Chromium at 390px, 67 new checks, zero JS errors. Table: 634 unique, well-formed entries, size mix 95/407/132, 51 states and DC, hand fixes applied, file loads before the script. Matching checked against an independent re-implementation of the rules for 17 inputs ("m", "mc", "m c", "MC", "Mc", "orl", "dallas", "new y", "gr", "den", "chi", "san", "f", "ny", "lax", "xna", "fayetteville", "utq") plus "xyz" (no list), the 8-item cap, no duplicates, big airports first ("mc" → MCI, MCO, then the smaller ones; "orl" → MCO and SFB; "dallas" → DAL and DFW; "den" → DEN first). Tap fills the field, closes the list, blurs, saves, survives a reload, and shows on the Dashboard's Home card. Keyboard: ArrowDown, ArrowUp wrap, Escape, Enter with nothing highlighted does nothing, ArrowDown + Enter picks. Leaving the field closes the list and keeps free text; exact-code expansion for "mco", "MCI", "  sea " and not for "mcx" or "mc"; clearing hides the list. Longest label fits at 390px with no horizontal scroll; 0.08 ms per keystroke over 400 keystrokes. With `airports.js` missing: no list, no errors, typing still saved. Screenshot checked. Earlier suites re-run (dates, `S+N`, blocked save, End-before-Start, In-Flight, split serving, Dashboard 61, Setup 138, Wizard Part 1 157): same results, zero JS errors.
 
+### Build 18 (completed): Trip Wizard Part 2: step dates, confirmations, validation, honest stubs
+The second half of the Trip Wizard spec. Every step now has real, editable dates with smart defaults, Rental and Hotel got confirmation numbers, and the controls that cannot work yet say so. Version: v0.93→v0.94.
+- [x] `script.js` step dates: `effDates()` works out every date from what the user entered, else a default (first outbound flight and Uber out = project Start; first return flight = project End; other flights = the previous flight's date, except a later stop's first flight uses the previous stop's check-out once the user has typed one; Hotel check-in = arrival, check-out = the next flight's date (next stop's first flight, else the first return flight, or project End when Ends at home is off); Rental pickup = check-in, return = check-out; Uber Home = last return flight). Each date field is a smart date input with a 📅 calendar (`dateFieldHTML()`, `wireDateFields()`, `refreshStepDates()`): `S+N` counts from the project Start, clearing returns it to its default, a typed or picked date is kept when project dates change, unreadable text reverts, and a date outside the trip shows "Outside the trip dates" (never blocks). Only what the user enters is saved (new `date` / `checkIn` / `checkOut` / `pickup` / `ret` fields); the defaults are not stored, and merely opening or tabbing through a form does not change the trip's `modified` time.
+- [x] Forms: Uber (out / home), flights (outbound and return), Rental (Pickup Date, Return Date, optional Confirmation #), Hotel (Check-in Date, Check-out Date, optional Confirmation #); the Rental Return card shows the return date; the old placeholder date text ("Trip Start Date", `Apr 29, 2026`) is gone.
+- [x] Validation, gentle: Flight Confirmation # auto-uppercases and colours live like KTN (green at exactly 6 letters/numbers, red otherwise, neutral when empty) with a note while red (`updateConfColor()`); Seat #, Rental and Hotel confirmations auto-uppercase only (`upperInput()`).
+- [x] Honest stubs: both Suggest Address buttons and every Text Clipboard Parser button are disabled with "Needs online lookup — coming soon" / "Coming soon" (the fake-address handlers removed). Airline, Rental Company, and Hotel Chain start on a blank "Select…" (`selectOptionsHTML()`), so what the Wizard shows is what is stored and what the Dashboard shows; a stored name whose Setup program was deleted stays visible; Rental Class keeps its Economy default.
+- [x] Dashboard cards: dates on Uber, Flight (outbound and return), Rental (pickup / return) and Hotel (check-in / check-out), Confirmation # on Rental and Hotel, `—` when empty.
+- [x] Saved and imported trips: `newFlight()`, `isoOrBlank()`, and the normalizers add the new fields; trips saved before this build open with the new fields blank (no migration needed); invalid date strings in an imported trip are dropped.
+- [x] Cache-bust: `script.js?v=7→8`, `styles.css?v=5→6` (`airports.js?v=1` unchanged). Version: v0.93→v0.94.
+- **Verification:** headless Chromium at 390px, 122 new checks, zero JS errors. Defaults on every form for a one-stop trip; the cascade with two flights (typed flight 1 moves flight 2, hotel check-in, and rental pickup, not the return flight; typing flight 2 moves check-in; clearing chains back to Start); typed dates kept when the project dates are edited while untyped ones follow the new Start and End, with the "Outside the trip dates" note appearing where a kept date now falls outside; calendar pick; `S+4`, `S`, `T+1`, a full formatted date, and junk text (reverts, nothing junk stored); stored data holds only typed dates; focusing and tabbing leaves `modified` alone; multi-stop (stop 2's first flight follows stop 1's typed check-out, check-ins and rental dates follow, stop 2's last check-out uses the first return flight, or the project End when Ends at home is off); confirmations uppercase and save; Dashboard date and confirmation lines for every card type; flight confirmation colours (empty, 3, 6, 7 characters, a dash), restored after reopening and reload; all parser buttons and both Suggest Address buttons disabled and inert; "Select…" dropdowns (blank stored, choosing and clearing, deleted program stays visible, no-programs message, Dashboard dash then name); backups carry the new fields, an old-shape trip imports repaired with junk dates dropped; no horizontal overflow on any of the seven forms; screenshots checked. Earlier suites re-run (dates, `S+N`, blocked save, End-before-Start, In-Flight, split serving, airport autocomplete 67, Dashboard 61, Setup 138, Wizard Part 1 157): same results, zero JS errors; the Dashboard suite's card text, the Setup suite's dropdown list, and the airport suite's version numbers were updated for the intended changes.
+
 ## Build Queue
 
-### Trip Wizard Part 2: step dates, new fields, validation, honesty
-Not yet authorized to build. Second half of the Trip Wizard spec (Part 1 shipped as Build 16). Settled with Jon over three rounds; items marked *added* are for his review. Touches `index.html`, `script.js`, `styles.css`; includes cache-bust bumps for every local file that changes and the header version bump (v0.93→v0.94). Trips are saved per project, so every field below lives inside the active trip's itinerary and counts as a change to that trip's `modified` time.
-
-**1. Step dates: editable, with smart defaults**
-- Every date field is a smart date input with a 📅 calendar button (same behaviour as the other date fields), and `S+N` counts from the project's Start. Clearing a field returns it to its default. A date the user has typed or picked is kept even if project dates later change.
-- Flights (outbound and return): **Date**. Default: first outbound flight = project Start; first return flight = project End; every other flight = the previous flight's date, except the first flight of a later stop, which uses the previous stop's hotel check-out once the user has entered one.
-- **Uber (out)** Date defaults to project Start; **Uber Home** Date defaults to the last return flight's date.
-- **Hotel:** Check-in defaults to the arrival date (that stop's last outbound flight); Check-out defaults to the next flight's date (next stop's first flight, else the first return flight, else project End). **Rental:** Pickup defaults to the hotel check-in date; Return defaults to the hotel check-out date. The Rental Return step shows the return date in its reference card.
-- If a step date falls outside the project's Start to End, a small note under the field says so ("Outside the trip dates"). Never blocks.
-- Layover stays computed (Step 4).
-
-**2. New fields**
-- Rental: optional **Confirmation #**. Hotel: optional **Confirmation #**. Both auto-uppercase.
-- The Dashboard cards add the matching lines (*added*): dates on Uber, Flight, Rental (pickup / return), Hotel (check-in / check-out), and Confirmation # on Rental and Hotel; `—` when empty.
-
-**3. Validation: gentle, never blocking**
-- Flight Confirmation #: auto-uppercase, live colour like KTN (green at exactly 6 letters/numbers, red otherwise, neutral when empty) with a short note while red. Seat # and the Rental and Hotel confirmations auto-uppercase only. Nothing else is checked.
-
-**4. Honesty about stubs**
-- The two **Suggest Address** buttons (Hotel, Destination) and every **Text Clipboard Parser** button are disabled with "Needs online lookup — coming soon" / "Coming soon". The flight "Auto-Filled via Flight Tracker API" box stays as disabled placeholders.
-- Dropdowns no longer look filled when they are not (*added*, fixes the Planner inconsistency): Airline, Rental Company, and Hotel Chain start on a blank "Select…" option, so what the Wizard shows is what is stored and what the Dashboard shows. Rental Class keeps its real default (Economy).
-
-**Reuse:** smart date inputs and the calendar, `S+N` (counts from the project's Start), the KTN live colour, the Dashboard card builder, `commitTrips()`.
-
-**Cleanup that rides along when built:** remove the remaining Wizard inventory entries this resolves, the "dropdowns look filled but store nothing" item, and the Deferred item for hotel and rental dates. Still open after this build: per-trip ✎ step overrides, Saved Addresses, step labels overlapping on long trips, and the Step 4 items.
-
-**Verification plan:** all date defaults and the order they are computed in; a typed date surviving a project date change; clearing back to default; `S+N`; the outside-range note; new fields and Dashboard lines; flight confirmation colour; disabled stubs; "Select…" dropdowns; every date and field saving with the trip; screenshots; all earlier suites re-run.
+_Empty — nothing queued right now._
 
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
 
-### Inventory: what Setup and the Trip Wizard really do today (updated after Build 16)
-Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished but does nothing real; "Missing" = not built or not designed yet. Setup saves for real (Build 15) and so do trips (Build 16).
+### Inventory: what Setup and the Trip Wizard really do today (updated after Build 18)
+Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished but does nothing real; "Missing" = not built or not designed yet. Setup saves for real (Build 15), trips save (Build 16), and the Wizard's dates and fields are real (Build 18).
 
 **Setup, what is still missing**
 - Real address verification (USPS / CASS), cached lat/long for the home address, and the nearest-airports suggestion: Step 4, behind the disabled buttons. The airport table with coordinates now exists (Build 17), so only the address geocoding needs a network.
@@ -192,13 +177,11 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Temperature and Distance units are saved but nothing shows a temperature or distance yet (weather, Distance to Home: Step 4).
 - Per-trip ✎ overrides on top of the step defaults: Wizard spec.
 
-**Trip Wizard (after Build 16)**
-- Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; forms for every step type; Add Another Flight / Stop; dropdowns fed by Setup; smart times on Uber fields.
-- Cosmetic: ✎ pins only toggle a look; the Text Clipboard Parser buttons do nothing; the flight "Auto-Filled via Flight Tracker API" box is disabled placeholders; the date fields still show placeholder text ("Trip Start Date", "Trip End Date", `Apr 29, 2026`); Layover is explanation text only; the two "Suggest Address" buttons insert fixed fake addresses; a step counts as "done" only because it sits before the selected one. (Part 2 covers the dates, the stubs, and the dropdowns.)
-- Missing: step dates and Hotel / Rental dates (Part 2); removing or reordering stops and flights; fields not collected yet (rental and hotel confirmation #; Part 2); validation (Part 2); per-trip ✎ overrides; real step completion.
-
-### Inconsistency: dropdowns look filled but store nothing
-Found while verifying Build 14. Untouched Wizard dropdowns display their first option (airline Southwest, rental company National, hotel chain Marriott) but the value is only stored once you change the dropdown, so the Dashboard shows `—` where the Wizard visibly shows a name. Open question: store the visible first option automatically, or start the dropdowns on a blank "Select…" option?
+**Trip Wizard (after Build 18)**
+- Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; forms for every step type with real step dates, confirmation numbers, and gentle validation; Add Another Flight / Stop; "Select…" dropdowns fed by Setup; smart times on Uber fields.
+- Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
+- Cosmetic: ✎ pins only toggle a look; a step counts as "done" only because it sits before the selected one.
+- Missing: removing or reordering stops and flights; per-trip ✎ overrides; real step completion.
 
 ### Inconsistency: step labels overlap on long trips
 Found while verifying Build 14. With about 14 steps (a two-stop trip) the labels in the step row run into their neighbours. It happens identically on the Wizard's row (same styles, confirmed before and after Build 14), so the Dashboard inherited it. Open question: wrap labels, shorten them, or widen the steps?
@@ -220,8 +203,7 @@ The airport table's city names come straight from the OurAirports source. Only t
 - Airplane Mode / wireless settings deep-link, never revisited after flashlight was cut.
 
 ### Deferred on purpose
-- Hotel Check-in/Check-out and Rental Pickup/Drop-off date fields (range calendar could apply later).
-- Trip Step Defaults feeding the wizard, and ✎ per-trip overrides persisting.
+- ✎ per-trip step overrides (rename or re-icon a step for one trip only) and making them persist.
 
 ### Step 4: real logic (needs data, API, or hardware)
 - Flight tracker auto-fill (Aviationstack or AirLabs, provider not chosen); layover math, tap to show how it was calculated.
