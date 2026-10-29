@@ -218,6 +218,21 @@ Not yet authorized to build. Settled with Jon (he accepted all of the recommenda
 
 **Verification plan:** each chain's list appears whole on tap and narrows as typed; a chain name that merely contains the keyword (e.g. "Marriott Bonvoy") matches; an unlisted chain and no chain give a plain text box; free text is kept; tapping a brand prefills an empty Hotel Name with the cursor in it and never touches a filled one; changing the chain leaves the brand; saved, reloaded, and backed up; old trips open blank; Dashboard line; data checks (no duplicate brands in a chain, no blanks); layout at 390px; the airport autocomplete suite re-run unchanged; all earlier suites re-run.
 
+### Phone numbers cleaned to digits and shown in telephone format
+Not yet authorized to build. Settled with Jon (yes to the proposed format, format-on-leave with extensions, and digits-only storage). Can be built on its own. Touches `script.js`; includes a cache-bust bump for `script.js` and the header version bump (next 0.01).
+
+- **Shared helper** (`parsePhone(text)` and `formatPhone(stored)`) so any phone field added later works the same way. Today the only phone field is Destination > Contact Phone (`#wf-dest-phone`) and the PHONE line on the Dashboard's Destination card.
+- **Cleaning (`parsePhone`):** first split off an extension: an "x", "ext", "ext.", or "extension" followed by digits at the end of the text. Then strip everything except digits from the rest. If that leaves 11 digits starting with 1, drop the leading 1. The stored value is the digits, plus `x` and the extension digits when there is one (e.g. `2535550100x12`). Empty, or text with no digits, stores as empty. It gives the same result when run again on a stored value.
+- **Display (`formatPhone`):** 10 digits show as `(253) 555-0100`; 7 digits as `555-0100`; any other length (non-US numbers, short codes) shows as the plain digits, nothing guessed; an extension shows as ` x12` after the number.
+- **When it applies:** the stored value is updated as the user types (so a save never holds punctuation), but the field is only reformatted when the user **leaves** it, so typing is never disturbed. A form opened later shows the formatted number.
+- **Dashboard:** the PHONE line shows the formatted number (`—` when empty).
+- **Saved and imported data:** phone numbers already saved (typed text like `253-555-0100`) or inside imported backups are cleaned to digits when loaded (`normalizeItinerary`), so old trips display correctly with no migration step. Backups carry the digits.
+- Not included: tap-to-call (unless Jon asks later).
+
+**Reuse:** `normalizeItinerary`, `commitTrips()`, the Dashboard card builder, and the existing blur-to-reformat approach used for dates and times.
+
+**Verification plan:** typed and pasted `253-555-0100`, `(253) 555-0100`, `253.555.0100`, `+1 253 555 0100`, `1-253-555-0100`, `2535550100` all give `(253) 555-0100`; a 7-digit number; 5 digits and a 12-digit international number stay plain digits; extensions with `x`, `ext`, `ext.`, and `extension`; an `ext` with no digits; letters only; empty; text mixed with digits; stored value is digits only while typing and after leaving; the field is not reformatted mid-typing; a reload, a backup export, and an import round trip; old saved text cleaned at load; hostile text reduced to digits; the Dashboard line; `modified` changes on a real edit and not on viewing; all earlier suites re-run.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
@@ -236,11 +251,6 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
 - Cosmetic: ✎ pins only toggle a look; a step counts as "done" only because it sits before the selected one.
 - Missing: removing or reordering stops and flights; per-trip ✎ overrides; real step completion.
-
-### Idea: phone numbers cleaned to digits and shown in telephone format
-From Jon: any phone number typed in should be stripped of special characters down to pure digits, then formatted as a telephone number. Today the only phone field is Destination > Contact Phone (and its Dashboard line); a shared helper would serve any later phone field.
-- Proposed (awaiting Jon's answers): format `(253) 555-0100`; a leading country code 1 is dropped (`1-253-555-0100` and `+1 253.555.0100` give the same result); a 7-digit number becomes `555-0100`; any other length stays as plain digits (nothing guessed); an "x", "ext", or "extension" before the last digits is kept as ` x12`; applied when the user leaves the field (not while typing); only the digits (plus extension) are stored and the display is formatted; phone numbers already saved or imported are cleaned the same way when loaded; the Dashboard shows the formatted number. Tap-to-call is not included unless Jon asks.
-- Open: confirm the format, format-on-leave with extensions kept, and digits-only storage.
 
 ### Inconsistency: step labels overlap on long trips
 Found while verifying Build 14. With about 14 steps (a two-stop trip) the labels in the step row run into their neighbours. It happens identically on the Wizard's row (same styles, confirmed before and after Build 14), so the Dashboard inherited it. Open question: wrap labels, shorten them, or widen the steps?
