@@ -195,7 +195,25 @@ A Brand field next to Chain, with a list per chain.
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Rental license plate in all caps
+Not yet authorized to build. Settled from Jon's screenshot request.
+
+- The Wizard's Rental License Plate field (`#wf-rental-plate`) and the Dashboard quick-capture Plate # field (`#dash-plate`) auto-uppercase as typed, like the confirmation fields.
+- Saved and imported plates are uppercased when loaded (`normalizeItinerary`).
+
+**Reuse:** `upperInput()`.
+
+**Verification plan:** type lowercase into both fields and read back the stored value; reload; import an old backup with a lowercase plate.
+
+### Uber times on one line
+Not yet authorized to build. Settled from Jon's screenshot request.
+
+- On Uber Home, the Pickup Time label ("(usually set live at baggage claim)") wraps to two lines and pushes its input below the Drop-off Time input. Fix so both time inputs sit on the same line. Uber (outbound) has the same two-column layout and gets the same treatment.
+- Likely approach: keep the long hint out of the label line (move it to a `.fld-note` under the input) so both labels are one line. Open point: that hint wording stays the same.
+
+**Reuse:** the `.fld-note` style.
+
+**Verification plan:** 390px screenshots of Uber (out) and Uber Home; compare the two inputs' top positions.
 
 ## Build Planner
 
