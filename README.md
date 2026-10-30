@@ -330,6 +330,17 @@ Not yet authorized to build. Settled with Jon.
 
 **Verification plan:** from the Initial flight of a group of two, add a flight and confirm the new one is the Connection between them with the old Final still last; add after a Connection, after the Final (append), and on the return flights; typed data on the other flights is untouched; selection lands on the new flight; names and Layovers update; dates default correctly; reload; completion and lines update; earlier suites re-run.
 
+### Wizard step row follows the new selection
+Not yet authorized to build. Found by Jon: pressing Add on a flight does select the new flight, but the Wizard step row does not scroll, so the new blue step stays off-screen and the old flight sits in the middle, which looked like nothing had been added or selected.
+
+- After anything that changes the selection without Jon tapping a step (Add flight, Add Flight After This One, Add Another Stop, Move earlier / later, Remove a flight or a stop, opening or switching a trip), scroll the Wizard step row so the selected step is centred, as the Dashboard row already does.
+- Tapping a step directly leaves the row where it is (the step is already under his finger).
+- Horizontal only; the page's vertical scroll position is untouched (Build 32).
+
+**Reuse:** the Dashboard row's centring code in `renderDash()`.
+
+**Verification plan:** a trip with four flights and two stops, row scrolled to the left; add, move, and remove flights and stops and confirm each time that the selected step is centred in the row (bounding boxes), including near both ends of the row where it cannot fully centre; a direct tap does not move the row; switching trips; the page's vertical scroll unchanged; earlier suites re-run.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
