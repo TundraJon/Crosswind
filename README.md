@@ -276,6 +276,13 @@ Not yet authorized to build. Settled with Jon (allow `<` and `>` and display the
 
 **Verification plan:** type `<b>bold</b>`, `"quotes"`, `'apostrophes'`, and `&amp;` into a loyalty name and ID, a Favorite caption, every Wizard text field (destination, hotel name and address, rental company fields, flight and confirmation fields, Uber times, plate), then confirm the field shows exactly what was typed, the labels and cards show it as plain text, nothing breaks the layout, it survives a reload, an Export and Import round trip, and the Dashboard shows it correctly; earlier suites re-run.
 
+### Remove unused Dashboard CSS
+Not yet authorized to build. Settled with Jon.
+
+- Delete the nine rules in `styles.css` that nothing uses (checked against `index.html` and `script.js`): `.state-row`, `.st`, `.st .ic`, `.st.optional .ic`, `.st.active .ic`, `.st .ln`, `.st.active .tag` (the lines near 172 to 179), and `.logs-grid` (near line 203). They were left behind when Build 14 replaced the old Dashboard elements.
+- No visible change expected; re-check the grep for each name at build time, and keep any rule that turns out to be used.
+
+**Verification plan:** a script confirms none of the class names appear in `index.html` or `script.js` before deleting; the Dashboard suites and screenshots of every Dashboard step type (ground and airborne) match before and after; earlier suites re-run.
 
 ## Build Planner
 
@@ -294,9 +301,6 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
 - Cosmetic: ✎ pins only toggle a look; a step counts as "done" only because it sits before the selected one.
 - Missing: removing or reordering stops and flights; real step completion.
-
-### Cleanup: unused Dashboard CSS
-`.state-row`, `.st`, `.st .ic`, `.st.optional`, `.st.active`, `.st .ln`, `.st .tag`, and `.logs-grid` in `styles.css` were left behind when Build 14 replaced the old Dashboard elements. Harmless; remove when authorized.
 
 ### Check: airport city names
 The airport table's city names come straight from the OurAirports source. Only the odd-looking ones (long, slashes, dated) were reviewed and shortened by hand in Build 17. Tell me any that look wrong or that you would call differently (e.g. a name you search by) and they can be adjusted in `airports.js`.
