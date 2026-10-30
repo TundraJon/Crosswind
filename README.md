@@ -218,6 +218,18 @@ Not yet authorized to build. Settled with Jon (Rental Company and Airline stay a
 
 **Verification plan:** no programs (all chains listed, alphabetical); with Marriott Bonvoy and Wyndham Rewards programs (those two first, separator, the rest without Marriott or Wyndham); picking Wyndham brings up AmericInn and prefills; Dashboard line; the separator cannot be picked; a trip with a deleted program's chain still shows it; reload; 390px screenshot.
 
+### Bigger tap targets on the step rows
+Not yet authorized to build. Settled with Jon (Wizard and Dashboard rows both; he has not used the ✎ pencil yet but expects to). Promotes the Planner item "step labels overlap on long trips", now removed.
+
+- Both step rows (`#nodeTrack` in the Wizard, `#dashTrack` on the Dashboard; they share the `.node` styles) get bigger: icon circle from 16px to about 32px; each step is one tap zone at least 72px wide and 64px tall covering the icon and its label.
+- Labels stay small but never spill: they wrap to two lines inside their own column (no more overlap into neighbours); a very long label ends with an ellipsis after two lines. The connecting line follows the bigger circles.
+- The ✎ override pencil stays a separate tap target (it must not select the step), made at least 28px square with spacing so a miss does not trigger the other.
+- The row is taller and scrolls sideways a little more; the current step still scrolls into view as today.
+
+**Reuse:** the existing `.node`, `.nd`, `.nl`, `.edit-pin` styles; no markup change expected beyond what the wrapping needs.
+
+**Verification plan:** 390px screenshots of both rows with a one-stop and a two-stop trip (about 14 steps); no label overlap (bounding boxes of neighbouring labels never intersect); tap the edges of each step's zone and confirm the right step opens; the pencil still opens its editor without selecting the step; the current step scrolls into view; Dashboard row too.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
@@ -236,9 +248,6 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
 - Cosmetic: ✎ pins only toggle a look; a step counts as "done" only because it sits before the selected one.
 - Missing: removing or reordering stops and flights; per-trip ✎ overrides; real step completion.
-
-### Inconsistency: step labels overlap on long trips
-Found while verifying Build 14. With about 14 steps (a two-stop trip) the labels in the step row run into their neighbours. It happens identically on the Wizard's row (same styles, confirmed before and after Build 14), so the Dashboard inherited it. Open question: wrap labels, shorten them, or widen the steps?
 
 ### Cleanup: unused Dashboard CSS
 `.state-row`, `.st`, `.st .ic`, `.st.optional`, `.st.active`, `.st .ln`, `.st .tag`, and `.logs-grid` in `styles.css` were left behind when Build 14 replaced the old Dashboard elements. Harmless; remove when authorized.
