@@ -216,7 +216,18 @@ Jon can stay at a chain he has no program with (his example: AmericInn, a Wyndha
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Home at the end of the step rows
+Not yet authorized to build. Settled with Jon (yes to both recommendations).
+
+- Both step rows (Wizard and Dashboard, via `buildNodes()`) end with a Home node after Uber Home, mirroring the Home node at the start.
+- It shows only when the trip's "Ends at home" is on (the starting Home follows "Starts at home"); with it off the row ends at the last stop.
+- Same Home name and icon as the first one (`stepName('Home')` / `stepIcon('Home')`), so a Setup override applies to both. No ✎ pencil on either Home.
+- Tapping it shows the same Home Base card as the first Home: the Wizard note ("This is your saved Home Base from Setup...") and the Dashboard Home card.
+- Needs its own node key (e.g. `home-end`) so the two Homes select independently; the row's done/current colouring, `ensureWizardSelection`, `firstStepKey`, and any code that assumes one `type: 'home'` node are checked.
+
+**Reuse:** the existing Home node, its form and Dashboard card.
+
+**Verification plan:** a trip with Ends at home on shows Home last on both rows; off hides it; both Homes open the Home Base card and select independently; the first-step selection and add or remove flight and stop paths still work; a two-stop trip; a trip saved before this build; screenshots of both rows.
 
 ## Build Planner
 
