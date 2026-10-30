@@ -124,6 +124,9 @@
   .proj-bar { width: 90px; height: 4px; background: var(--line-soft); border-radius: 2px; overflow: hidden; flex-shrink: 0; }
   .proj-bar i { display: block; height: 100%; background: var(--cyan); }
   .proj-bar.amber i { background: var(--amber); }
+  .proj-bar.green i { background: var(--green); }
+  .dash-bar { width: 100%; margin: 0 0 8px; }
+  #wizProgress.complete { color: var(--green); }
   .pipeline-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
   .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
   .cal-nav { background: var(--bg-input); border: 1px solid var(--line); color: var(--cyan); border-radius: 6px; padding: 4px 12px; font-size: 1rem; cursor: pointer; }
@@ -142,7 +145,7 @@
   .node .nd { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-panel); border: 2px solid var(--text-faint); z-index: 1; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
   .node.optional .nd { border-style: dashed; }
   .node.done .nd { border-color: var(--amber); background: var(--amber); }
-  .node.done::before { background: var(--amber); }
+  .node.passed::before { background: var(--amber); }
   .node.current .nd { border-color: var(--cyan); background: var(--cyan); box-shadow: var(--glow-cyan); }
   .node.current::before { background: var(--amber); }
   .node .nl { font-size: 0.56rem; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-dim); margin-top: 5px; text-align: center; line-height: 1.25; width: 78px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }

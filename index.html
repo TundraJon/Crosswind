@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.04) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.05) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -10,7 +10,7 @@
 <title>Crosswind</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Michroma&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=13">
+<link rel="stylesheet" href="styles.css?v=14">
 </head>
 <body>
 
@@ -146,6 +146,7 @@
       <div class="empty-row" id="wizardEmpty">Create a project to start planning</div>
       <div id="wizardBody" style="display:none;">
         <div class="node-track" id="nodeTrack"></div>
+        <div class="fld-note" id="wizProgress" style="text-align:center; margin-top:2px;"></div>
         <div id="stepFormContainer"></div>
       </div>
     </div>
@@ -199,6 +200,7 @@
 <div class="screen" id="screenDash">
   <div class="panel">
     <div class="dash-head"><div class="hd-l" id="dashProject">Active: —</div><div class="hd-r">🏠 Distance to Home: <b>—</b></div></div>
+    <div class="proj-bar dash-bar" id="dashBar"><i></i></div>
     <div class="node-track" id="dashTrack"></div>
     <div class="quick-card" id="dashCard"></div>
     <div class="quick-card" id="cardAir" style="display:none;">
@@ -312,7 +314,7 @@
 
 <script src="airports.js?v=1"></script>
 <script src="hotel-brands.js?v=2"></script>
-<script src="script.js?v=16"></script>
+<script src="script.js?v=17"></script>
 
 </body>
 </html>

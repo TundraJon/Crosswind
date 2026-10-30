@@ -612,6 +612,35 @@
     return nodes;
   }
 
+  /* Step completion, worked out from the saved fields (never stored). Layover and Rental Return fill when the steps on both sides are complete. */
+  function itineraryProgress(it, startsHome, endsHome) {
+    const has = v => typeof v === 'string' && v.trim() !== '';
+    const flightOk = f => has(f.airline) && has(f.flightNum);
+    const done = {}; let counted = 0, complete = 0;
+    const own = (key, ok) => { done[key] = !!ok; counted++; if (ok) complete++; };
+    if (startsHome) { done['home'] = true; own('uber-out', has(it.uberOut.pickup)); }
+    const firstOfStop = i => it.stops[i] && it.stops[i].flights.length ? 'stop' + i + '-flight-0' : null;
+    it.stops.forEach((stop, si) => {
+      stop.flights.forEach((f, fi) => own('stop' + si + '-flight-' + fi, flightOk(f)));
+      stop.flights.forEach((f, fi) => { if (fi < stop.flights.length - 1) done['stop' + si + '-layover-' + fi] = done['stop' + si + '-flight-' + fi] && done['stop' + si + '-flight-' + (fi + 1)]; });
+      own('stop' + si + '-rental', has(stop.rental.company)); own('stop' + si + '-hotel', has(stop.hotel.name)); own('stop' + si + '-destination', has(stop.destination.name));
+    });
+    if (endsHome) {
+      it.returnFlights.forEach((f, fi) => own('return-flight-' + fi, flightOk(f)));
+      it.returnFlights.forEach((f, fi) => { if (fi < it.returnFlights.length - 1) done['return-layover-' + fi] = done['return-flight-' + fi] && done['return-flight-' + (fi + 1)]; });
+      own('uber-home', has(it.uberHome.pickup));
+    }
+    it.stops.forEach((stop, si) => {
+      const next = si < it.stops.length - 1 ? firstOfStop(si + 1) : (endsHome && it.returnFlights.length ? 'return-flight-0' : null);
+      done['stop' + si + '-rentalreturn'] = done['stop' + si + '-destination'] && (next ? done[next] : true);
+    });
+    const all = counted > 0 && complete === counted;
+    const everything = Object.keys(done).every(k => done[k]);
+    if (endsHome) done['home-end'] = everything && all;
+    return { done, counted, complete, all };
+  }
+  function tripProgressInfo(t) { return itineraryProgress(t.itinerary, t.startsAtHome, t.endsAtHome); }
+
   function firstStepKey(nodes) { return (nodes[0].type === 'home' && nodes[1]) ? nodes[1].key : nodes[0].key; }
   function ensureWizardSelection() {
     const nodes = buildNodes();
@@ -622,17 +651,36 @@
     ensureWizardSelection();
     const nodes = buildNodes();
     const selIdx = nodes.findIndex(n => n.key === wizardState.selected);
+    const tr = activeTrip(), prog = itineraryProgress(wizardState, !tr || tr.startsAtHome, !tr || tr.endsAtHome);
     nodeTrack.innerHTML = '';
     nodes.forEach((n, idx) => {
       const div = document.createElement('div');
       let cls = 'node';
       if (n.optional) cls += ' optional';
-      if (idx < selIdx) cls += ' done'; else if (idx === selIdx) cls += ' current';
+      if (prog.done[n.key]) cls += ' done';
+      if (idx < selIdx) cls += ' passed'; else if (idx === selIdx) cls += ' current';
       div.className = cls; div.dataset.key = n.key;
       div.innerHTML = '<div class="nd">' + esc(n.icon) + '</div><div class="nl">' + esc(n.label) + '</div>';
       div.addEventListener('click', () => { wizardState.selected = n.key; renderNodeTrack(); renderStepForm(); });
       nodeTrack.appendChild(div);
     });
+    refreshWizardProgress();
+  }
+  /* Live step completion: node fills, the counter under the row, and the active trip's bar in the list (no re-draw, so the form keeps focus) */
+  function setBuildBar(bar, info) {
+    const pct = info.counted ? Math.round(info.complete / info.counted * 100) : 0;
+    bar.classList.toggle('amber', pct < 100); bar.classList.toggle('green', pct === 100);
+    bar.querySelector('i').style.width = pct + '%';
+  }
+  function refreshWizardProgress() {
+    const tr = activeTrip();
+    if (!tr) return;
+    const prog = itineraryProgress(wizardState, tr.startsAtHome, tr.endsAtHome);
+    nodeTrack.querySelectorAll('.node').forEach(n => n.classList.toggle('done', !!prog.done[n.dataset.key]));
+    const counter = document.getElementById('wizProgress');
+    if (counter) { counter.classList.toggle('complete', prog.all); counter.textContent = prog.all ? 'Itinerary complete' : prog.complete + ' of ' + prog.counted + ' steps complete'; }
+    const bar = document.querySelector('#pipelineList .proj-row.selected .proj-bar');
+    if (bar) setBuildBar(bar, prog);
   }
 
   /* ---- Step dates: smart defaults, user entries kept ---- */
@@ -1212,6 +1260,9 @@
   function renderDash() {
     const at = activeTrip();
     dashProject.textContent = 'Active: ' + (at ? at.name : '—');
+    const dashBar = document.getElementById('dashBar');
+    dashBar.style.display = at ? '' : 'none';
+    if (at) dashBar.querySelector('i').style.width = tripProgress(at) + '%';
     if (!at) {
       dashTrack.innerHTML = '';
       dashCard.innerHTML = '<div class="qc-line">No active trip — create one in Trip Wizard</div>';
@@ -1228,7 +1279,7 @@
       const div = document.createElement('div');
       let cls = 'node';
       if (n.optional) cls += ' optional';
-      if (idx < selIdx) cls += ' done'; else if (idx === selIdx) cls += ' current';
+      if (idx < selIdx) cls += ' done passed'; else if (idx === selIdx) cls += ' current';
       div.className = cls; div.dataset.key = n.key;
       div.innerHTML = '<div class="nd">' + n.icon + '</div><div class="nl">' + esc(n.label) + '</div>';
       div.addEventListener('click', () => { dashSelected = n.key; renderDash(); });
@@ -1376,6 +1427,7 @@
   function saveTrips() { try { localStorage.setItem(TRIPS_KEY, JSON.stringify({ v: 1, trips })); } catch (e) {} }
   function saveActive() { try { localStorage.setItem(ACTIVE_KEY, activeTripId); } catch (e) {} }
   function commitTrips() {
+    refreshWizardProgress();
     let changed = false;
     trips.forEach(t => {
       const c = tripContent(t);
@@ -1400,13 +1452,13 @@
   }
   function fmtTripDates(t) { return fmtDate(fromISODate(t.start)) + ' – ' + fmtDate(fromISODate(t.end)); }
   function tripRow(t) {
-    const st = tripStatus(t), row = document.createElement('div');
+    const row = document.createElement('div');
     row.className = 'proj-row' + (t.id === activeTripId ? ' selected' : '');
     row.dataset.id = t.id;
-    row.innerHTML = '<div class="proj-dot"></div><div class="proj-name"><div class="nm"></div><div class="dt"></div></div><button class="proj-edit" title="Edit project">✎</button><div class="proj-bar' + (st === 'upcoming' ? ' amber' : '') + '"><i></i></div>';
+    row.innerHTML = '<div class="proj-dot"></div><div class="proj-name"><div class="nm"></div><div class="dt"></div></div><button class="proj-edit" title="Edit project">✎</button><div class="proj-bar"><i></i></div>';
     row.querySelector('.nm').textContent = t.name;
     row.querySelector('.dt').textContent = fmtTripDates(t);
-    row.querySelector('.proj-bar i').style.width = tripProgress(t) + '%';
+    setBuildBar(row.querySelector('.proj-bar'), tripProgressInfo(t));
     row.addEventListener('click', () => setActiveTrip(t.id));
     row.querySelector('.proj-edit').addEventListener('click', (e) => { e.stopPropagation(); openProjectModal(t.id); });
     return row;

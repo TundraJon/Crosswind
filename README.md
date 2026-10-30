@@ -275,36 +275,22 @@ Typed text was glued into the page as HTML in several places, so `<`, `>`, and `
 - [x] Cache-bust bumped: `styles.css?v=12→13`.
 - **Verification:** 15 screenshots (every Dashboard step on the ground, the airborne view, Setup, Wizard, Request, Media) taken before and after, byte-for-byte identical. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 18, 22 pass; `verify21` passes except its old quarter-screen check; the known expected-output differences in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`.
 
+### Build 37 (completed): Real step completion in the Wizard
+A step now shows as done because its data is filled in, not because it sits before the current step.
+- [x] `script.js`: `itineraryProgress(it, startsHome, endsHome)` works out completion from the saved fields (never stored): Flight needs airline and flight number, Uber and Uber Home a pickup time, Rental a company, Hotel a name, Objective / To a place name; the starting Home is always done; Layover fills when the flights on both sides are complete; Rental Return fills when its Objective / To step and the next step (next stop's first flight, or the first return flight) are complete; the end Home fills when every step is done. `tripProgressInfo(t)` runs it for any saved trip.
+- [x] Wizard row: a complete step gets the `done` class (the existing filled amber circle); the line colour moved to a new `passed` class so the connecting line stays position-based; the current step stays cyan. The Dashboard row keeps its position meaning (`done passed` on earlier steps).
+- [x] `index.html` / `styles.css`: a counter line `#wizProgress` under the step row ("7 of 7 steps complete", green "Itinerary complete" when all are done); the list bar next to each trip (`.proj-bar`) now shows build progress, amber while building and green at 100% (new `.proj-bar.green`). Layover, Rental Return, and Home are not counted in the "N of M" number.
+- [x] `refreshWizardProgress()` updates the row, counter, and the active trip's bar live (called from `commitTrips()` and after each row draw) without re-drawing the form, so focus and the keyboard stay. `setBuildBar()` is shared with the list rows.
+- [x] Cache-bust bumped: `script.js?v=16→17`, `styles.css?v=13→14` (shared with Build 38). Version: v1.04→v1.05 (shared with Build 38).
+- **Verification:** `verify25`, zero JS errors, 390px. A fresh trip shows only the starting Home filled, 0 of 7, 0% amber; Uber, flight (airline alone is not enough, plus number is), Rental, Hotel, Objective each fill when their field is filled and un-fill when cleared; a skipped Rental stays unfilled while Hotel is done; Rental Return waits for both neighbours; Layover fills once both flights are complete; the end Home and "Itinerary complete" (green) appear only when everything is done, and go away when a field is cleared; the bar goes 14%, 86%, 100% green; state survives a reload; adding a flight or a stop un-completes the trip; each trip in the list has its own bar; an away-to-away trip counts only its stop steps and has no end Home; screenshots looked at. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 22, 23 pass. Expected-output differences: `verify11` (5 checks of the old calendar bar on the list, now on the Dashboard) and `verify18` ("all earlier steps shown done", now by data), plus the known ones in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`.
+
+### Build 38 (completed): Trip progress bar on the Dashboard
+- [x] `index.html`: `<div class="proj-bar dash-bar" id="dashBar">` under the Dashboard header; `styles.css`: `.dash-bar` (full width); `script.js` `renderDash()` fills it with the existing `tripProgress()` days-elapsed calculation, hidden when there is no active trip.
+- **Verification:** `verify26`, zero JS errors, fixed dates around today: a future trip 0%, day 3 of 5 = 60%, day 1 of 5 = 20%, last day 100%, an ended trip 100%, no active trip hides the bar; screenshot looked at.
+
 ## Build Queue
 
 _Empty — nothing queued right now._
-
-### Real step completion in the Wizard
-Not yet authorized to build. Settled with Jon (automatic completion; no per-step check marks). Can be built on its own; until the Dashboard bar entry below is also built, the trip-progress bar disappears from the Wizard list and appears nowhere.
-
-- **What counts as complete (automatic, from the saved fields, no manual tap):** Flight (outbound or return) needs an airline and a flight number (the date always has a default); Uber and Uber Home need a pickup time; Rental needs a company; Hotel needs a name; Objective / To needs a place name. The starting Home needs nothing and is always filled. Layover and Rental Return need nothing typed; they fill in only when the steps on both sides are complete (Layover: the flight before and the flight after; Rental Return: the Objective / To step before it and the step after it, which is the next stop's first flight or the first return flight). They are not counted in the "N of M" counter (nothing to type), but the end Home waits for them. Every stop's steps and every return flight count. A step is complete or not live as fields change (clearing a field un-completes it).
-- **Look in the Wizard step row:** a complete step keeps the filled amber circle, an incomplete one keeps today's unfilled look, regardless of where the current step is; the current step stays cyan. The starting Home is always filled. The connecting line stays position-based (amber up to the current step), as today. No check marks.
-- **End Home:** the Home node at the end (Build 29) fills amber only once every counted step is complete; until then it looks unfilled.
-- **Counter:** a small line under the step row (where the old pencil legend was): "7 of 10 steps complete", changing to a green "Itinerary complete" when all are done. It counts only steps that need data.
-- **Project list bar:** the small bar next to each trip in the Active Pipeline now shows build progress (complete steps out of counted steps) for that trip, amber while building and green when complete. It replaces the calendar-progress meaning (that moves to the Dashboard, next entry). Works for every trip in the list, not just the active one; past trips show their build state.
-- **Live updates:** the row, counter, and bar refresh as the user types, without re-drawing the form (focus and keyboard stay put).
-- **Edge cases:** trips that start or end away from home (no Uber, no end Home); several stops and layovers; return flights; trips saved before this build open with their existing data counted; a trip with nothing filled shows 0 of N.
-- **Dashboard row is unchanged:** it keeps its before / now / after meaning.
-
-**Reuse:** `buildNodes()` (adds a completeness check per node), `renderNodeTrack()`, `tripRow()` and its `.proj-bar`, the existing `.done` / `.current` classes, `commitTrips()`'s input listener.
-
-**Verification plan:** a script fills each step type field by field and checks the circle, counter, bar width, and end Home change as fields fill and clear; clearing a field un-completes it; a skipped middle step stays unfilled even with later steps done; multi-stop and layover trips, trips without Uber legs; every trip in the list shows its own bar; screenshots of the row, counter, list, and the finished state; reload keeps it; earlier suites re-run.
-
-### Trip progress bar on the Dashboard
-Not yet authorized to build. Settled with Jon (days elapsed, not steps taken, because the first-day steps would barely move a step-based bar). Can be built on its own.
-
-- A bar in the Dashboard's top header, next to "Active: <trip>", showing how much of the active trip's calendar has passed: the existing `tripProgress()` days-elapsed calculation, moved over unchanged (0% before the trip starts, 100% after it ends, otherwise elapsed days over total days).
-- Same look as the list bar (cyan fill, the same `.proj-bar` styling reused). Hidden when there is no active trip.
-- Updates when the Dashboard is drawn; no live ticking.
-
-**Reuse:** `tripProgress()`, `.proj-bar`, `renderDash()`'s header line.
-
-**Verification plan:** a trip in the future (0%), mid-trip (a known percent from fixed dates), and finished (100%); no active trip hides it; the header layout holds at 390px (screenshot); the other Dashboard cards unchanged.
 
 ## Build Planner
 
@@ -322,6 +308,9 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; forms for every step type with real step dates, confirmation numbers, and gentle validation; Add Another Flight / Stop; "Select…" dropdowns fed by Setup; smart times on Uber fields.
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
 - Missing: reordering stops and flights.
+
+### Inconsistency: Dashboard step icons are not escaped
+Found while building Build 37. In `renderDash()` the Dashboard row writes each step's icon with `n.icon` (not `esc(n.icon)`), so a typed `<` as a Setup step icon would be drawn as markup there. Build 35 escaped every other place. One-word fix; not made.
 
 ### Check: airport city names
 The airport table's city names come straight from the OurAirports source. Only the odd-looking ones (long, slashes, dated) were reviewed and shortened by hand in Build 17. Tell me any that look wrong or that you would call differently (e.g. a name you search by) and they can be adjusted in `airports.js`.
