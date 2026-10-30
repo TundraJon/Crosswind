@@ -263,26 +263,21 @@ Reported by Jon on Chrome for Android: typing a seat number then tapping Layover
 - [x] `script.js`: `equalizeStepHeight()` bases the quarter-screen on the tallest window height seen (`tallestWindow`), not the current `innerHeight`, which is smaller while the keyboard is open.
 - **Verification:** `verify22`: the meta tag is present; simulating a short (keyboard) window and back leaves the same step's spacer identical (263px before and after). **Not verified:** the actual keyboard on a real phone; Jon needs to type a seat number and tap Layover to see whether the row holds. Step 2 (remember and restore the scroll position) was left unbuilt, as queued; build it only if step 1 is not enough.
 
+### Build 35 (completed): Escape typed text everywhere it is shown
+Typed text was glued into the page as HTML in several places, so `<`, `>`, and `"` could break layouts or cut a field's value short. Jon chose to allow those characters and show them safely.
+- [x] `script.js`: the existing `esc()` now wraps typed text in the loyalty list, the TSA airline list, the Setup loyalty table (name and ID), the Wizard step row (label and icon), all eleven Wizard step headers (`esc(node.label.toUpperCase())`), the Rental Return "Returning:" line (company and class), the Favorites buttons (icon and caption), and the 18 Wizard form `value="…"` fields (the Hotel Brand field already did).
+- [x] `cleanText()` no longer removes `<` and `>`, so text like "Hotel <5 miles" is kept as typed; this also ends the `<>` strip on imported backups (everything is escaped where shown instead). Saved data is unchanged: values are stored as typed and escaped only when drawn.
+- [x] Cache-bust bumped: `script.js?v=15→16` (shared with Build 36). Version: v1.03→v1.04 (shared with Build 36).
+- **Verification:** `verify23`, 61 checks, zero JS errors. On the old code 48 of them failed (values cut at the first `"`, typed tags became real tags in the loyalty and TSA lists). With the fix: the nasty text `"Q" <b>B</b> & 'a' <i>x` (and variants) comes back exactly as typed in every Wizard field after typing and after a reload; shows as plain text in the loyalty and TSA lists, the step row, the step headers, the wizard title and project name, the Dashboard hotel card, and the Favorites buttons; a Favorite's caption and message and a renamed step default keep their exact text; Export keeps the exact text and Import round-trips it. Old suites that checked the `<>` strip (`verify10b`, `verify11`) now fail those checks on purpose; their "hostile: no script ran" checks still pass.
+
+### Build 36 (completed): Remove unused Dashboard CSS
+- [x] `styles.css`: deleted nine rules nothing uses: `.state-row`, `.st`, `.st .ic`, `.st.optional .ic`, `.st.active .ic`, `.st .ln`, `.st:last-child .ln`, `.st.active .tag`, and `.logs-grid`. Checked first: none of those class names appear in `index.html` or `script.js`.
+- [x] Cache-bust bumped: `styles.css?v=12→13`.
+- **Verification:** 15 screenshots (every Dashboard step on the ground, the airborne view, Setup, Wizard, Request, Media) taken before and after, byte-for-byte identical. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 18, 22 pass; `verify21` passes except its old quarter-screen check; the known expected-output differences in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`.
+
 ## Build Queue
 
-### Escape typed text everywhere it is shown
-Not yet authorized to build. Settled with Jon (allow `<` and `>` and display them safely).
-
-- Every place typed text is put into the page as HTML goes through the existing `esc()` helper: Setup loyalty names and IDs (three places) and the TSA airline list, Favorite captions and icons, the step labels in the Wizard row (destination name), and the 19 Wizard form `value="…"` fields (so a typed `"` no longer cuts a value short). The Dashboard already escapes its own text.
-- Typed `<` and `>` are no longer stripped as the user types or loads saved data (`cleanText()` stops removing them), so text like "Hotel <5 miles" is kept; they are shown as plain characters. The strip on imported backups stays as a second layer only if it does not remove characters from legitimate text; settle at build time and record it.
-- Saved data is not changed: values are stored as typed and escaped only when drawn.
-
-**Reuse:** `esc()`, `cleanText()`.
-
-**Verification plan:** type `<b>bold</b>`, `"quotes"`, `'apostrophes'`, and `&amp;` into a loyalty name and ID, a Favorite caption, every Wizard text field (destination, hotel name and address, rental company fields, flight and confirmation fields, Uber times, plate), then confirm the field shows exactly what was typed, the labels and cards show it as plain text, nothing breaks the layout, it survives a reload, an Export and Import round trip, and the Dashboard shows it correctly; earlier suites re-run.
-
-### Remove unused Dashboard CSS
-Not yet authorized to build. Settled with Jon.
-
-- Delete the nine rules in `styles.css` that nothing uses (checked against `index.html` and `script.js`): `.state-row`, `.st`, `.st .ic`, `.st.optional .ic`, `.st.active .ic`, `.st .ln`, `.st.active .tag` (the lines near 172 to 179), and `.logs-grid` (near line 203). They were left behind when Build 14 replaced the old Dashboard elements.
-- No visible change expected; re-check the grep for each name at build time, and keep any rule that turns out to be used.
-
-**Verification plan:** a script confirms none of the class names appear in `index.html` or `script.js` before deleting; the Dashboard suites and screenshots of every Dashboard step type (ground and airborne) match before and after; earlier suites re-run.
+_Empty — nothing queued right now._
 
 ## Build Planner
 

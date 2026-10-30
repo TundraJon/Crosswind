@@ -182,7 +182,7 @@
     { sys: 'Rental Return', icon: '🚗' }, { sys: 'Uber Home', icon: '🚙' }
   ];
   let stepCustom = {};
-  function cleanText(t) { return String(t).replace(/[<>]/g, ''); }
+  function cleanText(t) { return String(t); }
   /* One visible icon = one grapheme (multi-part emoji, flags, and skin tones count as one) */
   const graphemeSegmenter = (typeof Intl !== 'undefined' && Intl.Segmenter) ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
   function iconParts(text) {
@@ -366,7 +366,7 @@
         const idx = programs.indexOf(p);
         const row = document.createElement('div');
         row.className = 'loyalty-row';
-        row.innerHTML = '<span class="lname">' + p.name + '</span>';
+        row.innerHTML = '<span class="lname">' + esc(p.name) + '</span>';
         const editBtn = document.createElement('button');
         editBtn.className = 'ledit'; editBtn.textContent = '✎';
         editBtn.addEventListener('click', () => openProgramModal(idx));
@@ -389,7 +389,7 @@
       const on = !!touchless[a.name.toLowerCase()];
       const row = document.createElement('div');
       row.className = 'airline-row' + (on ? ' touchless' : '');
-      row.innerHTML = '<span class="dot"></span>' + a.name;
+      row.innerHTML = '<span class="dot"></span>' + esc(a.name);
       row.addEventListener('click', () => { touchless[a.name.toLowerCase()] = !touchless[a.name.toLowerCase()]; saveProfile(); renderTsaAirlines(); });
       tsaAirlineList.appendChild(row);
     });
@@ -442,7 +442,7 @@
       td.className = 'empty-row'; td.colSpan = 2; td.textContent = 'None added yet';
       tr.appendChild(td); tbody.appendChild(tr);
     } else {
-      rows.forEach(p => { const tr = document.createElement('tr'); tr.innerHTML = '<td class="pname">' + p.name + '</td><td>' + (p.id || '—') + '</td>'; tbody.appendChild(tr); });
+      rows.forEach(p => { const tr = document.createElement('tr'); tr.innerHTML = '<td class="pname">' + esc(p.name) + '</td><td>' + esc(p.id || '—') + '</td>'; tbody.appendChild(tr); });
     }
     existingTable.querySelector('tbody').replaceWith(tbody);
   }
@@ -629,7 +629,7 @@
       if (n.optional) cls += ' optional';
       if (idx < selIdx) cls += ' done'; else if (idx === selIdx) cls += ' current';
       div.className = cls; div.dataset.key = n.key;
-      div.innerHTML = '<div class="nd">' + n.icon + '</div><div class="nl">' + n.label + '</div>';
+      div.innerHTML = '<div class="nd">' + esc(n.icon) + '</div><div class="nl">' + esc(n.label) + '</div>';
       div.addEventListener('click', () => { wizardState.selected = n.key; renderNodeTrack(); renderStepForm(); });
       nodeTrack.appendChild(div);
     });
@@ -840,9 +840,9 @@
       '<div><label class="fld">Airline</label><select id="wf-flight-airline">' + airlineOpts + '</select></div>' +
       '</div>' +
       '<div class="flight-row3">' +
-      '<div class="fnum"><label class="fld">Flight #</label><input type="text" id="wf-flight-num" placeholder="402" maxlength="6" value="' + f.flightNum + '"></div>' +
-      '<div class="fconf"><label class="fld">Confirmation #</label><input type="text" id="wf-flight-conf" placeholder="NZ82X1" maxlength="8" value="' + f.conf + '"></div>' +
-      '<div class="fseat"><label class="fld">Seat #</label><input type="text" id="wf-flight-seat" placeholder="4C" maxlength="3" value="' + f.seat + '"></div>' +
+      '<div class="fnum"><label class="fld">Flight #</label><input type="text" id="wf-flight-num" placeholder="402" maxlength="6" value="' + esc(f.flightNum) + '"></div>' +
+      '<div class="fconf"><label class="fld">Confirmation #</label><input type="text" id="wf-flight-conf" placeholder="NZ82X1" maxlength="8" value="' + esc(f.conf) + '"></div>' +
+      '<div class="fseat"><label class="fld">Seat #</label><input type="text" id="wf-flight-seat" placeholder="4C" maxlength="3" value="' + esc(f.seat) + '"></div>' +
       '</div>' +
       '<div class="fld-note val-note" id="wf-conf-note" style="display:none;">Confirmation is usually 6 letters/numbers</div>' +
       '<div class="fld-note" id="wf-copy-note" style="display:none;"></div>' +
@@ -857,21 +857,21 @@
     let html = '';
 
     if (node.type === 'home') {
-      html = '<div class="step-head">' + node.label.toUpperCase() + '</div><div class="home-note">This is your saved Home Base from Setup. Edit it there if it needs to change.</div>';
+      html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div><div class="home-note">This is your saved Home Base from Setup. Edit it there if it needs to change.</div>';
     }
 
     else if (node.type === 'uberOut') {
-      html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
+      html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
         dateFieldHTML('wf-date', 'Date', 'uberOut') +
         '<div class="fld-grid">' +
-        '<div><label class="fld">Pickup Time</label><input type="text" id="wf-uber-pickup" placeholder="e.g. 4:30 PM" value="' + wizardState.uberOut.pickup + '"></div>' +
-        '<div><label class="fld">Drop-off Time <span class="fld-opt">(optional)</span></label><input type="text" id="wf-uber-dropoff" placeholder="e.g. 5:10 PM" value="' + wizardState.uberOut.dropoff + '"></div>' +
+        '<div><label class="fld">Pickup Time</label><input type="text" id="wf-uber-pickup" placeholder="e.g. 4:30 PM" value="' + esc(wizardState.uberOut.pickup) + '"></div>' +
+        '<div><label class="fld">Drop-off Time <span class="fld-opt">(optional)</span></label><input type="text" id="wf-uber-dropoff" placeholder="e.g. 5:10 PM" value="' + esc(wizardState.uberOut.dropoff) + '"></div>' +
         '</div>' + parserButtonHTML('Uber');
     }
 
     else if (node.type === 'flight') {
       const f = wizardState.stops[node.stopIndex].flights[node.flightIndex];
-      html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
+      html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
         flightFormHTML(f, 'f:' + node.stopIndex + ':' + node.flightIndex) + parserButtonHTML('Flight') +
         (node.flightIndex === wizardState.stops[node.stopIndex].flights.length - 1 ? '<button class="add-flight-btn" id="wf-add-flight">+ Add Another Flight</button>' : '') +
         (wizardState.stops[node.stopIndex].flights.length > 1 ? '<button class="add-flight-btn remove-btn" id="wf-remove-flight">Remove this flight</button>' : '');
@@ -883,7 +883,7 @@
       const pre = node.isReturn ? 'Return: ' : '';
       const label1 = pre + flightNodeMeta(list, i).base;
       const label2 = pre + flightNodeMeta(list, i + 1).base;
-      html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
+      html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
         '<div class="layover-strip">🧳 Calculated: <b>' + label1 + ' Landing</b> → <b>' + label2 + ' Boarding</b></div>' +
         '<div class="fld-note" style="margin-top:8px;">Example once flight times are auto-filled: SEA Landing 6:40 PM → MCI Boarding 8:22 PM = <b style="color:var(--amber);">1h 42m layover</b>. Real calculation activates once the Flight Tracker API auto-fill is wired in (Step 4).</div>';
     }
@@ -893,53 +893,53 @@
       const compOpts = selectOptionsHTML(sortedByType('rental').map(c => c.name), r.company, 'No rental programs yet');
       const classes = ['Economy','Compact','Intermediate/Midsize','Standard','Full-Size','Premium','Luxury','SUV (Compact)','SUV (Standard/Full-Size)','Minivan'];
       const classOpts = classes.map(c => '<option' + (c === r.cls ? ' selected' : '') + '>' + c + '</option>').join('');
-      html = '<div class="step-head">' + node.label.toUpperCase() + '</div><div class="fld-grid">' +
+      html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div><div class="fld-grid">' +
         '<div><label class="fld">Company</label><select id="wf-rental-company">' + compOpts + '</select></div>' +
         '<div><label class="fld">Class</label><select id="wf-rental-class">' + classOpts + '</select></div>' +
         '<div>' + dateFieldHTML('wf-rental-pick', 'Pickup Date', 'rPick:' + si + ':0') + '</div>' +
         '<div>' + dateFieldHTML('wf-rental-ret', 'Return Date', 'rRet:' + si + ':0') + '</div>' +
-        '<div><label class="fld">Confirmation # <span class="fld-opt">(optional)</span></label><input type="text" id="wf-rental-conf" placeholder="—" value="' + r.conf + '"></div><div></div>' +
-        '<div><label class="fld">Color <span class="fld-opt">(at pickup)</span></label><input type="text" id="wf-rental-color" placeholder="—" value="' + r.color + '"></div>' +
-        '<div><label class="fld">License Plate <span class="fld-opt">(at pickup)</span></label><input type="text" id="wf-rental-plate" placeholder="—" value="' + r.plate + '"></div>' +
+        '<div><label class="fld">Confirmation # <span class="fld-opt">(optional)</span></label><input type="text" id="wf-rental-conf" placeholder="—" value="' + esc(r.conf) + '"></div><div></div>' +
+        '<div><label class="fld">Color <span class="fld-opt">(at pickup)</span></label><input type="text" id="wf-rental-color" placeholder="—" value="' + esc(r.color) + '"></div>' +
+        '<div><label class="fld">License Plate <span class="fld-opt">(at pickup)</span></label><input type="text" id="wf-rental-plate" placeholder="—" value="' + esc(r.plate) + '"></div>' +
         '</div>' + parserButtonHTML('Rental');
     }
 
     else if (node.type === 'hotel') {
       const h = wizardState.stops[node.stopIndex].hotel, si = node.stopIndex;
       const chainOpts = hotelChainOptionsHTML(sortedByType('hotel').map(c => c.name), h.chain);
-      html = '<div class="step-head">' + node.label.toUpperCase() + '</div><div class="fld-grid">' +
+      html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div><div class="fld-grid">' +
         '<div><label class="fld">Chain</label><select id="wf-hotel-chain">' + chainOpts + '</select></div>' +
         '<div><label class="fld">Brand</label><input type="text" id="wf-hotel-brand" placeholder="e.g. Courtyard" autocomplete="off" value="' + esc(h.brand) + '"></div>' +
         '</div>' +
         '<div class="suggest-list" id="wf-brand-suggest" style="display:none;"></div>' +
-        '<label class="fld">Hotel Name</label><input type="text" id="wf-hotel-name" placeholder="e.g. Lambeau Field Hilton" value="' + h.name + '">' +
-        '<label class="fld">Address</label><input type="text" id="wf-hotel-address" placeholder="—" value="' + h.address + '">' +
+        '<label class="fld">Hotel Name</label><input type="text" id="wf-hotel-name" placeholder="e.g. Lambeau Field Hilton" value="' + esc(h.name) + '">' +
+        '<label class="fld">Address</label><input type="text" id="wf-hotel-address" placeholder="—" value="' + esc(h.address) + '">' +
         '<button class="suggest-btn" id="wf-hotel-suggest" disabled title="Needs online lookup — coming soon">📍 Suggest Address</button>' +
         '<div class="fld-note">Needs online lookup — coming soon</div>' +
         '<div class="fld-grid">' +
         '<div>' + dateFieldHTML('wf-hotel-in', 'Check-in Date', 'hIn:' + si + ':0') + '</div>' +
         '<div>' + dateFieldHTML('wf-hotel-out', 'Check-out Date', 'hOut:' + si + ':0') + '</div>' +
-        '<div><label class="fld">Room # <span class="fld-opt">(at check-in)</span></label><input type="text" id="wf-hotel-room" placeholder="—" value="' + h.room + '"></div>' +
-        '<div><label class="fld">Confirmation # <span class="fld-opt">(optional)</span></label><input type="text" id="wf-hotel-conf" placeholder="—" value="' + h.conf + '"></div>' +
+        '<div><label class="fld">Room # <span class="fld-opt">(at check-in)</span></label><input type="text" id="wf-hotel-room" placeholder="—" value="' + esc(h.room) + '"></div>' +
+        '<div><label class="fld">Confirmation # <span class="fld-opt">(optional)</span></label><input type="text" id="wf-hotel-conf" placeholder="—" value="' + esc(h.conf) + '"></div>' +
         '</div>' + parserButtonHTML('Hotel');
     }
 
     else if (node.type === 'destination') {
       const d = wizardState.stops[node.stopIndex].destination;
-      html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
-        '<label class="fld">Place Name</label><input type="text" id="wf-dest-name" placeholder="e.g. Hollywood Health Center" value="' + d.name + '">' +
-        '<label class="fld">Address</label><input type="text" id="wf-dest-address" placeholder="—" value="' + d.address + '">' +
+      html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
+        '<label class="fld">Place Name</label><input type="text" id="wf-dest-name" placeholder="e.g. Hollywood Health Center" value="' + esc(d.name) + '">' +
+        '<label class="fld">Address</label><input type="text" id="wf-dest-address" placeholder="—" value="' + esc(d.address) + '">' +
         '<button class="suggest-btn" id="wf-dest-suggest" disabled title="Needs online lookup — coming soon">📍 Suggest Address</button>' +
         '<div class="fld-note">Needs online lookup — coming soon</div>' +
-        '<div class="fld-grid"><div><label class="fld">Contact Name</label><input type="text" id="wf-dest-contact" value="' + d.contact + '"></div><div><label class="fld">Contact Phone</label><input type="text" id="wf-dest-phone" value="' + formatPhone(d.phone) + '"></div></div>' +
+        '<div class="fld-grid"><div><label class="fld">Contact Name</label><input type="text" id="wf-dest-contact" value="' + esc(d.contact) + '"></div><div><label class="fld">Contact Phone</label><input type="text" id="wf-dest-phone" value="' + esc(formatPhone(d.phone)) + '"></div></div>' +
         parserButtonHTML('Destination');
     }
 
     else if (node.type === 'rentalReturn') {
       const r = wizardState.stops[node.stopIndex].rental;
       const isLastStop = node.stopIndex === wizardState.stops.length - 1;
-      html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
-        '<div class="return-ref">Returning: ' + (r.company || '—') + ' — ' + r.cls +
+      html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
+        '<div class="return-ref">Returning: ' + esc(r.company || '—') + ' — ' + esc(r.cls) +
         '<div class="rr-sub">Return date: ' + (effDateText('rRet:' + node.stopIndex + ':0') || '—') + '</div>' +
         '<div class="rr-sub">No time needed — inferred from the next flight\'s boarding time.</div></div>' +
         (isLastStop ? '<button class="add-flight-btn" id="wf-add-stop">+ Add Another Stop</button>' : '') +
@@ -948,18 +948,18 @@
 
     else if (node.type === 'returnFlight') {
       const f = wizardState.returnFlights[node.flightIndex];
-      html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
+      html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
         flightFormHTML(f, 'rf:' + node.flightIndex + ':0') + parserButtonHTML('Flight') +
         (node.flightIndex === wizardState.returnFlights.length - 1 ? '<button class="add-flight-btn" id="wf-add-return-flight">+ Add Another Flight</button>' : '') +
         (wizardState.returnFlights.length > 1 ? '<button class="add-flight-btn remove-btn" id="wf-remove-flight">Remove this flight</button>' : '');
     }
 
     else if (node.type === 'uberHome') {
-      html = '<div class="step-head">' + node.label.toUpperCase() + '</div>' +
+      html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
         dateFieldHTML('wf-date', 'Date', 'uberHome') +
         '<div class="fld-grid">' +
-        '<div><label class="fld">Pickup Time</label><input type="text" id="wf-uberhome-pickup" placeholder="e.g. 6:15 PM" value="' + wizardState.uberHome.pickup + '"><div class="fld-note">(usually set live at baggage claim)</div></div>' +
-        '<div><label class="fld">Drop-off Time <span class="fld-opt">(optional)</span></label><input type="text" id="wf-uberhome-dropoff" placeholder="e.g. 6:50 PM" value="' + wizardState.uberHome.dropoff + '"></div>' +
+        '<div><label class="fld">Pickup Time</label><input type="text" id="wf-uberhome-pickup" placeholder="e.g. 6:15 PM" value="' + esc(wizardState.uberHome.pickup) + '"><div class="fld-note">(usually set live at baggage claim)</div></div>' +
+        '<div><label class="fld">Drop-off Time <span class="fld-opt">(optional)</span></label><input type="text" id="wf-uberhome-dropoff" placeholder="e.g. 6:50 PM" value="' + esc(wizardState.uberHome.dropoff) + '"></div>' +
         '</div>';
     }
 
@@ -1569,7 +1569,7 @@
       const btn = document.createElement('button');
       if (fav) {
         btn.className = 'req-btn fav-filled';
-        btn.innerHTML = '<span class="ri">' + fav.icon + '</span><span class="rl">' + fav.caption + '</span><span class="fav-edit-pin">✎</span>';
+        btn.innerHTML = '<span class="ri">' + esc(fav.icon) + '</span><span class="rl">' + esc(fav.caption) + '</span><span class="fav-edit-pin">✎</span>';
         btn.addEventListener('click', (e) => {
           if (e.target.closest('.fav-edit-pin')) { openFavModal(i); return; }
           showRequestDisplay(fav.message);
