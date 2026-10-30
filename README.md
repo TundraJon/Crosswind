@@ -279,6 +279,33 @@ Typed text was glued into the page as HTML in several places, so `<`, `>`, and `
 
 _Empty — nothing queued right now._
 
+### Real step completion in the Wizard
+Not yet authorized to build. Settled with Jon (automatic completion; no per-step check marks). Can be built on its own; until the Dashboard bar entry below is also built, the trip-progress bar disappears from the Wizard list and appears nowhere.
+
+- **What counts as complete (automatic, from the saved fields, no manual tap):** Flight (outbound or return) needs an airline and a flight number (the date always has a default); Uber and Uber Home need a pickup time; Rental needs a company; Hotel needs a name; Objective / To needs a place name. Layover, Rental Return, and the starting Home need nothing and are never counted. Every stop's steps and every return flight count. A step is complete or not live as fields change (clearing a field un-completes it).
+- **Look in the Wizard step row:** a complete step keeps the filled amber circle, an incomplete one keeps today's unfilled look, regardless of where the current step is; the current step stays cyan. The starting Home is always filled. The connecting line stays position-based (amber up to the current step), as today. No check marks.
+- **End Home:** the Home node at the end (Build 29) fills amber only once every counted step is complete; until then it looks unfilled.
+- **Counter:** a small line under the step row (where the old pencil legend was): "7 of 10 steps complete", changing to a green "Itinerary complete" when all are done. It counts only steps that need data.
+- **Project list bar:** the small bar next to each trip in the Active Pipeline now shows build progress (complete steps out of counted steps) for that trip, amber while building and green when complete. It replaces the calendar-progress meaning (that moves to the Dashboard, next entry). Works for every trip in the list, not just the active one; past trips show their build state.
+- **Live updates:** the row, counter, and bar refresh as the user types, without re-drawing the form (focus and keyboard stay put).
+- **Edge cases:** trips that start or end away from home (no Uber, no end Home); several stops and layovers; return flights; trips saved before this build open with their existing data counted; a trip with nothing filled shows 0 of N.
+- **Dashboard row is unchanged:** it keeps its before / now / after meaning.
+
+**Reuse:** `buildNodes()` (adds a completeness check per node), `renderNodeTrack()`, `tripRow()` and its `.proj-bar`, the existing `.done` / `.current` classes, `commitTrips()`'s input listener.
+
+**Verification plan:** a script fills each step type field by field and checks the circle, counter, bar width, and end Home change as fields fill and clear; clearing a field un-completes it; a skipped middle step stays unfilled even with later steps done; multi-stop and layover trips, trips without Uber legs; every trip in the list shows its own bar; screenshots of the row, counter, list, and the finished state; reload keeps it; earlier suites re-run.
+
+### Trip progress bar on the Dashboard
+Not yet authorized to build. Settled with Jon (days elapsed, not steps taken, because the first-day steps would barely move a step-based bar). Can be built on its own.
+
+- A bar in the Dashboard's top header, next to "Active: <trip>", showing how much of the active trip's calendar has passed: the existing `tripProgress()` days-elapsed calculation, moved over unchanged (0% before the trip starts, 100% after it ends, otherwise elapsed days over total days).
+- Same look as the list bar (cyan fill, the same `.proj-bar` styling reused). Hidden when there is no active trip.
+- Updates when the Dashboard is drawn; no live ticking.
+
+**Reuse:** `tripProgress()`, `.proj-bar`, `renderDash()`'s header line.
+
+**Verification plan:** a trip in the future (0%), mid-trip (a known percent from fixed dates), and finished (100%); no active trip hides it; the header layout holds at 390px (screenshot); the other Dashboard cards unchanged.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
