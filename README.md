@@ -303,6 +303,18 @@ Reported by Jon with a screenshot after Build 37: a complete amber step beside a
 
 _Empty — nothing queued right now._
 
+### Wizard progress updates when a field is left; lines stay through the current step
+Not yet authorized to build. Settled with Jon. Replaces the "current step breaks both lines" rule from Build 40 and the type-by-type timing from Build 37.
+
+- **Lines:** in the Wizard row a line is drawn whenever both of its steps are complete, including the step being edited. The blue (current) circle only marks where Jon is; it no longer breaks the lines around it. A line breaks when either of its steps is incomplete.
+- **When it updates:** the amber fills, the lines, the "N of M steps complete" counter, and the list bar all recalculate when a field is left (focus leaves it) or a dropdown changes, not on every keystroke. Example: clearing the airline and tapping another field un-fills the flight and breaks its lines; editing a seat from 5A to 5B never changes anything because the seat is not part of completion; retyping a flight number does not flicker the step.
+- **Immediate cases (no field to leave):** dropdown choices (airline, rental company, hotel chain), adding or removing a flight or stop, tapping to another step, and loading a trip all recalculate at once.
+- The Dashboard row is unchanged (position-based).
+
+**Reuse:** `refreshWizardProgress()` and its `linked` class (drop the current-step test from the line rule); the delegated `change` / `focusout` / `click` listeners already on `#stepFormContainer` that call `commitTrips()` (remove the call from the typing `input` path).
+
+**Verification plan:** for each step type, type a value without leaving the field and confirm nothing changes yet, then leave the field and confirm the fill, lines, counter, and bar update; clear a field and leave it to see the lines break and the step un-fill; change only a seat and see no change; dropdowns update at once; the current complete step keeps its lines; flicker check while retyping; add and remove flights and stops; reload; earlier suites re-run with the changed expectations noted.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
