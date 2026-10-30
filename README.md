@@ -302,6 +302,19 @@ Not yet authorized to build. Found while building Build 37.
 
 **Verification plan:** set a Setup step icon to `<` (and `"`), confirm the Dashboard row shows it as a character with no broken markup and the other steps unchanged; the Wizard row still shows it too; earlier suites re-run.
 
+### Wizard connecting lines follow completion
+Not yet authorized to build. Reported by Jon with a screenshot after Build 37: a complete (amber) step sat beside a line that was not drawn, while the line to the step being edited was.
+
+- Wizard row only: the line between two neighbouring steps is drawn (amber) when both steps are complete and neither is the current step; otherwise it is not drawn (the dim line colour).
+- The current step stays blue (cyan) and both lines touching it are broken, since editing it may clear something that completes it.
+- A line next to an incomplete step is broken too. The start Home is always complete, so Home to Uber draws as soon as Uber is complete and not being edited.
+- Replaces the position-based line colour (`passed` class) for the Wizard row from Build 37; the Dashboard row keeps position-based lines (pending Jon's answer; assumed unchanged).
+- Updates live as fields change, like the fills (`refreshWizardProgress()`).
+
+**Reuse:** `refreshWizardProgress()`, the `.node::before` line, the `done` / `current` classes (a line class such as `linked` set on a node whose line to its left should draw).
+
+**Verification plan:** fill and clear steps and confirm each line's colour from the rendered row (computed colour of each node's line) against both neighbours' state; the current step's lines are both broken; moving off a complete step draws its lines; the end Home line; layover and Rental Return neighbours; live updates while typing; Dashboard row unchanged; screenshot of a mixed row.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
