@@ -252,6 +252,18 @@ Jon wants the step row to stay put as he taps through steps of different heights
 
 ## Build Queue
 
+### Hold the screen still when the keyboard closes
+Not yet authorized to build. Reported by Jon: typing a seat number on a flight, the step row sits near the top; tapping Layover dismisses the keyboard and the page snaps down so the row is mid-screen.
+
+- Not reproduced in the sandbox: simulating the keyboard by resizing the window (800→480→800) and then tapping Layover left the scroll position unchanged (319, row at 60px). The cause depends on how the phone's browser handles the keyboard, so the real cause is unknown.
+- Fix (works whatever the cause): on tap of a step in the Wizard, remember `scrollY`; after the form is re-drawn, put the scroll position back, and keep re-applying it on viewport resize events (and `visualViewport` resize where available) for about 500ms so the keyboard closing cannot move it. Stop early if the user scrolls by hand (touch or wheel) so it never fights them.
+- Applies to the Wizard step row only (the Dashboard has no keyboard fields on its rows).
+- Risk to check on a real phone: a brief flicker while the keyboard animates closed on some browsers; the 500ms window is the number to tune. Needs Jon's phone and browser to confirm.
+
+**Reuse:** `renderNodeTrack()`'s step-tap handler, `equalizeStepHeight()` (page height stays constant, so a restore is always possible).
+
+**Verification plan:** in headless Chromium, simulate the keyboard by resizing the window and also by forcing a scroll clamp on resize, then confirm the position is restored after tapping a step; hand-scrolling during the window is respected; all steps still land where tapped; flagged for a real-phone check of the keyboard itself.
+
 ### First Wizard open: step row cannot reach the top
 Not yet authorized to build. Reproduced by Jon's report and a throwaway Playwright script (390×800).
 
