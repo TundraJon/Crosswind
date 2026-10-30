@@ -223,13 +223,13 @@ Jon never uses the pencil and kept tapping it by accident. It was visual-only: i
 - [x] Cache-bust bumped: `script.js?v=11→12`, `styles.css?v=8→9`. Version: v0.97→v0.98.
 - **Verification:** `verify17`, zero JS errors: no pencil or ✓ anywhere in the Wizard; legend gone; every step still selectable by tap (8 of 8); a Setup step-name default still shows on the row; reload renders. Regression: suites 2c, 3, 4, 5b, 7, 10b, 11, 14, 15 pass; known expected-output differences only in `verify9c`, `verify12`, `verify13`; `verify16`'s old pencil checks no longer apply.
 
-## Build Queue
-
 ### Build 29 (completed): Home at the end of the step rows
 Both step rows now end with a Home node, mirroring the one at the start.
 - [x] `script.js` (`buildNodes`): a `home-end` node (`type: 'home'`, same `stepName('Home')` / `stepIcon('Home')` as the first) after Uber Home, inside the existing `endsHome` block, so it shows only when the trip's "Ends at home" is on. The Wizard and Dashboard share `buildNodes()`, so both rows get it; both Homes open the same Home Base note / card. The first Home keeps the key `home`, so the two select independently. `firstStepKey` and the rest needed no change.
 - [x] Cache-bust bumped: `script.js?v=12→13`. Version: v0.98→v0.99.
 - **Verification:** `verify18`, 20 checks, zero JS errors: both rows start and end with Home (after Uber Home); the last Home selects on its own, shows the Home Base note, and earlier steps show done; the first Home still selects separately; the Dashboard last Home shows the Home card with the saved address (screenshot looked at); two stops still give exactly two Homes; Ends at home off drops it on both rows and turning it back on restores it; Starts away, ends home works; a renamed Home default shows at the end. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17 pass. Expected-output differences only: the extra trailing Home in `verify10b` (4) and `verify11` (2), plus the known ones in `verify9c`, `verify12`, `verify13`.
+
+## Build Queue
 
 _Empty — nothing queued right now._
 
