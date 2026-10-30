@@ -306,22 +306,17 @@ Jon pointed out the Build 40 rule always left a gap around the blue step, since 
 - [x] Cache-bust bumped: `script.js?v=18→19`, `styles.css?v=15→16`. Version: v1.06→v1.07.
 - **Verification:** `verify28`, 30 checks, zero JS errors, real keystrokes and Tab: typing a pickup time without leaving the field changes nothing (not done, counter and bar unchanged); leaving it fills the step, updates the counter and bar, and the current step keeps its line from Home; clearing it and staying in the field changes nothing, leaving the empty field un-fills and breaks the line; dropdowns update at once (Select… un-fills, an airline restores); retyping a flight number never blinks the step; seat 5A to 5B changes nothing; clearing the flight number and moving to another field breaks its lines; a finished itinerary shows every line drawn through the current step (screenshot looked at); adding a flight un-completes the trip at once; the Dashboard row is unchanged. Found and fixed during verification: the first run showed the current step's line still amber because the old `.node.current::before` rule applied to the Wizard; fixed with the override above. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 22, 23, 26 pass; `verify25` (fills while typing) and `verify27` (current step breaks lines) fail on purpose, as does `verify18`'s "done by position", plus the known differences in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`.
 
+### Build 42 (completed): Rearrange flights
+Flights can be moved earlier or later inside their own group, and a date that ends up out of order is flagged.
+- [x] `script.js`: `moveButtonsHTML(index, count)` adds "◀ Move earlier" / "Move later ▶" (`#wf-move-earlier`, `#wf-move-later`) above Remove on every outbound and return flight form; none with a single flight, no Move earlier on the first, no Move later on the last. `moveFlight()` swaps the flight with its neighbour (everything typed moves with it), moves the selection to follow it, redraws, and `commitTrips()` updates `modified`. A flight never leaves its own group (a stop's outbound flights, or the return flights). Position names (Initial, Connection n, Final, and the return names) and the Layover steps follow position.
+- [x] Out-of-order flag: `refreshStepDates()` compares each flight's date (typed or default) with the flight before it in trip order (outbound by stop, then return); earlier turns the date field red (`val-bad`) and shows a new `#wf-order-note` ("Earlier than the flight before it"). The same date is not flagged. Typed dates travel with the flight; untyped default dates recalculate from the new order.
+- [x] `styles.css`: `.move-row` (two buttons side by side). Cache-bust bumped: `script.js?v=19→20`, `styles.css?v=16→17`. Version: v1.07→v1.08.
+- [x] Planner Inventory: "Missing: reordering stops." (flights are done); the Queue entry removed.
+- **Verification:** `verify29`, zero JS errors, 390px. Four outbound flights with distinct airline, number, confirmation, seat: buttons correct at the first, middle, and last positions; moving later and earlier (one, two, and to the end) reorders everything typed; selection follows; names stay Initial / Connection 1 / Connection 2 / Final; three Layover steps remain; return flights swap on their own with the outbound order untouched; a typed later date is not flagged, but moving the earlier-dated flight after it flags it red with the note and it keeps its typed date; the same date and a later date clear the flag; an untyped flight follows the previous date; a second stop's first flight dated before the first stop's last flight is flagged; reload keeps the moves; screenshot of the buttons and the red flag looked at. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 22, 23, 26, 28 pass; the known differences only in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`, `verify18`.
+
 ## Build Queue
 
 _Empty — nothing queued right now._
-
-### Rearrange flights
-Not yet authorized to build. Settled with Jon (flights only, not stops; buttons, not drag).
-
-- **Buttons:** "Move earlier" and "Move later" at the bottom of each flight form (outbound and return), beside "Remove this flight". Moving is within the flight's own group only (a stop's outbound flights, or the return flights); a flight never moves between stops or between outbound and return. The first flight in a group has no "Move earlier", the last has no "Move later", and a lone flight has neither. Not two-tap (a move is reversible).
-- **What moves:** the whole flight with everything typed on it (airline, flight number, confirmation, seat, typed date). Position names update from the position (Flight (Initial), Connection, Flight (Final), and the matching return names), and the step row and Layover steps redraw.
-- **Selection** follows the moved flight, so Jon stays on it. The trip's `modified` time updates like any edit. Add Another Flight stays on whichever flight is last.
-- **Dates:** typed dates travel with the flight; untyped default dates recalculate from the new order. A flight whose date (typed or default) is earlier than the flight before it in the trip order (outbound flights by stop, then return flights) is flagged red: the date field turns red with a short note ("Earlier than the flight before it"). The same date is fine (same-day connections). The flag appears and clears live as dates change (when a field is left, like the other progress indicators).
-- Does not touch the carry-forward of confirmations (it only runs when an airline is chosen).
-
-**Reuse:** the Remove this flight button and its wiring (`renderNodeTrack(); renderStepForm(); commitTrips()`), `effDates()`, `dateFieldHTML()`, the red `updateConfColor()` style for the flag colour, `allFlightsInOrder()`.
-
-**Verification plan:** move first, middle, and last flights in groups of two, three, and four, outbound and return, across two stops; everything typed moves with the flight; names renumber; Layover steps follow; selection follows; buttons hidden at the ends and with one flight; out-of-order date turns red with the note and clears when fixed; equal dates are not flagged; a flight on a second stop is compared with the last flight of the first stop; reload; the completion fills and lines update; earlier suites re-run.
 
 ## Build Planner
 
@@ -338,7 +333,7 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 **Trip Wizard (after Build 34)**
 - Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; forms for every step type with real step dates, confirmation numbers, and gentle validation; Add Another Flight / Stop; "Select…" dropdowns fed by Setup; smart times on Uber fields.
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
-- Missing: reordering stops (flights are queued).
+- Missing: reordering stops.
 
 ### Check: airport city names
 The airport table's city names come straight from the OurAirports source. Only the odd-looking ones (long, slashes, dated) were reviewed and shortened by hand in Build 17. Tell me any that look wrong or that you would call differently (e.g. a name you search by) and they can be adjusted in `airports.js`.

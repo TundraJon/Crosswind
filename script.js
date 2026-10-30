@@ -752,6 +752,17 @@
       if (document.activeElement !== el) el.value = d ? fmtDate(d) : '';
       document.getElementById(f.id + '-note').style.display = (d && (d < s0 || d > e0)) ? 'block' : 'none';
     });
+    /* a flight dated earlier than the flight before it (outbound by stop, then return) is flagged red */
+    const order = [];
+    wizardState.stops.forEach((stop, si) => stop.flights.forEach((fl, fi) => order.push('f:' + si + ':' + fi)));
+    wizardState.returnFlights.forEach((fl, fi) => order.push('rf:' + fi + ':0'));
+    const orderNote = document.getElementById('wf-order-note');
+    stepDateFields.forEach(f => {
+      const i = order.indexOf(f.key), el = document.getElementById(f.id);
+      const bad = i > 0 && eff[f.key] && eff[order[i - 1]] && eff[f.key] < eff[order[i - 1]];
+      if (el) el.classList.toggle('val-bad', !!bad);
+      if (orderNote && i >= 0) orderNote.style.display = bad ? 'block' : 'none';
+    });
   }
   function wireDateFields() {
     stepDateFields.forEach(f => {
@@ -884,12 +895,27 @@
     return '<button class="parser-btn" disabled title="Coming soon">Text Clipboard Parser<small>Coming soon</small></button>';
   }
 
+  /* Move earlier / later within the flight's own group; none at the ends or with a single flight */
+  function moveButtonsHTML(index, count) {
+    if (count < 2) return '';
+    return '<div class="move-row">' +
+      (index > 0 ? '<button class="add-flight-btn" id="wf-move-earlier">◀ Move earlier</button>' : '') +
+      (index < count - 1 ? '<button class="add-flight-btn" id="wf-move-later">Move later ▶</button>' : '') + '</div>';
+  }
+  function moveFlight(list, index, delta, keyFor) {
+    const j = index + delta;
+    if (j < 0 || j >= list.length) return;
+    const t = list[index]; list[index] = list[j]; list[j] = t;
+    wizardState.selected = keyFor(j);
+    renderNodeTrack(); renderStepForm(); commitTrips();
+  }
   function flightFormHTML(f, dateKey) {
     const airlineOpts = selectOptionsHTML(sortedByType('airline').map(a => a.name), f.airline, 'No airlines yet — add in Setup');
     return '<div class="fld-grid">' +
       '<div>' + dateFieldHTML('wf-date', 'Date', dateKey) + '</div>' +
       '<div><label class="fld">Airline</label><select id="wf-flight-airline">' + airlineOpts + '</select></div>' +
       '</div>' +
+      '<div class="fld-note val-note" id="wf-order-note" style="display:none;">Earlier than the flight before it</div>' +
       '<div class="flight-row3">' +
       '<div class="fnum"><label class="fld">Flight #</label><input type="text" id="wf-flight-num" placeholder="402" maxlength="6" value="' + esc(f.flightNum) + '"></div>' +
       '<div class="fconf"><label class="fld">Confirmation #</label><input type="text" id="wf-flight-conf" placeholder="NZ82X1" maxlength="8" value="' + esc(f.conf) + '"></div>' +
@@ -925,6 +951,7 @@
       html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
         flightFormHTML(f, 'f:' + node.stopIndex + ':' + node.flightIndex) + parserButtonHTML('Flight') +
         (node.flightIndex === wizardState.stops[node.stopIndex].flights.length - 1 ? '<button class="add-flight-btn" id="wf-add-flight">+ Add Another Flight</button>' : '') +
+        moveButtonsHTML(node.flightIndex, wizardState.stops[node.stopIndex].flights.length) +
         (wizardState.stops[node.stopIndex].flights.length > 1 ? '<button class="add-flight-btn remove-btn" id="wf-remove-flight">Remove this flight</button>' : '');
     }
 
@@ -1002,6 +1029,7 @@
       html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
         flightFormHTML(f, 'rf:' + node.flightIndex + ':0') + parserButtonHTML('Flight') +
         (node.flightIndex === wizardState.returnFlights.length - 1 ? '<button class="add-flight-btn" id="wf-add-return-flight">+ Add Another Flight</button>' : '') +
+        moveButtonsHTML(node.flightIndex, wizardState.returnFlights.length) +
         (wizardState.returnFlights.length > 1 ? '<button class="add-flight-btn remove-btn" id="wf-remove-flight">Remove this flight</button>' : '');
     }
 
@@ -1077,6 +1105,9 @@
         wizardState.selected = 'stop' + node.stopIndex + '-flight-' + (flights.length - 1);
         renderNodeTrack(); renderStepForm();
       });
+      const mvE = document.getElementById('wf-move-earlier'), mvL = document.getElementById('wf-move-later'), fl = wizardState.stops[node.stopIndex].flights, fkey = j => 'stop' + node.stopIndex + '-flight-' + j;
+      if (mvE) mvE.addEventListener('click', () => moveFlight(fl, node.flightIndex, -1, fkey));
+      if (mvL) mvL.addEventListener('click', () => moveFlight(fl, node.flightIndex, 1, fkey));
       const rmBtn = document.getElementById('wf-remove-flight');
       if (rmBtn) twoTap(rmBtn, 'Tap again to remove', () => {
         wizardState.stops[node.stopIndex].flights.splice(node.flightIndex, 1);
@@ -1153,6 +1184,9 @@
         wizardState.selected = 'return-flight-' + (wizardState.returnFlights.length - 1);
         renderNodeTrack(); renderStepForm();
       });
+      const mvE = document.getElementById('wf-move-earlier'), mvL = document.getElementById('wf-move-later'), rfl = wizardState.returnFlights, rkey = j => 'return-flight-' + j;
+      if (mvE) mvE.addEventListener('click', () => moveFlight(rfl, node.flightIndex, -1, rkey));
+      if (mvL) mvL.addEventListener('click', () => moveFlight(rfl, node.flightIndex, 1, rkey));
       const rmBtn = document.getElementById('wf-remove-flight');
       if (rmBtn) twoTap(rmBtn, 'Tap again to remove', () => {
         wizardState.returnFlights.splice(node.flightIndex, 1);
