@@ -852,12 +852,7 @@
       '<div><label class="fld">Landing Time</label><input type="text" value="—" disabled></div></div></div>';
   }
 
-  function renderStepForm() {
-    ensureWizardSelection();
-    stepDateFields = [];
-    const nodes = buildNodes();
-    const node = nodes.find(n => n.key === wizardState.selected);
-    if (!node) return;
+  function stepFormHTML(node) {
     let html = '';
 
     if (node.type === 'home') {
@@ -967,9 +962,35 @@
         '</div>';
     }
 
-    stepFormContainer.innerHTML = html;
+    return html;
+  }
+
+  /* Every step gets the same total page height (tallest step + a quarter screen), so the step row stays put as the user taps through steps of different heights */
+  function equalizeStepHeight(nodes, node) {
+    const spacer = document.getElementById('wizSpacer');
+    if (!spacer) return;
+    const saveFields = stepDateFields;
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute; left:-9999px; top:0; visibility:hidden; width:' + stepFormContainer.getBoundingClientRect().width + 'px;';
+    stepFormContainer.parentNode.appendChild(probe);
+    let tallest = 0;
+    nodes.forEach(n => { stepDateFields = []; probe.innerHTML = stepFormHTML(n); tallest = Math.max(tallest, probe.getBoundingClientRect().height); });
+    probe.remove();
+    stepDateFields = saveFields;
+    const current = stepFormContainer.getBoundingClientRect().height;
+    spacer.style.height = Math.round(Math.max(0, tallest - current) + window.innerHeight * 0.25) + 'px';
+  }
+
+  function renderStepForm() {
+    ensureWizardSelection();
+    stepDateFields = [];
+    const nodes = buildNodes();
+    const node = nodes.find(n => n.key === wizardState.selected);
+    if (!node) return;
+    stepFormContainer.innerHTML = stepFormHTML(node);
     wireStepFormInputs(node);
     wireDateFields();
+    equalizeStepHeight(nodes, node);
   }
 
   function wireStepFormInputs(node) {
