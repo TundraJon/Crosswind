@@ -146,6 +146,8 @@
   .node.optional .nd { border-style: dashed; }
   .node.done .nd { border-color: var(--amber); background: var(--amber); }
   .node.passed::before { background: var(--amber); }
+  #nodeTrack .node.linked::before { background: var(--amber); }
+  #nodeTrack .node.current::before { background: var(--line); }
   .node.current .nd { border-color: var(--cyan); background: var(--cyan); box-shadow: var(--glow-cyan); }
   .node.current::before { background: var(--amber); }
   .node .nl { font-size: 0.56rem; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-dim); margin-top: 5px; text-align: center; line-height: 1.25; width: 78px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }

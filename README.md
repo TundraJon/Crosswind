@@ -288,32 +288,20 @@ A step now shows as done because its data is filled in, not because it sits befo
 - [x] `index.html`: `<div class="proj-bar dash-bar" id="dashBar">` under the Dashboard header; `styles.css`: `.dash-bar` (full width); `script.js` `renderDash()` fills it with the existing `tripProgress()` days-elapsed calculation, hidden when there is no active trip.
 - **Verification:** `verify26`, zero JS errors, fixed dates around today: a future trip 0%, day 3 of 5 = 60%, day 1 of 5 = 20%, last day 100%, an ended trip 100%, no active trip hides the bar; screenshot looked at.
 
+### Build 39 (completed): Escape the Dashboard step icons
+- [x] `script.js` `renderDash()`: the Dashboard row writes `esc(n.icon)` (it was raw `n.icon`, missed in Build 35), so a typed `<` or `"` as a step icon shows as a character.
+- [x] Cache-bust bumped: `script.js?v=17→18` (shared with Build 40). Version: v1.05→v1.06 (shared with Build 40).
+- **Verification:** `verify27`: a Setup step icon set to `<` shows as the character `<` in the Dashboard row with no broken markup, and in the Wizard row.
+
+### Build 40 (completed): Wizard connecting lines follow completion
+Reported by Jon with a screenshot after Build 37: a complete amber step beside an undrawn line, while the line into the step being edited was drawn.
+- [x] `script.js` `refreshWizardProgress()`: new `linked` class on a Wizard node when the line to its left should draw, which is when both that node and the one before it are complete and neither is the current step. The Wizard row no longer uses the position-based `passed` class (Dashboard unchanged, as assumed).
+- [x] `styles.css`: `#nodeTrack .node.linked::before` amber; `#nodeTrack .node.current::before` back to the dim line colour, so both lines touching the step being edited are broken. Cache-bust bumped: `styles.css?v=14→15`.
+- **Verification:** `verify27`, zero JS errors; the same script failed on the old code (the line into the current step was drawn, e.g. `uber-out` with no line wanted but amber shown). New code: the computed colour of every node's line matches its two neighbours at each stage (fresh trip; editing a complete Uber, where Home to Uber is broken; moving off it, where it is drawn; Flight completed while current; everything complete on Uber Home and on the end Home; Hotel cleared live while current; with a Layover); the Dashboard row stays position-based (earlier steps passed, the line into the current step amber, none after). Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 22, 23, 26 pass; `verify25`'s old "line is position-based" check is out of date on purpose, plus the known differences in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`, `verify18`.
+
 ## Build Queue
 
 _Empty — nothing queued right now._
-
-### Escape the Dashboard step icons
-Not yet authorized to build. Found while building Build 37.
-
-- In `renderDash()` the Dashboard row writes each step's icon with `n.icon`; change it to `esc(n.icon)` so a typed `<` or `"` as a Setup step icon shows as plain text there, as it already does everywhere else (Build 35).
-- No other change; saved data stays as typed.
-
-**Reuse:** `esc()`.
-
-**Verification plan:** set a Setup step icon to `<` (and `"`), confirm the Dashboard row shows it as a character with no broken markup and the other steps unchanged; the Wizard row still shows it too; earlier suites re-run.
-
-### Wizard connecting lines follow completion
-Not yet authorized to build. Reported by Jon with a screenshot after Build 37: a complete (amber) step sat beside a line that was not drawn, while the line to the step being edited was.
-
-- Wizard row only: the line between two neighbouring steps is drawn (amber) when both steps are complete and neither is the current step; otherwise it is not drawn (the dim line colour).
-- The current step stays blue (cyan) and both lines touching it are broken, since editing it may clear something that completes it.
-- A line next to an incomplete step is broken too. The start Home is always complete, so Home to Uber draws as soon as Uber is complete and not being edited.
-- Replaces the position-based line colour (`passed` class) for the Wizard row from Build 37; the Dashboard row keeps position-based lines (pending Jon's answer; assumed unchanged).
-- Updates live as fields change, like the fills (`refreshWizardProgress()`).
-
-**Reuse:** `refreshWizardProgress()`, the `.node::before` line, the `done` / `current` classes (a line class such as `linked` set on a node whose line to its left should draw).
-
-**Verification plan:** fill and clear steps and confirm each line's colour from the rendered row (computed colour of each node's line) against both neighbours' state; the current step's lines are both broken; moving off a complete step draws its lines; the end Home line; layover and Rental Return neighbours; live updates while typing; Dashboard row unchanged; screenshot of a mixed row.
 
 ## Build Planner
 

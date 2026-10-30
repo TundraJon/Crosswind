@@ -658,7 +658,7 @@
       let cls = 'node';
       if (n.optional) cls += ' optional';
       if (prog.done[n.key]) cls += ' done';
-      if (idx < selIdx) cls += ' passed'; else if (idx === selIdx) cls += ' current';
+      if (idx === selIdx) cls += ' current';
       div.className = cls; div.dataset.key = n.key;
       div.innerHTML = '<div class="nd">' + esc(n.icon) + '</div><div class="nl">' + esc(n.label) + '</div>';
       div.addEventListener('click', () => { wizardState.selected = n.key; renderNodeTrack(); renderStepForm(); });
@@ -676,7 +676,10 @@
     const tr = activeTrip();
     if (!tr) return;
     const prog = itineraryProgress(wizardState, tr.startsAtHome, tr.endsAtHome);
-    nodeTrack.querySelectorAll('.node').forEach(n => n.classList.toggle('done', !!prog.done[n.dataset.key]));
+    const els = Array.from(nodeTrack.querySelectorAll('.node'));
+    els.forEach(n => n.classList.toggle('done', !!prog.done[n.dataset.key]));
+    /* a line is drawn only between two complete steps, and never to or from the step being edited */
+    els.forEach((n, i) => n.classList.toggle('linked', i > 0 && !!prog.done[els[i - 1].dataset.key] && !!prog.done[n.dataset.key] && !n.classList.contains('current') && !els[i - 1].classList.contains('current')));
     const counter = document.getElementById('wizProgress');
     if (counter) { counter.classList.toggle('complete', prog.all); counter.textContent = prog.all ? 'Itinerary complete' : prog.complete + ' of ' + prog.counted + ' steps complete'; }
     const bar = document.querySelector('#pipelineList .proj-row.selected .proj-bar');
@@ -1281,7 +1284,7 @@
       if (n.optional) cls += ' optional';
       if (idx < selIdx) cls += ' done passed'; else if (idx === selIdx) cls += ' current';
       div.className = cls; div.dataset.key = n.key;
-      div.innerHTML = '<div class="nd">' + n.icon + '</div><div class="nl">' + esc(n.label) + '</div>';
+      div.innerHTML = '<div class="nd">' + esc(n.icon) + '</div><div class="nl">' + esc(n.label) + '</div>';
       div.addEventListener('click', () => { dashSelected = n.key; renderDash(); });
       dashTrack.appendChild(div);
     });
