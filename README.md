@@ -292,6 +292,16 @@ A step now shows as done because its data is filled in, not because it sits befo
 
 _Empty — nothing queued right now._
 
+### Escape the Dashboard step icons
+Not yet authorized to build. Found while building Build 37.
+
+- In `renderDash()` the Dashboard row writes each step's icon with `n.icon`; change it to `esc(n.icon)` so a typed `<` or `"` as a Setup step icon shows as plain text there, as it already does everywhere else (Build 35).
+- No other change; saved data stays as typed.
+
+**Reuse:** `esc()`.
+
+**Verification plan:** set a Setup step icon to `<` (and `"`), confirm the Dashboard row shows it as a character with no broken markup and the other steps unchanged; the Wizard row still shows it too; earlier suites re-run.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
@@ -308,9 +318,6 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; forms for every step type with real step dates, confirmation numbers, and gentle validation; Add Another Flight / Stop; "Select…" dropdowns fed by Setup; smart times on Uber fields.
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
 - Missing: reordering stops and flights.
-
-### Inconsistency: Dashboard step icons are not escaped
-Found while building Build 37. In `renderDash()` the Dashboard row writes each step's icon with `n.icon` (not `esc(n.icon)`), so a typed `<` as a Setup step icon would be drawn as markup there. Build 35 escaped every other place. One-word fix; not made.
 
 ### Check: airport city names
 The airport table's city names come straight from the OurAirports source. Only the odd-looking ones (long, slashes, dated) were reviewed and shortened by hand in Build 17. Tell me any that look wrong or that you would call differently (e.g. a name you search by) and they can be adjusted in `airports.js`.
