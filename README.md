@@ -288,19 +288,19 @@ Not yet authorized to build. Settled with Jon.
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
 
-### Inventory: what Setup and the Trip Wizard really do today (updated after Build 18)
-Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished but does nothing real; "Missing" = not built or not designed yet. Setup saves for real (Build 15), trips save (Build 16), and the Wizard's dates and fields are real (Build 18).
+### Inventory: what Setup and the Trip Wizard really do today (updated after Build 34)
+Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished but does nothing real; "Missing" = not built or not designed yet. Setup saves for real (Build 15), trips save (Build 16), and the Wizard's dates and fields are real (Build 18). Since then: remove a flight or stop (Build 21), hotel brand picker and every major chain in the Chain list (Builds 22 and 26), phone formatting (Build 23), a Home step at both ends (Build 29), and steady page height in the Wizard (Builds 30 to 34).
 
 **Setup, what is still missing**
 - Real address verification (USPS / CASS), cached lat/long for the home address, and the nearest-airports suggestion: Step 4, behind the disabled buttons. The airport table with coordinates now exists (Build 17), so only the address geocoding needs a network.
 - Profile details (name, demographics): skipped on purpose, nothing uses them yet. **Saved Addresses** (recurring hotels and client sites that could autofill the Wizard): held for the Wizard spec.
 - Temperature and Distance units are saved but nothing shows a temperature or distance yet (weather, Distance to Home: Step 4).
 
-**Trip Wizard (after Build 18)**
+**Trip Wizard (after Build 34)**
 - Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; forms for every step type with real step dates, confirmation numbers, and gentle validation; Add Another Flight / Stop; "Select…" dropdowns fed by Setup; smart times on Uber fields.
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
-- Cosmetic: ✎ pins only toggle a look; a step counts as "done" only because it sits before the selected one.
-- Missing: removing or reordering stops and flights; real step completion.
+- Cosmetic: a step counts as "done" only because it sits before the selected one.
+- Missing: reordering stops and flights; real step completion.
 
 ### Check: airport city names
 The airport table's city names come straight from the OurAirports source. Only the odd-looking ones (long, slashes, dated) were reviewed and shortened by hand in Build 17. Tell me any that look wrong or that you would call differently (e.g. a name you search by) and they can be adjusted in `airports.js`.
