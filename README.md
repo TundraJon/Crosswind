@@ -236,17 +236,15 @@ Tapping from a tall step to a short one shortened the page, the browser clamped 
 - **Verification:** `verify19`, zero JS errors, 390×800. Reproduced first on the old code: with the row scrolled to a fixed spot, tapping Layover moved the step row from 130px to 379px and reset the scroll (249→0). With the fix: the row stays at 60px and the scroll position unchanged while tapping Layover, Flight (Final), Rental, Hotel, Objective / To, Rental Return, Flight (Initial), and Layover again; the same through all 12 Dashboard steps; blank space present below the Continue button (screenshot looked at); the other screens' padding is unchanged. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 18 pass; the same known expected-output differences in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`.
 - The Dashboard page already fit on one screen with the old code, so its jump could not be reproduced before the fix; the spacer was verified there as above.
 
+### Build 31 (completed): Half-screen spacer on the Wizard, none on the Dashboard
+Jon asked to try half a screen of space on the Wizard and none on the Dashboard (adjusts Build 30).
+- [x] `styles.css`: `#screenWizard { padding-bottom: 50vh; }` (was `#screenWizard, #screenDash { padding-bottom: 100vh; }`); the Dashboard returns to the normal 24px `.screen` padding. No script change.
+- [x] Cache-bust bumped: `styles.css?v=10→11`. Version: v1.00→v1.01.
+- **Verification:** `verify20` (the Build 30 script with the new expectations), zero JS errors, 390×800: Wizard padding 400px (half), Dashboard 24px, Setup / Request / Media unchanged; the Dashboard row and scroll do not move while tapping all steps. **Not fully met:** with the Wizard row parked at 60px from the top, tapping from the tall flight form to Layover, Flight (Final), Rental, Hotel, Objective / To, and Rental Return moved the row to 93px (33px lower) and the scroll position from 319 to 286. The half-screen spacer is slightly too small for that worst case at this phone size (full screen, Build 30, held at 0px). Shipped as Jon asked; a number around 54vh would likely close it. Not changed without Jon's say-so.
+
 ## Build Queue
 
-### Half-screen spacer on the Wizard, none on the Dashboard
-Not yet authorized to build. Settled with Jon (he wants to try it).
-
-- Wizard: the bottom spacer drops from `100vh` to `50vh` (`#screenWizard` `padding-bottom`).
-- Dashboard: the spacer is removed; `#screenDash` returns to the normal 24px bottom padding (the `.screen` default).
-- Setup, In-Flight, and Media are unchanged.
-- Adjusts Build 30 only; no script change expected.
-
-**Verification plan:** 390×800: with the step row parked at a fixed spot, tap tall and short steps (Flight, Layover, Rental, Hotel) and confirm the row does not move at half a screen of space; check the tallest flight form is not the exception; the Dashboard has the 24px padding again and its steps still do not move; the other screens unchanged. If the row does move on the tallest step, report the number to Jon instead of changing the size on my own.
+_Empty — nothing queued right now._
 
 ## Build Planner
 
