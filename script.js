@@ -606,6 +606,7 @@
       });
 
       nodes.push({ key: 'uber-home', icon: stepIcon('Uber Home'), label: stepName('Uber Home'), type: 'uberHome' });
+      nodes.push({ key: 'home-end', icon: stepIcon('Home'), label: stepName('Home'), type: 'home' });
     }
     return nodes;
   }

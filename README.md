@@ -225,18 +225,13 @@ Jon never uses the pencil and kept tapping it by accident. It was visual-only: i
 
 ## Build Queue
 
-### Home at the end of the step rows
-Not yet authorized to build. Settled with Jon (yes to both recommendations).
+### Build 29 (completed): Home at the end of the step rows
+Both step rows now end with a Home node, mirroring the one at the start.
+- [x] `script.js` (`buildNodes`): a `home-end` node (`type: 'home'`, same `stepName('Home')` / `stepIcon('Home')` as the first) after Uber Home, inside the existing `endsHome` block, so it shows only when the trip's "Ends at home" is on. The Wizard and Dashboard share `buildNodes()`, so both rows get it; both Homes open the same Home Base note / card. The first Home keeps the key `home`, so the two select independently. `firstStepKey` and the rest needed no change.
+- [x] Cache-bust bumped: `script.js?v=12→13`. Version: v0.98→v0.99.
+- **Verification:** `verify18`, 20 checks, zero JS errors: both rows start and end with Home (after Uber Home); the last Home selects on its own, shows the Home Base note, and earlier steps show done; the first Home still selects separately; the Dashboard last Home shows the Home card with the saved address (screenshot looked at); two stops still give exactly two Homes; Ends at home off drops it on both rows and turning it back on restores it; Starts away, ends home works; a renamed Home default shows at the end. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17 pass. Expected-output differences only: the extra trailing Home in `verify10b` (4) and `verify11` (2), plus the known ones in `verify9c`, `verify12`, `verify13`.
 
-- Both step rows (Wizard and Dashboard, via `buildNodes()`) end with a Home node after Uber Home, mirroring the Home node at the start.
-- It shows only when the trip's "Ends at home" is on (the starting Home follows "Starts at home"); with it off the row ends at the last stop.
-- Same Home name and icon as the first one (`stepName('Home')` / `stepIcon('Home')`), so a Setup default applies to both.
-- Tapping it shows the same Home Base card as the first Home: the Wizard note ("This is your saved Home Base from Setup...") and the Dashboard Home card.
-- Needs its own node key (e.g. `home-end`) so the two Homes select independently; the row's done/current colouring, `ensureWizardSelection`, `firstStepKey`, and any code that assumes one `type: 'home'` node are checked.
-
-**Reuse:** the existing Home node, its form and Dashboard card.
-
-**Verification plan:** a trip with Ends at home on shows Home last on both rows; off hides it; both Homes open the Home Base card and select independently; the first-step selection and add or remove flight and stop paths still work; a two-stop trip; a trip saved before this build; screenshots of both rows.
+_Empty — nothing queued right now._
 
 ## Build Planner
 
