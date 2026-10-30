@@ -8,6 +8,7 @@
     screens.forEach(s => s.classList.toggle('active', s.id === id));
     navBtns.forEach(b => b.classList.toggle('active', b.dataset.screen === id));
     window.scrollTo(0, 0);
+    if (id === 'screenWizard') refreshWizardSpacer();
     if (id === 'screenDash') { gsPrimaryIsMph = currentUnits().speed !== 'kph'; renderGroundSpeed(); renderDash(); }
   }
   navBtns.forEach(b => b.addEventListener('click', () => showScreen(b.dataset.screen)));
@@ -966,9 +967,15 @@
   }
 
   /* Every step gets the same total page height (tallest step + a quarter screen), so the step row stays put as the user taps through steps of different heights */
+  let tallestWindow = 0; /* the window is shorter while the keyboard is open; use the tallest seen */
+  function refreshWizardSpacer() {
+    const nodes = buildNodes();
+    const node = nodes.find(n => n.key === wizardState.selected);
+    if (node) equalizeStepHeight(nodes, node);
+  }
   function equalizeStepHeight(nodes, node) {
     const spacer = document.getElementById('wizSpacer');
-    if (!spacer) return;
+    if (!spacer || !stepFormContainer.getBoundingClientRect().width) return;
     const saveFields = stepDateFields;
     const probe = document.createElement('div');
     probe.style.cssText = 'position:absolute; left:-9999px; top:0; visibility:hidden; width:' + stepFormContainer.getBoundingClientRect().width + 'px;';
@@ -978,7 +985,8 @@
     probe.remove();
     stepDateFields = saveFields;
     const current = stepFormContainer.getBoundingClientRect().height;
-    spacer.style.height = Math.round(Math.max(0, tallest - current) + window.innerHeight * 0.25) + 'px';
+    tallestWindow = Math.max(tallestWindow, window.innerHeight);
+    spacer.style.height = Math.round(Math.max(0, tallest - current) + tallestWindow * 0.25) + 'px';
   }
 
   function renderStepForm() {

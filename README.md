@@ -250,28 +250,22 @@ Jon wants the step row to stay put as he taps through steps of different heights
 - **Verification:** `verify21`, zero JS errors, at 390×800, ×700, and ×900: a big trip (two outbound flights, two return flights, two stops, 19 steps), row parked 60px from the top; tapping all 19 steps never moved the row or the scroll position, and the page height was identical on every step. Space below Continue at 800 tall: tallest step (the last flight, which has the add and remove buttons) 236px (a quarter screen plus the page padding), first flight 287, Layover 626, Uber 533, Rental 401, Hotel 293, Rental Return 585. A seat number types and uppercases; reload keeps the spacer; Setup, Request, Media, and Dashboard keep 24px padding; screenshot looked at. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 18 pass; the same known expected-output differences in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`.
 - Not verified on a real phone: the on-screen keyboard (headless Chromium has none). The spacer is sized from the window height at render time and is not recalculated if the keyboard changes the viewport.
 
+### Build 33 (completed): First Wizard open lets the step row reach the top
+Reported by Jon: on first open the Uber step would not let the step row scroll to the top until another step had been tapped.
+- [x] Cause (reproduced first): the first step drew while the Wizard screen was hidden, so `equalizeStepHeight()` measured every form as zero and set only the 200px quarter-screen spacer (row stuck about 176px from the top; 458px after tapping another step).
+- [x] `script.js`: `refreshWizardSpacer()` re-measures whenever the Wizard screen is shown (`showScreen`); `equalizeStepHeight()` now does nothing while the form has no width (hidden), so it never stores a zero measurement.
+- [x] Cache-bust bumped: `script.js?v=14→15` (shared with Build 34). Version: v1.02→v1.03 (shared with Build 34).
+- **Verification:** `verify22`, zero JS errors, 390×800. Old code reproduced it (first-open spacer 200px vs 509px later; row stuck 176px from the top). Fixed: first-open spacer equals the later one; the row reaches 60px from the top straight after a fresh load; page height is equal on every step after switching screens away and back. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 18 pass; `verify21` row-never-moves and equal-height checks pass at 700, 800, and 900 (its old quarter-screen expectation is out of date); the same known expected-output differences in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`.
+
+### Build 34 (completed): Keyboard no longer snaps the Wizard down (step 1)
+Reported by Jon on Chrome for Android: typing a seat number then tapping Layover closes the keyboard and slides the page down about 130px. Not reproducible in the sandbox (no real keyboard).
+- [x] `index.html`: the viewport meta now ends `interactive-widget=resizes-content`, so Chrome shrinks the page for the keyboard instead of panning it (working theory, not yet proven on the phone).
+- [x] `script.js`: `equalizeStepHeight()` bases the quarter-screen on the tallest window height seen (`tallestWindow`), not the current `innerHeight`, which is smaller while the keyboard is open.
+- **Verification:** `verify22`: the meta tag is present; simulating a short (keyboard) window and back leaves the same step's spacer identical (263px before and after). **Not verified:** the actual keyboard on a real phone; Jon needs to type a seat number and tap Layover to see whether the row holds. Step 2 (remember and restore the scroll position) was left unbuilt, as queued; build it only if step 1 is not enough.
+
 ## Build Queue
 
-### Hold the screen still when the keyboard closes
-Not yet authorized to build. Reported by Jon on Chrome for Android, with screenshots: typing a seat number on a flight, the step row sits near the top; tapping Layover dismisses the keyboard and the page slides down about 130px, so the row is mid-screen.
-
-- Not reproducible in the sandbox (window-resize simulation left the scroll unchanged, 319 with the row at 60px). Jon's second screenshot shows lots of blank space still below Continue after the snap, so it is not a bottom-of-page clamp.
-- Working theory (unproven until tried on the phone): with the keyboard open, Chrome pans the visible area over the page beyond the page's own scroll position; closing the keyboard resets that pan and everything slides down.
-- Fix, step 1: add `interactive-widget=resizes-content` to the `<meta name="viewport">` in `index.html`, so Chrome shrinks the page for the keyboard instead of panning it and the scroll position survives the keyboard closing. In `equalizeStepHeight()` base the quarter-screen on the largest window height seen (not the current `innerHeight`), since the window height is smaller while the keyboard is open.
-- Fix, step 2, only if step 1 is not enough on the phone: on tap of a Wizard step, remember `scrollY` and re-apply it after the form is re-drawn and on resize events for about 500ms; stop early if the user scrolls by hand. Not built unless Jon asks.
-- Side effects to check: the Wizard form fields are still reachable above the keyboard; the spacer height does not change while the keyboard is open; other screens' keyboards behave the same or better.
-
-**Reuse:** the existing viewport meta, `equalizeStepHeight()`.
-
-**Verification plan:** headless Chromium cannot show a real keyboard: confirm the meta tag, that the spacer stays the same across window-resize simulations (800→480→800), and all earlier Wizard height checks still pass; the actual keyboard behaviour must be checked on Jon's phone (type a seat number, tap Layover, see whether the row holds).
-
-### First Wizard open: step row cannot reach the top
-Not yet authorized to build. Reproduced by Jon's report and a throwaway Playwright script (390×800).
-
-- Bug: on a fresh load the first Wizard step (Uber) draws while `#screenWizard` is hidden, so `equalizeStepHeight()` measures every form as zero height and sets only the quarter-screen spacer (200px). The page can then scroll about 203px, and the step row stays about 176px from the top. After tapping any other step the Wizard is visible, the spacer becomes 326px, and the row can reach the top (Build 32).
-- Fix: re-run `equalizeStepHeight()` whenever the Wizard screen is shown (the screen-switch path and after a trip is chosen), not only when a step is drawn; skip when the screen is hidden so it never stores a zero measurement.
-- Verification plan: fresh load, go to the Wizard, and confirm the Uber spacer equals the spacer after tapping another step and returning; the step row can scroll to 60px from the top on first open; switch away and back, reload with a saved trip, switch trips, and rotate the viewport size; the other screens unchanged.
-
+_Empty — nothing queued right now._
 
 ## Build Planner
 
