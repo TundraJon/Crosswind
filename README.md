@@ -231,7 +231,17 @@ Both step rows now end with a Home node, mirroring the one at the start.
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Stop the page jumping when step height changes
+Not yet authorized to build. Settled with Jon (yes to the Dashboard too, and a full-screen-height spacer).
+
+- Reported: tapping from a tall step (a flight) to a short one (Layover, Rental) shortens the page, the browser clamps the scroll position, and the step row jumps; Jon has to re-scroll on every tap.
+- Fix: empty space below the Wizard and below the Dashboard card area, about one screen tall (`100vh`-based spacer under the content on each screen), so the page never gets short enough to clamp the scroll. The step row then stays where Jon put it while the form below it grows and shrinks.
+- Visible change: blank space at the very bottom when scrolled all the way down. No other layout change; the Back / Continue buttons and the Dashboard dock keep their current place relative to the content.
+- Open check during the build: the Dashboard's Copy Address dock and the bottom nav must still sit correctly with the spacer, and the other screens (Setup, In-Flight, Media) are not changed.
+
+**Reuse:** the existing screen containers and CSS.
+
+**Verification plan:** 390px: scroll so the step row sits at a fixed spot, tap through a tall flight, Layover, a second flight, Rental, and Hotel, and confirm the row's top position never changes (compare bounding boxes before and after each tap); same on the Dashboard rows; the spacer is blank and does not cover anything; Setup, In-Flight, and Media unchanged.
 
 ## Build Planner
 
