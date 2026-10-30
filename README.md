@@ -229,19 +229,16 @@ Both step rows now end with a Home node, mirroring the one at the start.
 - [x] Cache-bust bumped: `script.js?v=12→13`. Version: v0.98→v0.99.
 - **Verification:** `verify18`, 20 checks, zero JS errors: both rows start and end with Home (after Uber Home); the last Home selects on its own, shows the Home Base note, and earlier steps show done; the first Home still selects separately; the Dashboard last Home shows the Home card with the saved address (screenshot looked at); two stops still give exactly two Homes; Ends at home off drops it on both rows and turning it back on restores it; Starts away, ends home works; a renamed Home default shows at the end. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17 pass. Expected-output differences only: the extra trailing Home in `verify10b` (4) and `verify11` (2), plus the known ones in `verify9c`, `verify12`, `verify13`.
 
+### Build 30 (completed): Stop the page jumping when step height changes
+Tapping from a tall step to a short one shortened the page, the browser clamped the scroll, and the step row jumped, so Jon re-scrolled on every tap.
+- [x] `styles.css`: `#screenWizard, #screenDash { padding-bottom: 100vh; }`, a screen-height blank space under the Wizard and the Dashboard so the page never gets short enough to clamp the scroll. Setup, Request (In-Flight), and Media keep their 24px padding. No script change.
+- [x] Cache-bust bumped: `styles.css?v=9→10`. Version: v0.99→v1.00 (the rule's +0.01; Jon raises the whole-number part himself, so this is arithmetic, not a milestone).
+- **Verification:** `verify19`, zero JS errors, 390×800. Reproduced first on the old code: with the row scrolled to a fixed spot, tapping Layover moved the step row from 130px to 379px and reset the scroll (249→0). With the fix: the row stays at 60px and the scroll position unchanged while tapping Layover, Flight (Final), Rental, Hotel, Objective / To, Rental Return, Flight (Initial), and Layover again; the same through all 12 Dashboard steps; blank space present below the Continue button (screenshot looked at); the other screens' padding is unchanged. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 18 pass; the same known expected-output differences in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`.
+- The Dashboard page already fit on one screen with the old code, so its jump could not be reproduced before the fix; the spacer was verified there as above.
+
 ## Build Queue
 
-### Stop the page jumping when step height changes
-Not yet authorized to build. Settled with Jon (yes to the Dashboard too, and a full-screen-height spacer).
-
-- Reported: tapping from a tall step (a flight) to a short one (Layover, Rental) shortens the page, the browser clamps the scroll position, and the step row jumps; Jon has to re-scroll on every tap.
-- Fix: empty space below the Wizard and below the Dashboard card area, about one screen tall (`100vh`-based spacer under the content on each screen), so the page never gets short enough to clamp the scroll. The step row then stays where Jon put it while the form below it grows and shrinks.
-- Visible change: blank space at the very bottom when scrolled all the way down. No other layout change; the Back / Continue buttons and the Dashboard dock keep their current place relative to the content.
-- Open check during the build: the Dashboard's Copy Address dock and the bottom nav must still sit correctly with the spacer, and the other screens (Setup, In-Flight, Media) are not changed.
-
-**Reuse:** the existing screen containers and CSS.
-
-**Verification plan:** 390px: scroll so the step row sits at a fixed spot, tap through a tall flight, Layover, a second flight, Rental, and Hotel, and confirm the row's top position never changes (compare bounding boxes before and after each tap); same on the Dashboard rows; the spacer is blank and does not cover anything; Setup, In-Flight, and Media unchanged.
+_Empty — nothing queued right now._
 
 ## Build Planner
 
