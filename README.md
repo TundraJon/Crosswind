@@ -318,6 +318,18 @@ Flights can be moved earlier or later inside their own group, and a date that en
 
 _Empty — nothing queued right now._
 
+### Add a flight right after the current one
+Not yet authorized to build. Settled with Jon.
+
+- Every flight form (outbound and return) gets the add button, not only the last flight's. It reads "+ Add Flight After This One" and inserts a new blank flight directly after the flight being viewed in that flight's own group (a stop's outbound flights, or the return flights). On the last flight it behaves as "Add Another Flight" does today (appends).
+- Selection moves to the new flight. Position names (Initial, Connection n, Final, and the return names) and the Layover steps follow the new order; the new flight starts blank and its date follows the flight before it until typed.
+- The button keeps its place above Move earlier / Move later and Remove; the confirmation carry-forward is unaffected (it runs when an airline is chosen).
+- The trip's `modified` time updates like any edit.
+
+**Reuse:** the Add Another Flight wiring (`flights.push(newFlight())` becomes an insert at the current index + 1), `moveButtonsHTML()` placement, `commitTrips()`.
+
+**Verification plan:** from the Initial flight of a group of two, add a flight and confirm the new one is the Connection between them with the old Final still last; add after a Connection, after the Final (append), and on the return flights; typed data on the other flights is untouched; selection lands on the new flight; names and Layovers update; dates default correctly; reload; completion and lines update; earlier suites re-run.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
