@@ -238,7 +238,15 @@ Tapping from a tall step to a short one shortened the page, the browser clamped 
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Half-screen spacer on the Wizard, none on the Dashboard
+Not yet authorized to build. Settled with Jon (he wants to try it).
+
+- Wizard: the bottom spacer drops from `100vh` to `50vh` (`#screenWizard` `padding-bottom`).
+- Dashboard: the spacer is removed; `#screenDash` returns to the normal 24px bottom padding (the `.screen` default).
+- Setup, In-Flight, and Media are unchanged.
+- Adjusts Build 30 only; no script change expected.
+
+**Verification plan:** 390×800: with the step row parked at a fixed spot, tap tall and short steps (Flight, Layover, Rental, Hotel) and confirm the row does not move at half a screen of space; check the tallest flight form is not the exception; the Dashboard has the 24px padding again and its steps still do not move; the other screens unchanged. If the row does move on the tallest step, report the number to Jon instead of changing the size on my own.
 
 ## Build Planner
 
