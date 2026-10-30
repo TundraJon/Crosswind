@@ -299,21 +299,16 @@ Reported by Jon with a screenshot after Build 37: a complete amber step beside a
 - [x] `styles.css`: `#nodeTrack .node.linked::before` amber; `#nodeTrack .node.current::before` back to the dim line colour, so both lines touching the step being edited are broken. Cache-bust bumped: `styles.css?v=14→15`.
 - **Verification:** `verify27`, zero JS errors; the same script failed on the old code (the line into the current step was drawn, e.g. `uber-out` with no line wanted but amber shown). New code: the computed colour of every node's line matches its two neighbours at each stage (fresh trip; editing a complete Uber, where Home to Uber is broken; moving off it, where it is drawn; Flight completed while current; everything complete on Uber Home and on the end Home; Hotel cleared live while current; with a Layover); the Dashboard row stays position-based (earlier steps passed, the line into the current step amber, none after). Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 22, 23, 26 pass; `verify25`'s old "line is position-based" check is out of date on purpose, plus the known differences in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`, `verify18`.
 
+### Build 41 (completed): Wizard progress updates when a field is left; lines stay through the current step
+Jon pointed out the Build 40 rule always left a gap around the blue step, since one step is always selected. A line should break only when the step actually becomes incomplete, and that is judged when a field is left, not per keystroke.
+- [x] `script.js`: the `linked` line rule in `refreshWizardProgress()` no longer excludes the current step (a line is drawn whenever both steps are complete). `commitTrips(e)` skips the progress refresh for `input` events, so fills, lines, the counter, and the list bar update on `change` / `focusout` / `click` (leaving a field, choosing a dropdown) and at once for adding or removing a flight or stop, tapping a step, and loading.
+- [x] `styles.css`: `#nodeTrack .node.current::before` set to the dim line colour, ahead of `#nodeTrack .node.linked::before`, so the Dashboard's old "current line is amber" rule no longer leaks into the Wizard.
+- [x] Cache-bust bumped: `script.js?v=18→19`, `styles.css?v=15→16`. Version: v1.06→v1.07.
+- **Verification:** `verify28`, 30 checks, zero JS errors, real keystrokes and Tab: typing a pickup time without leaving the field changes nothing (not done, counter and bar unchanged); leaving it fills the step, updates the counter and bar, and the current step keeps its line from Home; clearing it and staying in the field changes nothing, leaving the empty field un-fills and breaks the line; dropdowns update at once (Select… un-fills, an airline restores); retyping a flight number never blinks the step; seat 5A to 5B changes nothing; clearing the flight number and moving to another field breaks its lines; a finished itinerary shows every line drawn through the current step (screenshot looked at); adding a flight un-completes the trip at once; the Dashboard row is unchanged. Found and fixed during verification: the first run showed the current step's line still amber because the old `.node.current::before` rule applied to the Wizard; fixed with the override above. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 22, 23, 26 pass; `verify25` (fills while typing) and `verify27` (current step breaks lines) fail on purpose, as does `verify18`'s "done by position", plus the known differences in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`.
+
 ## Build Queue
 
 _Empty — nothing queued right now._
-
-### Wizard progress updates when a field is left; lines stay through the current step
-Not yet authorized to build. Settled with Jon. Replaces the "current step breaks both lines" rule from Build 40 and the type-by-type timing from Build 37.
-
-- **Lines:** in the Wizard row a line is drawn whenever both of its steps are complete, including the step being edited. The blue (current) circle only marks where Jon is; it no longer breaks the lines around it. A line breaks when either of its steps is incomplete.
-- **When it updates:** the amber fills, the lines, the "N of M steps complete" counter, and the list bar all recalculate when a field is left (focus leaves it) or a dropdown changes, not on every keystroke. Example: clearing the airline and tapping another field un-fills the flight and breaks its lines; editing a seat from 5A to 5B never changes anything because the seat is not part of completion; retyping a flight number does not flicker the step.
-- **Immediate cases (no field to leave):** dropdown choices (airline, rental company, hotel chain), adding or removing a flight or stop, tapping to another step, and loading a trip all recalculate at once.
-- The Dashboard row is unchanged (position-based).
-
-**Reuse:** `refreshWizardProgress()` and its `linked` class (drop the current-step test from the line rule); the delegated `change` / `focusout` / `click` listeners already on `#stepFormContainer` that call `commitTrips()` (remove the call from the typing `input` path).
-
-**Verification plan:** for each step type, type a value without leaving the field and confirm nothing changes yet, then leave the field and confirm the fill, lines, counter, and bar update; clear a field and leave it to see the lines break and the step un-fill; change only a seat and see no change; dropdowns update at once; the current complete step keeps its lines; flicker check while retyping; add and remove flights and stops; reload; earlier suites re-run with the changed expectations noted.
 
 ## Build Planner
 

@@ -678,8 +678,8 @@
     const prog = itineraryProgress(wizardState, tr.startsAtHome, tr.endsAtHome);
     const els = Array.from(nodeTrack.querySelectorAll('.node'));
     els.forEach(n => n.classList.toggle('done', !!prog.done[n.dataset.key]));
-    /* a line is drawn only between two complete steps, and never to or from the step being edited */
-    els.forEach((n, i) => n.classList.toggle('linked', i > 0 && !!prog.done[els[i - 1].dataset.key] && !!prog.done[n.dataset.key] && !n.classList.contains('current') && !els[i - 1].classList.contains('current')));
+    /* a line is drawn between two complete steps (the current step included) */
+    els.forEach((n, i) => n.classList.toggle('linked', i > 0 && !!prog.done[els[i - 1].dataset.key] && !!prog.done[n.dataset.key]));
     const counter = document.getElementById('wizProgress');
     if (counter) { counter.classList.toggle('complete', prog.all); counter.textContent = prog.all ? 'Itinerary complete' : prog.complete + ' of ' + prog.counted + ' steps complete'; }
     const bar = document.querySelector('#pipelineList .proj-row.selected .proj-bar');
@@ -1429,8 +1429,8 @@
   function tripContent(t) { return JSON.stringify([t.name, t.start, t.end, t.startsAtHome, t.endsAtHome, t.itinerary]); }
   function saveTrips() { try { localStorage.setItem(TRIPS_KEY, JSON.stringify({ v: 1, trips })); } catch (e) {} }
   function saveActive() { try { localStorage.setItem(ACTIVE_KEY, activeTripId); } catch (e) {} }
-  function commitTrips() {
-    refreshWizardProgress();
+  function commitTrips(e) {
+    if (!e || e.type !== 'input') refreshWizardProgress(); /* progress updates when a field is left, not on every keystroke */
     let changed = false;
     trips.forEach(t => {
       const c = tripContent(t);
