@@ -202,33 +202,21 @@ A Brand field next to Chain, with a list per chain.
 - [x] `script.js` (Uber Home form): the "(usually set live at baggage claim)" hint moved out of the Pickup Time label into a `.fld-note` under the input, so both labels are one line. Uber (outbound) has no long hint and already lined up, so it is unchanged.
 - **Verification:** `verify15`: Pickup and Drop-off inputs have the same top position on Uber Home and Uber (both 562px at 390px); hint text still present; screenshot checked. Regression: suites 10b, 11, 13, 14 pass; `verify9c` still shows its 3 expected-output differences from Builds 22 and 23.
 
+### Build 26 (completed): Hotel Chain dropdown lists every major chain
+Jon can stay at a chain he has no program with (his example: AmericInn, a Wyndham brand).
+- [x] `script.js`: `hotelChainOptionsHTML()` builds the Hotel Chain dropdown: Setup hotel programs first, a disabled dashed `──────────` option, then the major chains alphabetically, leaving out any major chain a program already covers (keyword match, same rule as the brand picker). A stored chain in neither list stays visible at the top. Rental Company and Airline are unchanged.
+- [x] `hotel-brands.js`: new `window.CROSSWIND_MAJOR_HOTEL_CHAINS` (Best Western, Choice Hotels, Drury Hotels, Extended Stay America, Hilton, Hyatt, IHG, Marriott, Radisson, Red Roof, Wyndham; Motel 6 and Omni dropped by Jon).
+- [x] Cache-bust bumped: `script.js?v=10→11`, `hotel-brands.js?v=1→2`, `styles.css?v=7→8` (shared with Build 27). Version: v0.96→v0.97 (shared with Build 27).
+- **Verification:** `verify16`: no programs (Select… plus all 11 chains, no separator); with Marriott Bonvoy, Wyndham Rewards, and another program (programs, separator, the rest without Marriott or Wyndham); Wyndham brings up AmericInn; the Dashboard shows `CHAIN: Wyndham`; reload keeps it; the separator cannot be picked; an unknown stored chain stays visible. `verify13` has 3 expected-output differences (old "No hotel programs yet" and program-only list).
+
+### Build 27 (completed): Bigger tap targets on the step rows
+- [x] `styles.css` (shared `.node` styles, so the Wizard and Dashboard rows both change): icon circle 16px→32px; each step a zone at least 84px wide and 68px tall; labels wrap to two lines in a 78px column with an ellipsis after that (no overlap); the connecting line moved to the circle centre. Closes the Planner item "step labels overlap".
+- [x] `script.js` (`renderNodeTrack`): the ✎ pencil moved out of the label to its own absolutely positioned 28px button at the step's top-right (it still does not select the step).
+- **Verification:** `verify16`, 390px touch: all step zones at least 72×64, circles 32px, no label overlap, labels at most 2 lines, pencil at least 28px square; touch taps at the lower-left and lower-middle of every step's zone (18 of 18) open that step; the pencil opens its editor without changing the step; Dashboard row zones and labels checked; screenshots of both rows looked at. Regression: suites 2c, 3, 4, 5b, 7, 10b, 11, 14, 15 pass; `verify9c` and `verify12` only the known version and output differences.
+
 ## Build Queue
 
-### Hotel Chain dropdown lists every major chain
-Not yet authorized to build. Settled with Jon (Rental Company and Airline stay as they are: he only uses companies he has a program with). Chain list confirmed by Jon (Motel 6 and Omni dropped; Choice Hotels kept).
-
-- The Hotel step's Chain dropdown shows the user's Setup hotel programs first (alphabetical, as today), then a dashed separator line (a disabled option), then the major chains alphabetically.
-- No repeats: a major chain is left out when one of the user's programs matches it by the same keyword rule as the brand picker (a "Marriott Bonvoy" program hides "Marriott"; a "Wyndham Rewards" program hides "Wyndham").
-- Major chains: Best Western, Choice Hotels, Drury Hotels, Extended Stay America, Hilton, Hyatt, IHG, Marriott, Radisson, Red Roof, Wyndham. The list lives in `hotel-brands.js` so it is easy to correct.
-- Choosing a major chain stores its name as the chain and works like any chain: the Brand list matches by keyword (Wyndham gives AmericInn), and the Dashboard shows `CHAIN: Wyndham`.
-- A stored chain not in either list (deleted program, or older trip) stays visible, as today. The separator is never selectable or stored.
-- No Setup change; the dropdown's "Select…" blank stays first.
-
-**Reuse:** `selectOptionsHTML()`, `brandListFor()`, `hotel-brands.js`.
-
-**Verification plan:** no programs (all chains listed, alphabetical); with Marriott Bonvoy and Wyndham Rewards programs (those two first, separator, the rest without Marriott or Wyndham); picking Wyndham brings up AmericInn and prefills; Dashboard line; the separator cannot be picked; a trip with a deleted program's chain still shows it; reload; 390px screenshot.
-
-### Bigger tap targets on the step rows
-Not yet authorized to build. Settled with Jon (Wizard and Dashboard rows both; he has not used the ✎ pencil yet but expects to). Promotes the Planner item "step labels overlap on long trips", now removed.
-
-- Both step rows (`#nodeTrack` in the Wizard, `#dashTrack` on the Dashboard; they share the `.node` styles) get bigger: icon circle from 16px to about 32px; each step is one tap zone at least 72px wide and 64px tall covering the icon and its label.
-- Labels stay small but never spill: they wrap to two lines inside their own column (no more overlap into neighbours); a very long label ends with an ellipsis after two lines. The connecting line follows the bigger circles.
-- The ✎ override pencil stays a separate tap target (it must not select the step), made at least 28px square with spacing so a miss does not trigger the other.
-- The row is taller and scrolls sideways a little more; the current step still scrolls into view as today.
-
-**Reuse:** the existing `.node`, `.nd`, `.nl`, `.edit-pin` styles; no markup change expected beyond what the wrapping needs.
-
-**Verification plan:** 390px screenshots of both rows with a one-stop and a two-stop trip (about 14 steps); no label overlap (bounding boxes of neighbouring labels never intersect); tap the edges of each step's zone and confirm the right step opens; the pencil still opens its editor without selecting the step; the current step scrolls into view; Dashboard row too.
+_Empty — nothing queued right now._
 
 ## Build Planner
 

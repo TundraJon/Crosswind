@@ -11,3 +11,19 @@ window.CROSSWIND_HOTEL_BRANDS = [
   { match: ['choice'], brands: ['Comfort Inn', 'Comfort Suites', 'Quality Inn', 'Sleep Inn', 'Clarion', 'Econo Lodge', 'Rodeway Inn', 'MainStay Suites', 'Cambria', 'WoodSpring Suites', 'Suburban Studios'] },
   { match: ['radisson'], brands: ['Radisson', 'Radisson Blu', 'Radisson RED', 'Country Inn & Suites', 'Park Inn', 'Park Plaza'] }
 ];
+
+/* Major hotel chains for the Chain dropdown on the Hotel step, listed after the user's own programs.
+   A chain is left out when one of the user's programs contains one of its "match" words (case-insensitive). */
+window.CROSSWIND_MAJOR_HOTEL_CHAINS = [
+  { name: 'Best Western', match: ['best western'] },
+  { name: 'Choice Hotels', match: ['choice'] },
+  { name: 'Drury Hotels', match: ['drury'] },
+  { name: 'Extended Stay America', match: ['extended stay'] },
+  { name: 'Hilton', match: ['hilton'] },
+  { name: 'Hyatt', match: ['hyatt'] },
+  { name: 'IHG', match: ['ihg', 'holiday inn'] },
+  { name: 'Marriott', match: ['marriott', 'bonvoy'] },
+  { name: 'Radisson', match: ['radisson'] },
+  { name: 'Red Roof', match: ['red roof'] },
+  { name: 'Wyndham', match: ['wyndham'] }
+];

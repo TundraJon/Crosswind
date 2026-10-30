@@ -629,8 +629,8 @@
       if (idx < selIdx) cls += ' done'; else if (idx === selIdx) cls += ' current';
       div.className = cls; div.dataset.key = n.key;
       const pinEditing = wizardState.editingPins[n.key];
-      div.innerHTML = '<div class="nd">' + n.icon + '</div><div class="nl">' + n.label +
-        (n.type !== 'home' ? ' <button class="edit-pin' + (pinEditing ? ' editing' : '') + '" title="Rename / change icon">' + (pinEditing ? '✓' : '✎') + '</button>' : '') + '</div>';
+      div.innerHTML = '<div class="nd">' + n.icon + '</div><div class="nl">' + n.label + '</div>' +
+        (n.type !== 'home' ? '<button class="edit-pin' + (pinEditing ? ' editing' : '') + '" title="Rename / change icon">' + (pinEditing ? '✓' : '✎') + '</button>' : '');
       div.addEventListener('click', () => { wizardState.selected = n.key; renderNodeTrack(); renderStepForm(); });
       const pin = div.querySelector('.edit-pin');
       if (pin) pin.addEventListener('click', (e) => { e.stopPropagation(); wizardState.editingPins[n.key] = !wizardState.editingPins[n.key]; renderNodeTrack(); });
@@ -786,6 +786,17 @@
     const hit = hotelBrandData.find(x => x.match.some(k => c.indexOf(k) >= 0));
     return hit ? hit.brands : null;
   }
+  /* Chain dropdown: the user's programs first, a dashed line, then major chains none of their programs cover */
+  const majorHotelChains = window.CROSSWIND_MAJOR_HOTEL_CHAINS || [];
+  function hotelChainOptionsHTML(programNames, current) {
+    const lc = programNames.map(n => n.toLowerCase());
+    const majors = majorHotelChains.filter(m => !lc.some(p => m.match.some(k => p.indexOf(k) >= 0))).map(m => m.name);
+    const first = programNames.slice();
+    if (current && first.indexOf(current) < 0 && majors.indexOf(current) < 0) first.unshift(current);
+    const opt = n => '<option' + (n === current ? ' selected' : '') + '>' + esc(n) + '</option>';
+    return '<option value="">Select…</option>' + first.map(opt).join('') +
+      (first.length && majors.length ? '<option disabled>──────────</option>' : '') + majors.map(opt).join('');
+  }
   function brandItems(chain, text) {
     const list = brandListFor(chain);
     if (!list) return [];
@@ -903,7 +914,7 @@
 
     else if (node.type === 'hotel') {
       const h = wizardState.stops[node.stopIndex].hotel, si = node.stopIndex;
-      const chainOpts = selectOptionsHTML(sortedByType('hotel').map(c => c.name), h.chain, 'No hotel programs yet');
+      const chainOpts = hotelChainOptionsHTML(sortedByType('hotel').map(c => c.name), h.chain);
       html = '<div class="step-head">' + node.label.toUpperCase() + '</div><div class="fld-grid">' +
         '<div><label class="fld">Chain</label><select id="wf-hotel-chain">' + chainOpts + '</select></div>' +
         '<div><label class="fld">Brand</label><input type="text" id="wf-hotel-brand" placeholder="e.g. Courtyard" autocomplete="off" value="' + esc(h.brand) + '"></div>' +
