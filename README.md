@@ -265,7 +265,17 @@ Reported by Jon on Chrome for Android: typing a seat number then tapping Layover
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Escape typed text everywhere it is shown
+Not yet authorized to build. Settled with Jon (allow `<` and `>` and display them safely).
+
+- Every place typed text is put into the page as HTML goes through the existing `esc()` helper: Setup loyalty names and IDs (three places) and the TSA airline list, Favorite captions and icons, the step labels in the Wizard row (destination name), and the 19 Wizard form `value="…"` fields (so a typed `"` no longer cuts a value short). The Dashboard already escapes its own text.
+- Typed `<` and `>` are no longer stripped as the user types or loads saved data (`cleanText()` stops removing them), so text like "Hotel <5 miles" is kept; they are shown as plain characters. The strip on imported backups stays as a second layer only if it does not remove characters from legitimate text; settle at build time and record it.
+- Saved data is not changed: values are stored as typed and escaped only when drawn.
+
+**Reuse:** `esc()`, `cleanText()`.
+
+**Verification plan:** type `<b>bold</b>`, `"quotes"`, `'apostrophes'`, and `&amp;` into a loyalty name and ID, a Favorite caption, every Wizard text field (destination, hotel name and address, rental company fields, flight and confirmation fields, Uber times, plate), then confirm the field shows exactly what was typed, the labels and cards show it as plain text, nothing breaks the layout, it survives a reload, an Export and Import round trip, and the Dashboard shows it correctly; earlier suites re-run.
+
 
 ## Build Planner
 
@@ -287,9 +297,6 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 
 ### Cleanup: unused Dashboard CSS
 `.state-row`, `.st`, `.st .ic`, `.st.optional`, `.st.active`, `.st .ln`, `.st .tag`, and `.logs-grid` in `styles.css` were left behind when Build 14 replaced the old Dashboard elements. Harmless; remove when authorized.
-
-### Inconsistency: some typed text is inserted into the page without escaping
-Found while building Build 15. Loyalty names and IDs, Favorite captions and icons, and the destination name inside step labels are put into the page as HTML, so typing `<` and `>` can break the layout. The Dashboard escapes its own text. Import now strips `<` and `>` from backup files as a stopgap, and step names are cleaned the same way. Open question: escape everywhere text is shown?
 
 ### Check: airport city names
 The airport table's city names come straight from the OurAirports source. Only the odd-looking ones (long, slashes, dated) were reviewed and shortened by hand in Build 17. Tell me any that look wrong or that you would call differently (e.g. a name you search by) and they can be adjusted in `airports.js`.
