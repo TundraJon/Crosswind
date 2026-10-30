@@ -252,7 +252,13 @@ Jon wants the step row to stay put as he taps through steps of different heights
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### First Wizard open: step row cannot reach the top
+Not yet authorized to build. Reproduced by Jon's report and a throwaway Playwright script (390×800).
+
+- Bug: on a fresh load the first Wizard step (Uber) draws while `#screenWizard` is hidden, so `equalizeStepHeight()` measures every form as zero height and sets only the quarter-screen spacer (200px). The page can then scroll about 203px, and the step row stays about 176px from the top. After tapping any other step the Wizard is visible, the spacer becomes 326px, and the row can reach the top (Build 32).
+- Fix: re-run `equalizeStepHeight()` whenever the Wizard screen is shown (the screen-switch path and after a trip is chosen), not only when a step is drawn; skip when the screen is hidden so it never stores a zero measurement.
+- Verification plan: fresh load, go to the Wizard, and confirm the Uber spacer equals the spacer after tapping another step and returning; the step row can scroll to 60px from the top on first open; switch away and back, reload with a saved trip, switch trips, and rotate the viewport size; the other screens unchanged.
+
 
 ## Build Planner
 
