@@ -214,6 +214,15 @@ Jon can stay at a chain he has no program with (his example: AmericInn, a Wyndha
 - [x] `script.js` (`renderNodeTrack`): the ✎ pencil moved out of the label to its own absolutely positioned 28px button at the step's top-right (it still does not select the step).
 - **Verification:** `verify16`, 390px touch: all step zones at least 72×64, circles 32px, no label overlap, labels at most 2 lines, pencil at least 28px square; touch taps at the lower-left and lower-middle of every step's zone (18 of 18) open that step; the pencil opens its editor without changing the step; Dashboard row zones and labels checked; screenshots of both rows looked at. Regression: suites 2c, 3, 4, 5b, 7, 10b, 11, 14, 15 pass; `verify9c` and `verify12` only the known version and output differences.
 
+### Build 28 (completed): Remove the ✎ pencil from the Itinerary Wizard
+Jon never uses the pencil and kept tapping it by accident. It was visual-only: it toggled a flag and never edited or saved anything, so there were no per-trip overrides stored anywhere (Setup step names and icons are unaffected).
+- [x] `script.js`: the ✎ button and its click handler removed from `renderNodeTrack`; `wizardState.editingPins` and its reset removed.
+- [x] `index.html`: the "✎ = override this step's name/icon for this trip only." legend line removed.
+- [x] `styles.css`: the `.node .edit-pin` rules removed (the Favorites `.fav-edit-pin` is a different control and is untouched).
+- [x] Build Planner: removed the per-trip ✎ override items that this made obsolete; the Home-at-end Queue entry no longer mentions the pencil.
+- [x] Cache-bust bumped: `script.js?v=11→12`, `styles.css?v=8→9`. Version: v0.97→v0.98.
+- **Verification:** `verify17`, zero JS errors: no pencil or ✓ anywhere in the Wizard; legend gone; every step still selectable by tap (8 of 8); a Setup step-name default still shows on the row; reload renders. Regression: suites 2c, 3, 4, 5b, 7, 10b, 11, 14, 15 pass; known expected-output differences only in `verify9c`, `verify12`, `verify13`; `verify16`'s old pencil checks no longer apply.
+
 ## Build Queue
 
 ### Home at the end of the step rows
@@ -221,7 +230,7 @@ Not yet authorized to build. Settled with Jon (yes to both recommendations).
 
 - Both step rows (Wizard and Dashboard, via `buildNodes()`) end with a Home node after Uber Home, mirroring the Home node at the start.
 - It shows only when the trip's "Ends at home" is on (the starting Home follows "Starts at home"); with it off the row ends at the last stop.
-- Same Home name and icon as the first one (`stepName('Home')` / `stepIcon('Home')`), so a Setup override applies to both. No ✎ pencil on either Home.
+- Same Home name and icon as the first one (`stepName('Home')` / `stepIcon('Home')`), so a Setup default applies to both.
 - Tapping it shows the same Home Base card as the first Home: the Wizard note ("This is your saved Home Base from Setup...") and the Dashboard Home card.
 - Needs its own node key (e.g. `home-end`) so the two Homes select independently; the row's done/current colouring, `ensureWizardSelection`, `firstStepKey`, and any code that assumes one `type: 'home'` node are checked.
 
@@ -240,13 +249,12 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Real address verification (USPS / CASS), cached lat/long for the home address, and the nearest-airports suggestion: Step 4, behind the disabled buttons. The airport table with coordinates now exists (Build 17), so only the address geocoding needs a network.
 - Profile details (name, demographics): skipped on purpose, nothing uses them yet. **Saved Addresses** (recurring hotels and client sites that could autofill the Wizard): held for the Wizard spec.
 - Temperature and Distance units are saved but nothing shows a temperature or distance yet (weather, Distance to Home: Step 4).
-- Per-trip ✎ overrides on top of the step defaults: Wizard spec.
 
 **Trip Wizard (after Build 18)**
 - Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; forms for every step type with real step dates, confirmation numbers, and gentle validation; Add Another Flight / Stop; "Select…" dropdowns fed by Setup; smart times on Uber fields.
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
 - Cosmetic: ✎ pins only toggle a look; a step counts as "done" only because it sits before the selected one.
-- Missing: removing or reordering stops and flights; per-trip ✎ overrides; real step completion.
+- Missing: removing or reordering stops and flights; real step completion.
 
 ### Cleanup: unused Dashboard CSS
 `.state-row`, `.st`, `.st .ic`, `.st.optional`, `.st.active`, `.st .ln`, `.st .tag`, and `.logs-grid` in `styles.css` were left behind when Build 14 replaced the old Dashboard elements. Harmless; remove when authorized.
@@ -265,7 +273,6 @@ The airport table's city names come straight from the OurAirports source. Only t
 - Airplane Mode / wireless settings deep-link, never revisited after flashlight was cut.
 
 ### Deferred on purpose
-- ✎ per-trip step overrides (rename or re-icon a step for one trip only) and making them persist.
 
 ### Step 4: real logic (needs data, API, or hardware)
 - Flight tracker auto-fill (Aviationstack or AirLabs, provider not chosen); layover math, tap to show how it was calculated. Notes from a discussion with Jon (parked for when this is built):

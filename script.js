@@ -560,8 +560,7 @@
     uberOut: { pickup: '', dropoff: '', date: '' },
     stops: [ newStop() ],
     returnFlights: [ newFlight() ],
-    uberHome: { pickup: '', dropoff: '', date: '' },
-    editingPins: {}
+    uberHome: { pickup: '', dropoff: '', date: '' }
   };
 
   function flightNodeMeta(flights, fi) {
@@ -628,12 +627,8 @@
       if (n.optional) cls += ' optional';
       if (idx < selIdx) cls += ' done'; else if (idx === selIdx) cls += ' current';
       div.className = cls; div.dataset.key = n.key;
-      const pinEditing = wizardState.editingPins[n.key];
-      div.innerHTML = '<div class="nd">' + n.icon + '</div><div class="nl">' + n.label + '</div>' +
-        (n.type !== 'home' ? '<button class="edit-pin' + (pinEditing ? ' editing' : '') + '" title="Rename / change icon">' + (pinEditing ? '✓' : '✎') + '</button>' : '');
+      div.innerHTML = '<div class="nd">' + n.icon + '</div><div class="nl">' + n.label + '</div>';
       div.addEventListener('click', () => { wizardState.selected = n.key; renderNodeTrack(); renderStepForm(); });
-      const pin = div.querySelector('.edit-pin');
-      if (pin) pin.addEventListener('click', (e) => { e.stopPropagation(); wizardState.editingPins[n.key] = !wizardState.editingPins[n.key]; renderNodeTrack(); });
       nodeTrack.appendChild(div);
     });
   }
@@ -1365,7 +1360,7 @@
   function loadItinerary() {
     const t = activeTrip(), it = t ? t.itinerary : newItinerary();
     wizardState.uberOut = it.uberOut; wizardState.stops = it.stops; wizardState.returnFlights = it.returnFlights; wizardState.uberHome = it.uberHome;
-    wizardState.editingPins = {}; wizardState.selected = '';
+    wizardState.selected = '';
   }
   function renderWizardShell() {
     const t = activeTrip();

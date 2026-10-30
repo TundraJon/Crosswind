@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v0.97) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v0.98) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -10,7 +10,7 @@
 <title>Crosswind</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Michroma&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=8">
+<link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
 
@@ -146,7 +146,6 @@
       <div class="empty-row" id="wizardEmpty">Create a project to start planning</div>
       <div id="wizardBody" style="display:none;">
         <div class="node-track" id="nodeTrack"></div>
-        <div class="fld-note" style="text-align:center; margin-top:2px;">✎ = override this step's name/icon for this trip only.</div>
         <div id="stepFormContainer"></div>
       </div>
     </div>
@@ -312,7 +311,7 @@
 
 <script src="airports.js?v=1"></script>
 <script src="hotel-brands.js?v=2"></script>
-<script src="script.js?v=11"></script>
+<script src="script.js?v=12"></script>
 
 </body>
 </html>

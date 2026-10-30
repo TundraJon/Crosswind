@@ -148,8 +148,6 @@
   .node .nl { font-size: 0.56rem; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-dim); margin-top: 5px; text-align: center; line-height: 1.25; width: 78px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
   .node.current .nl { color: var(--cyan); }
   .node.done .nl { color: var(--amber); }
-  .node .edit-pin { position: absolute; top: 0; right: 0; width: 28px; height: 28px; z-index: 2; font-size: 0.75rem; opacity: 0.5; cursor: pointer; border: none; background: transparent; color: var(--text-dim); padding: 0; }
-  .node .edit-pin:hover, .node .edit-pin.editing { opacity: 1; color: var(--cyan); }
   #stepFormContainer { margin-top: 4px; }
   .step-head { color: var(--cyan); font-weight: 700; font-size: 0.85rem; letter-spacing: 0.1em; margin: 12px 0 2px; }
   .fld-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
