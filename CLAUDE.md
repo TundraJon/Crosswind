@@ -9,6 +9,7 @@ This governs everything below.
 - If an instruction is genuinely ambiguous (two scopes, two files, etc.), ask before building. Don't guess, and don't build partway while waiting on the answer.
 - This applies to small, "obviously fine" changes too. A one-line fix still waits for the go-ahead.
 - If you ask a question, wait for the answer before building.
+- An answer to my scope or design question is not a go-ahead, and neither is an earlier "let's remove it." After the answer, queue the item and wait for a fresh "build it" or "go ahead".
 
 ## Project
 
