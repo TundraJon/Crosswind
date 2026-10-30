@@ -253,16 +253,17 @@ Jon wants the step row to stay put as he taps through steps of different heights
 ## Build Queue
 
 ### Hold the screen still when the keyboard closes
-Not yet authorized to build. Reported by Jon: typing a seat number on a flight, the step row sits near the top; tapping Layover dismisses the keyboard and the page snaps down so the row is mid-screen.
+Not yet authorized to build. Reported by Jon on Chrome for Android, with screenshots: typing a seat number on a flight, the step row sits near the top; tapping Layover dismisses the keyboard and the page slides down about 130px, so the row is mid-screen.
 
-- Not reproduced in the sandbox: simulating the keyboard by resizing the window (800→480→800) and then tapping Layover left the scroll position unchanged (319, row at 60px). The cause depends on how the phone's browser handles the keyboard, so the real cause is unknown.
-- Fix (works whatever the cause): on tap of a step in the Wizard, remember `scrollY`; after the form is re-drawn, put the scroll position back, and keep re-applying it on viewport resize events (and `visualViewport` resize where available) for about 500ms so the keyboard closing cannot move it. Stop early if the user scrolls by hand (touch or wheel) so it never fights them.
-- Applies to the Wizard step row only (the Dashboard has no keyboard fields on its rows).
-- Risk to check on a real phone: a brief flicker while the keyboard animates closed on some browsers; the 500ms window is the number to tune. Needs Jon's phone and browser to confirm.
+- Not reproducible in the sandbox (window-resize simulation left the scroll unchanged, 319 with the row at 60px). Jon's second screenshot shows lots of blank space still below Continue after the snap, so it is not a bottom-of-page clamp.
+- Working theory (unproven until tried on the phone): with the keyboard open, Chrome pans the visible area over the page beyond the page's own scroll position; closing the keyboard resets that pan and everything slides down.
+- Fix, step 1: add `interactive-widget=resizes-content` to the `<meta name="viewport">` in `index.html`, so Chrome shrinks the page for the keyboard instead of panning it and the scroll position survives the keyboard closing. In `equalizeStepHeight()` base the quarter-screen on the largest window height seen (not the current `innerHeight`), since the window height is smaller while the keyboard is open.
+- Fix, step 2, only if step 1 is not enough on the phone: on tap of a Wizard step, remember `scrollY` and re-apply it after the form is re-drawn and on resize events for about 500ms; stop early if the user scrolls by hand. Not built unless Jon asks.
+- Side effects to check: the Wizard form fields are still reachable above the keyboard; the spacer height does not change while the keyboard is open; other screens' keyboards behave the same or better.
 
-**Reuse:** `renderNodeTrack()`'s step-tap handler, `equalizeStepHeight()` (page height stays constant, so a restore is always possible).
+**Reuse:** the existing viewport meta, `equalizeStepHeight()`.
 
-**Verification plan:** in headless Chromium, simulate the keyboard by resizing the window and also by forcing a scroll clamp on resize, then confirm the position is restored after tapping a step; hand-scrolling during the window is respected; all steps still land where tapped; flagged for a real-phone check of the keyboard itself.
+**Verification plan:** headless Chromium cannot show a real keyboard: confirm the meta tag, that the spacer stays the same across window-resize simulations (800→480→800), and all earlier Wizard height checks still pass; the actual keyboard behaviour must be checked on Jon's phone (type a seat number, tap Layover, see whether the row holds).
 
 ### First Wizard open: step row cannot reach the top
 Not yet authorized to build. Reproduced by Jon's report and a throwaway Playwright script (390×800).
