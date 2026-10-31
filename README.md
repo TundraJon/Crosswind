@@ -345,7 +345,7 @@ _Empty — nothing queued right now._
 ### Horizon legend shows the trips of the month being viewed
 Not yet authorized to build. Settled with Jon (a year of bookings would make the all-trips legend far too long).
 
-- The Travel Horizon Calendar legend lists only the trips that touch the month being displayed (any day of the trip falls inside that month), in date order, with the colour swatch, name, and dates as today. Paging to another month changes the list, including past months.
+- The Travel Horizon Calendar legend lists only the trips that touch the month being displayed (any day of the trip falls inside that month), in date order, with the colour swatch, name, and dates as today. Paging to another month changes the list, including past months. (If the dimmed adjoining days entry below is also built, the legend lists every trip visible on the grid, dimmed days included.)
 - A month with no trips shows "No trips this month"; with no trips at all it still shows "No trips yet — create one in Trip Wizard". The "No upcoming trips" message goes away.
 - Tapping a legend entry still opens that trip in the Wizard. The list still scrolls if long.
 
@@ -366,6 +366,19 @@ Not yet authorized to build. Settled with Jon: a trip keeps the colour it gets w
 **Reuse:** `hzColor()` / `hzPalette` in the calendar code, the trips load / normalise / save path (`normalizeTrip`, `saveTrips`), the Export / Import trip normalisation.
 
 **Verification plan:** create 14 trips in a row and confirm colours 1 to 12 are all different and trips 13 and 14 are red and green; delete trip 3 and create another, which takes the next colour and does not reuse the freed one; edit a trip's name, dates, and Starts / Ends at home and its colour stays; reload keeps colours; old stored trips without a colour are numbered in date order exactly once; Export then Import (and an older backup without colours) round-trips colours; split days use the stored colours; screenshots of the 12 colours together; earlier suites (including the backup and import ones) re-run.
+
+### Horizon calendar shows the adjoining months' days, dimmed
+Not yet authorized to build. Settled with Jon (yes to tapping dimmed days like any other, and to the legend covering every trip visible on the grid).
+
+- The Travel Horizon Calendar grid fills out to whole weeks: the blank cells before the 1st become the previous month's last days, and the blank cells after the last day become the next month's first days (a month ending on a Wednesday shows Thursday to Saturday of the next month). They show the real day numbers, slightly dimmed (reduced opacity, no change to the layout).
+- Trip colours continue onto the dimmed days (also dimmed), including split days, so a trip that crosses a month boundary shows its full length in one view. Today's marker shows on a dimmed day if today falls there.
+- Tapping a dimmed day behaves like any other day: a trip day opens that trip in the Wizard (a split day opens the trip that is starting); a blank dimmed day does nothing.
+- "Days away this month: N of M" counts only the real month, not the dimmed days.
+- The legend lists every trip visible on the grid, dimmed days included, in date order (this widens the "Horizon legend shows the trips of the month being viewed" entry, which counts a trip when it touches the month itself).
+
+**Reuse:** `renderHorizon()` (the blank-cell loops become dimmed real days; the same colour and tap code), the `.cal-day` styles.
+
+**Verification plan:** months that start on each weekday and end on each weekday (including one starting on Sunday, with no leading days, and one ending on Saturday); the dimmed days carry the right day numbers; a trip crossing into the next month shows colour on the dimmed days and its legend entry appears; a split day on a dimmed cell; tapping dimmed days; the days-away count ignores them; February in a leap and a non-leap year; paging across a year end; screenshots of the dimmed look; earlier suites re-run.
 
 ## Build Planner
 
