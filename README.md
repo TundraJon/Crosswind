@@ -329,6 +329,15 @@ Found by Jon: pressing Add did select the new flight, but the Wizard row did not
 
 _Empty — nothing queued right now._
 
+### Wizard Continue button says "Continue to Dashboard"
+Not yet authorized to build. Requested by Jon.
+
+- The Back / Continue row at the bottom of the Wizard (`#screenWizard`): the Continue button's label changes from "Continue" to "Continue to Dashboard". It still goes to the Dashboard. Back is unchanged.
+- Setup's "Continue to Trip Planning" button is a different screen and is not changed.
+- The button must still fit the row at 390px with Back beside it (screenshot).
+
+**Verification plan:** label reads "Continue to Dashboard"; tapping it opens the Dashboard; the row does not overflow at 390px; the Setup button unchanged; earlier suites re-run.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
@@ -346,17 +355,12 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
 - Missing: reordering stops.
 
-### Check: airport city names
-The airport table's city names come straight from the OurAirports source. Only the odd-looking ones (long, slashes, dated) were reviewed and shortened by hand in Build 17. Tell me any that look wrong or that you would call differently (e.g. a name you search by) and they can be adjusted in `airports.js`.
-
 ### Other screens not yet designed
 - Compass-only fallback view (similar to the in-flight cockpit, minus flight data).
 - Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal).
 - Travel Horizon Calendar (month grid, solid blocks for days away).
 - Aviation weather / delay risk (METAR/TAF), never discussed.
 - Airplane Mode / wireless settings deep-link, never revisited after flashlight was cut.
-
-### Deferred on purpose
 
 ### Step 4: real logic (needs data, API, or hardware)
 - Flight tracker auto-fill (Aviationstack or AirLabs, provider not chosen); layover math, tap to show how it was calculated. Notes from a discussion with Jon (parked for when this is built):
