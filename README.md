@@ -360,6 +360,19 @@ A read-only month view of booked trips, answering "how booked am I".
 
 _Empty — nothing queued right now._
 
+### Host the fonts in the repo
+Not yet authorized to build. Settled with Jon (Latin plus Latin-extended; the offline app is a separate Planner item).
+
+- The app loads Chakra Petch (weights 400, 500, 600, 700) and Michroma (400) from Google Fonts on every open, so with no connection on a first load it falls back to system fonts. Both fonts are open-license (SIL OFL), so they can be hosted here.
+- New `fonts/` folder with the `latin` and `latin-ext` woff2 files for those five faces (about ten files, roughly 90KB) downloaded from Google Fonts, plus a short `fonts/LICENSE.txt` naming both fonts and their OFL licence. Thai and Vietnamese sets are left out.
+- `styles.css`: `@font-face` rules for each face and subset with the same `unicode-range` splits Google uses, `font-display: swap`, and relative `url()`s. The existing `--font-display` / `--font-body` stacks and their fallbacks stay.
+- `index.html`: the two Google `<link>` lines (preconnect and stylesheet) are removed; optional `<link rel="preload">` for the Latin body weights so the first paint uses the right font. The app then makes no request to Google.
+- Cache-bust: `styles.css` bumped (and the font file names stay fixed; they never change).
+
+**Reuse:** the existing font stacks in `styles.css`.
+
+**Verification plan:** with every request to `fonts.googleapis.com` and `fonts.gstatic.com` blocked, the page loads the five faces from `fonts/` (document font checks plus the network log: no Google requests, no failed font requests); headings render in Michroma and body text in each weight (screenshots against the current look); accented text (José, Zürich, Łódź) renders from the Latin-extended file; works from `file://` and the live Pages site; page weight added is about 90KB; earlier suites re-run.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
@@ -383,6 +396,9 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Aviation weather / delay risk (METAR/TAF), never discussed.
 - Airplane Mode / wireless settings deep-link, never revisited after flashlight was cut.
 
+### Open offline (the whole app, not only fonts)
+After the fonts are hosted in the repo, the app still needs a connection for its first load. A service worker that caches `index.html`, `styles.css`, `script.js`, the data files, and the fonts would let it open in airplane mode (a "Progressive Web App"; also lets it be added to the Android home screen). Not designed. Open questions: how updates reach the phone (the cache-busting numbers and a "new version available" prompt), what to do when the cache is stale, and whether the Capacitor / Play Store build (Step 4) makes this unnecessary.
+
 ### Step 4: real logic (needs data, API, or hardware)
 - Flight tracker auto-fill (Aviationstack or AirLabs, provider not chosen); layover math, tap to show how it was calculated. Notes from a discussion with Jon (parked for when this is built):
   - A confirmation number plus last name only works inside an airline's own booking system; flight-data services do not accept it (they take flight number plus date, or route plus date). Reaching the reservation from outside would mean scraping each airline's site, which is brittle, breaks their rules, and sends the confirmation number and name to a third party.
@@ -395,6 +411,5 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - SQLite persistence (profile, loyalty, Touchless, units, step defaults, projects, per-project wizard data). Today only `crosswindLastRequest` and `crosswindFavorites` use localStorage.
 - Haversine distance from home; compass and cockpit telemetry from magnetometer + GPS (needs smoothing at altitude, real Android device).
 - State-aware dashboard engine; Wind-Shear Audio playback.
-- Embed fonts locally (Google Fonts CDN currently needs Wi-Fi on first load).
 - Wire the Temperature and Distance units where they are shown (weather, Distance to Home).
 - Capacitor scaffold, Android-only build, Play Store; secure storage for addresses, KTN, and loyalty IDs before selling.
