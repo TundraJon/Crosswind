@@ -338,6 +338,23 @@ Not yet authorized to build. Requested by Jon.
 
 **Verification plan:** label reads "Continue to Dashboard"; tapping it opens the Dashboard; the row does not overflow at 390px; the Setup button unchanged; earlier suites re-run.
 
+### Travel Horizon Calendar (Dashboard popup)
+Not yet authorized to build. Settled with Jon (what it is for: "how booked am I").
+
+- **Entry point:** on the Dashboard header the 📍 before "Active: <trip>" is replaced by a tappable 📅 button (a real button, not the `::before` glyph that is there now). Tapping it opens a popup calendar. The "Active:" text and the Distance to Home side are unchanged.
+- **Grid:** one month at a time, ‹ › arrows to move between months, opening on the current month; today is marked. It reuses the look and the month-grid code of the existing date-picker calendar (`.cal-grid`, `.cal-day`, month label, nav arrows, the modal shell); read-only here.
+- **Trip days:** every day from a trip's start to its end (inclusive) is a solid block in that trip's colour; days at home stay blank. Each trip gets a fixed colour from a short palette (cyan, amber, green, magenta, violet, and so on, kept readable on the dark theme), assigned in date order of the trip so it does not change as the month changes.
+- **Handoff days:** a day where one trip ends and another starts is split 50/50 (diagonal) in the two trips' colours. Any other overlap of two trips on a day is shown the same way.
+- **Legend (bottom right):** a list of the booked trips in date order: colour swatch, trip name, and dates. It holds the active trip and upcoming trips only (past trips are left out so it does not grow forever); past trips still show on the grid when paged back to their month. A long list scrolls inside the popup.
+- **Days away:** one line under the month title, "Days away this month: N of M", counting the days in the shown month that fall inside any trip.
+- **Tapping:** a day inside a trip, or a legend entry, closes the popup and opens that trip in the Trip Wizard (makes it the active trip and shows the Wizard). A split day opens the trip that is starting. A blank day does nothing.
+- **Empty state:** with no trips the popup says "No trips yet — create one in Trip Wizard", with no grid colours.
+- Close with a Close button or by tapping outside; no changes are saved from here.
+
+**Reuse:** the date-picker calendar's month-grid and modal styles/markup pattern (a second modal, not the date picker itself), `trips`, `tripStatus()`, `splitTrips()`, `setActiveTrip()`, `showScreen()`, `fmtTripDates()`, `esc()` for trip names.
+
+**Verification plan:** several trips with fixed dates around today (one active, two upcoming, one past) including back-to-back and overlapping days; colours stable across months and reloads and match the legend swatches; the split day is 50/50 (computed background of the day cell) and opens the starting trip when tapped; days-away counts for a full month, a partial month, and an empty month; arrows page months including across a year; past trips absent from the legend but visible on their month; tapping a legend entry or a trip day opens that trip in the Wizard; no trips shows the empty message; trip names with `<`, quotes, and `&` display as text; the header icon is tappable and the rest of the header unchanged; 390px screenshots of the popup (month with a split day, legend scrolling); no horizontal overflow; earlier suites re-run.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
@@ -358,7 +375,6 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 ### Other screens not yet designed
 - Compass-only fallback view (similar to the in-flight cockpit, minus flight data).
 - Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal).
-- Travel Horizon Calendar (month grid, solid blocks for days away).
 - Aviation weather / delay risk (METAR/TAF), never discussed.
 - Airplane Mode / wireless settings deep-link, never revisited after flashlight was cut.
 
