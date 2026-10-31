@@ -380,6 +380,20 @@ Not yet authorized to build. Settled with Jon (yes to tapping dimmed days like a
 
 **Verification plan:** months that start on each weekday and end on each weekday (including one starting on Sunday, with no leading days, and one ending on Saturday); the dimmed days carry the right day numbers; a trip crossing into the next month shows colour on the dimmed days and its legend entry appears; a split day on a dimmed cell; tapping dimmed days; the days-away count ignores them; February in a leap and a non-leap year; paging across a year end; screenshots of the dimmed look; earlier suites re-run.
 
+### Horizon legend as compact coloured name cells
+Not yet authorized to build. Settled with Jon (two columns, uppercase, no dates, scroll past six trips).
+
+- The Travel Horizon Calendar legend becomes a block of cells across the bottom of the popup (replacing the right-aligned list with swatches): two columns, filling left to right then down, in date order.
+- Each cell is the trip's name in that trip's colour (the text itself is coloured; no swatch), uppercased and cut to about 12 characters with an ellipsis ("SA763 NATAWA…"). The stored name is not changed; the full name is the cell's tooltip.
+- No dates in the legend. Tapping a cell opens that trip in the Wizard, as the legend entries do now.
+- More than six trips (three rows): the block scrolls inside the popup instead of growing. An odd count leaves the last cell on the left.
+- The empty messages stay as they are ("No trips this month" / "No trips yet — create one in Trip Wizard"). Which trips are listed is set by the month-legend entry and the adjoining-days entry (this entry changes only how the legend looks).
+- Names are set with `textContent`, so quotes, tags, and ampersands show as plain text.
+
+**Reuse:** `renderHorizon()`'s legend loop, `hzColor()` and the `.hz-legend` styles.
+
+**Verification plan:** one to six trips: two-column layout fills left to right in date order; each cell's text colour matches the trip's colour on the grid; a long name is cut at about 12 characters with an ellipsis and a short one is not; odd counts; more than six scroll; tapping a cell opens that trip; a name with quotes and tags displays as text; fits at 390px with no horizontal overflow; screenshots; earlier suites re-run.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
