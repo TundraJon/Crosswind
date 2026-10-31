@@ -1518,6 +1518,57 @@
       if (pastOpen) g.past.forEach(t => pipelineList.appendChild(tripRow(t)));
     }
   }
+  /* ============ TRAVEL HORIZON CALENDAR (Dashboard popup, read-only) ============ */
+  const horizonModal = document.getElementById('horizonModal');
+  const hzPalette = ['#4dd8ff', '#f0a832', '#4de88a', '#e85dd0', '#9b7bff', '#ff7a59', '#e8e04d', '#4de8d0'];
+  let hzMonth = new Date();
+  function hzTripsByStart() { return trips.slice().sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : (a.id < b.id ? -1 : 1)); }
+  function hzColor(t) { return hzPalette[hzTripsByStart().findIndex(x => x.id === t.id) % hzPalette.length]; }
+  function openTripFromHorizon(t) { closeHorizon(); setActiveTrip(t.id); showScreen('screenWizard'); }
+  function closeHorizon() { horizonModal.classList.remove('open'); }
+  function renderHorizon() {
+    const y = hzMonth.getFullYear(), mo = hzMonth.getMonth(), sorted = hzTripsByStart();
+    document.getElementById('hzMonthLabel').textContent = hzMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const grid = document.getElementById('hzGrid'), legend = document.getElementById('hzLegend'), away = document.getElementById('hzDaysAway');
+    grid.innerHTML = ''; legend.innerHTML = '';
+    const firstDay = new Date(y, mo, 1).getDay(), totalDays = new Date(y, mo + 1, 0).getDate(), today = dayStart(new Date());
+    for (let i = 0; i < firstDay; i++) { const b = document.createElement('div'); b.className = 'cal-day blank'; grid.appendChild(b); }
+    let awayDays = 0;
+    for (let d = 1; d <= totalDays; d++) {
+      const date = new Date(y, mo, d), cell = document.createElement('div');
+      cell.className = 'cal-day'; cell.textContent = d;
+      if (date.getTime() === today.getTime()) cell.classList.add('today-marker');
+      const cover = sorted.filter(t => fromISODate(t.start) <= date && date <= fromISODate(t.end));
+      if (cover.length) {
+        awayDays++; cell.classList.add('hz-trip');
+        const cols = cover.map(hzColor);
+        cell.style.background = cols.length === 1 ? cols[0] : 'linear-gradient(135deg, ' + cols.map((c, i) => c + ' ' + (i * 100 / cols.length) + '% ' + ((i + 1) * 100 / cols.length) + '%').join(', ') + ')';
+        const starting = cover.filter(t => fromISODate(t.start).getTime() === date.getTime());
+        const pick = starting.length ? starting[starting.length - 1] : cover[cover.length - 1];
+        cell.addEventListener('click', () => openTripFromHorizon(pick));
+      }
+      grid.appendChild(cell);
+    }
+    away.textContent = trips.length ? 'Days away this month: ' + awayDays + ' of ' + totalDays : '';
+    const booked = sorted.filter(t => { const st = tripStatus(t); return st === 'active' || st === 'upcoming'; });
+    if (!trips.length) { const e = document.createElement('div'); e.className = 'hz-empty'; e.textContent = 'No trips yet — create one in Trip Wizard'; legend.appendChild(e); }
+    else if (!booked.length) { const e = document.createElement('div'); e.className = 'hz-empty'; e.textContent = 'No upcoming trips'; legend.appendChild(e); }
+    booked.forEach(t => {
+      const item = document.createElement('div'); item.className = 'hz-item';
+      const txt = document.createElement('div'); const nm = document.createElement('b'); nm.textContent = t.name; const dt = document.createElement('span'); dt.className = 'd'; dt.textContent = fmtTripDates(t);
+      txt.appendChild(nm); txt.appendChild(dt);
+      const sw = document.createElement('div'); sw.className = 'hz-sw'; sw.style.background = hzColor(t);
+      item.appendChild(txt); item.appendChild(sw);
+      item.addEventListener('click', () => openTripFromHorizon(t));
+      legend.appendChild(item);
+    });
+  }
+  document.getElementById('horizonBtn').addEventListener('click', () => { const n = new Date(); hzMonth = new Date(n.getFullYear(), n.getMonth(), 1); renderHorizon(); horizonModal.classList.add('open'); });
+  document.getElementById('hzPrev').addEventListener('click', () => { hzMonth = new Date(hzMonth.getFullYear(), hzMonth.getMonth() - 1, 1); renderHorizon(); });
+  document.getElementById('hzNext').addEventListener('click', () => { hzMonth = new Date(hzMonth.getFullYear(), hzMonth.getMonth() + 1, 1); renderHorizon(); });
+  document.getElementById('hzCloseBtn').addEventListener('click', closeHorizon);
+  horizonModal.addEventListener('click', e => { if (e.target === horizonModal) closeHorizon(); });
+
   function refreshTripUI() { renderPipeline(); renderWizardShell(); renderNodeTrack(true); renderStepForm(); }
   function setActiveTrip(id) { activeTripId = id; saveActive(); dashSelected = ''; loadItinerary(); refreshTripUI(); }
   function loadTrips() {

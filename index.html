@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.09) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.10) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -10,7 +10,7 @@
 <title>Crosswind</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Michroma&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=17">
+<link rel="stylesheet" href="styles.css?v=18">
 </head>
 <body>
 
@@ -153,7 +153,7 @@
   </div>
   <div class="btn-row">
     <button class="btn ghost" data-goto="screenSetup">Back</button>
-    <button class="btn primary grow" data-goto="screenDash">Continue</button>
+    <button class="btn primary grow" data-goto="screenDash">Continue to Dashboard</button>
   </div>
   <div id="wizSpacer"></div>
 </div>
@@ -179,6 +179,24 @@
   </div>
 </div>
 
+<!-- Travel Horizon Calendar: read-only month view of booked trips -->
+<div class="modal-overlay" id="horizonModal">
+  <div class="modal-card" style="max-width:340px;">
+    <div class="cal-header">
+      <button class="cal-nav" id="hzPrev">‹</button>
+      <div class="cal-title" id="hzMonthLabel">Month YYYY</div>
+      <button class="cal-nav" id="hzNext">›</button>
+    </div>
+    <div class="fld-note" id="hzDaysAway" style="text-align:center; margin: -2px 0 8px;"></div>
+    <div class="cal-weekdays"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
+    <div class="cal-grid hz-grid" id="hzGrid"></div>
+    <div class="hz-legend" id="hzLegend"></div>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn ghost grow" id="hzCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Shared Calendar widget — single-date or range mode -->
 <div class="modal-overlay" id="calModal">
   <div class="modal-card" style="max-width:340px;">
@@ -199,7 +217,7 @@
 <!-- ================= SCREEN 3: DASHBOARD ================= -->
 <div class="screen" id="screenDash">
   <div class="panel">
-    <div class="dash-head"><div class="hd-l" id="dashProject">Active: —</div><div class="hd-r">🏠 Distance to Home: <b>—</b></div></div>
+    <div class="dash-head"><div class="hd-l"><button class="hz-btn" id="horizonBtn" aria-label="Travel Horizon Calendar">📅</button><span id="dashProject">Active: —</span></div><div class="hd-r">🏠 Distance to Home: <b>—</b></div></div>
     <div class="proj-bar dash-bar" id="dashBar"><i></i></div>
     <div class="node-track" id="dashTrack"></div>
     <div class="quick-card" id="dashCard"></div>
@@ -314,7 +332,7 @@
 
 <script src="airports.js?v=1"></script>
 <script src="hotel-brands.js?v=2"></script>
-<script src="script.js?v=21"></script>
+<script src="script.js?v=22"></script>
 
 </body>
 </html>

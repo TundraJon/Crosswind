@@ -325,35 +325,22 @@ Found by Jon: pressing Add did select the new flight, but the Wizard row did not
 - [x] Found and fixed during verification: the first version used `offsetLeft` and was 38px off-centre every time (the row is not the offset parent); switched to rectangle measurements, and it now centres exactly (offset 0).
 - **Verification:** `verify30`: from the start of the row, Add, Move later, Remove, and Add stop each leave the selected step centred (offset 0, or fully visible at an edge); a direct tap leaves the row's scroll unchanged and selects that step; switching trips selects a step with no error. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 22, 23, 26, 28, 29 pass; the known differences only in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`, `verify18`.
 
+### Build 45 (completed): Wizard Continue button says "Continue to Dashboard"
+- [x] `index.html`: the Wizard's bottom button label changed from "Continue" to "Continue to Dashboard" (still goes to the Dashboard; Back unchanged; Setup's "Continue to Trip Planning" untouched).
+- [x] Cache-bust bumped: `script.js?v=21→22`, `styles.css?v=17→18` (shared with Build 46). Version: v1.09→v1.10 (shared with Build 46).
+- **Verification:** `verify31`: the label reads "Continue to Dashboard", tapping it opens the Dashboard, Setup's button unchanged; row fits at 390px (screenshot looked at).
+
+### Build 46 (completed): Travel Horizon Calendar (Dashboard popup)
+A read-only month view of booked trips, answering "how booked am I".
+- [x] `index.html`: the 📍 glyph in the Dashboard header is replaced by a tappable 📅 button (`#horizonBtn`; the `.hd-l::before` rule removed; "Active: <trip>" text and the Distance to Home side unchanged); a new `#horizonModal` (month arrows, "Days away this month" line, weekday row, grid, legend, Close).
+- [x] `script.js`: `renderHorizon()` draws the month with the existing calendar styles. Every day inside a trip is a solid block in that trip's colour (a fixed 8-colour palette assigned in date order of all trips); a day covered by two or more trips (handoff days) is a hard-stop gradient split equally between their colours; today is marked. Legend (bottom right): active and upcoming trips in date order with colour swatch, name, and dates; "No trips yet — create one in Trip Wizard" / "No upcoming trips" when empty; scrolls when long. Tapping a trip day or a legend entry closes the popup, makes that trip active, and opens the Wizard; a split day opens the trip that is starting; blank days do nothing. Close button or tapping outside closes. Trip names are set with `textContent`.
+- [x] `styles.css`: `.hz-btn`, `.hz-grid`, `.hz-legend`, `.hz-item`, `.hz-sw`, `.hz-empty`; `.dash-head .hd-l` now a flex row. Cache-bust as in Build 45.
+- **Verification:** `verify31`, 41 checks, zero JS errors, trips seeded after the page loaded (past, active, back-to-back upcoming, later upcoming): every day of this month, next, previous, and the past trip's month (13 months back crosses a year) matches the expected colour or split from an independent calculation; days-away counts match each month; the handoff day is a 50/50 gradient of the two trips' colours; tapping it opens the starting trip, a single-trip day and a legend entry open their trips, a blank day does nothing, tapping outside closes; the past trip shows on its month but not in the legend; legend colours match the grid; empty state; a trip name with quotes, tags, and an ampersand shows as text; nine trips scroll the legend inside the popup; no horizontal overflow; screenshots of the popup, split day, and long legend looked at. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 22, 23, 26, 28, 29, 30 pass; the known differences only in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`, `verify18`.
+- Note: a trip's colour comes from its place in date order, so adding a trip that starts earlier than existing ones can shift the later trips' colours.
+
 ## Build Queue
 
 _Empty — nothing queued right now._
-
-### Wizard Continue button says "Continue to Dashboard"
-Not yet authorized to build. Requested by Jon.
-
-- The Back / Continue row at the bottom of the Wizard (`#screenWizard`): the Continue button's label changes from "Continue" to "Continue to Dashboard". It still goes to the Dashboard. Back is unchanged.
-- Setup's "Continue to Trip Planning" button is a different screen and is not changed.
-- The button must still fit the row at 390px with Back beside it (screenshot).
-
-**Verification plan:** label reads "Continue to Dashboard"; tapping it opens the Dashboard; the row does not overflow at 390px; the Setup button unchanged; earlier suites re-run.
-
-### Travel Horizon Calendar (Dashboard popup)
-Not yet authorized to build. Settled with Jon (what it is for: "how booked am I").
-
-- **Entry point:** on the Dashboard header the 📍 before "Active: <trip>" is replaced by a tappable 📅 button (a real button, not the `::before` glyph that is there now). Tapping it opens a popup calendar. The "Active:" text and the Distance to Home side are unchanged.
-- **Grid:** one month at a time, ‹ › arrows to move between months, opening on the current month; today is marked. It reuses the look and the month-grid code of the existing date-picker calendar (`.cal-grid`, `.cal-day`, month label, nav arrows, the modal shell); read-only here.
-- **Trip days:** every day from a trip's start to its end (inclusive) is a solid block in that trip's colour; days at home stay blank. Each trip gets a fixed colour from a short palette (cyan, amber, green, magenta, violet, and so on, kept readable on the dark theme), assigned in date order of the trip so it does not change as the month changes.
-- **Handoff days:** a day where one trip ends and another starts is split 50/50 (diagonal) in the two trips' colours. Any other overlap of two trips on a day is shown the same way.
-- **Legend (bottom right):** a list of the booked trips in date order: colour swatch, trip name, and dates. It holds the active trip and upcoming trips only (past trips are left out so it does not grow forever); past trips still show on the grid when paged back to their month. A long list scrolls inside the popup.
-- **Days away:** one line under the month title, "Days away this month: N of M", counting the days in the shown month that fall inside any trip.
-- **Tapping:** a day inside a trip, or a legend entry, closes the popup and opens that trip in the Trip Wizard (makes it the active trip and shows the Wizard). A split day opens the trip that is starting. A blank day does nothing.
-- **Empty state:** with no trips the popup says "No trips yet — create one in Trip Wizard", with no grid colours.
-- Close with a Close button or by tapping outside; no changes are saved from here.
-
-**Reuse:** the date-picker calendar's month-grid and modal styles/markup pattern (a second modal, not the date picker itself), `trips`, `tripStatus()`, `splitTrips()`, `setActiveTrip()`, `showScreen()`, `fmtTripDates()`, `esc()` for trip names.
-
-**Verification plan:** several trips with fixed dates around today (one active, two upcoming, one past) including back-to-back and overlapping days; colours stable across months and reloads and match the legend swatches; the split day is 50/50 (computed background of the day cell) and opens the starting trip when tapped; days-away counts for a full month, a partial month, and an empty month; arrows page months including across a year; past trips absent from the legend but visible on their month; tapping a legend entry or a trip day opens that trip in the Wizard; no trips shows the empty message; trip names with `<`, quotes, and `&` display as text; the header icon is tappable and the rest of the header unchanged; 390px screenshots of the popup (month with a split day, legend scrolling); no horizontal overflow; earlier suites re-run.
 
 ## Build Planner
 
