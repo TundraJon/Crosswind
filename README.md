@@ -342,6 +342,31 @@ A read-only month view of booked trips, answering "how booked am I".
 
 _Empty — nothing queued right now._
 
+### Horizon legend shows the trips of the month being viewed
+Not yet authorized to build. Settled with Jon (a year of bookings would make the all-trips legend far too long).
+
+- The Travel Horizon Calendar legend lists only the trips that touch the month being displayed (any day of the trip falls inside that month), in date order, with the colour swatch, name, and dates as today. Paging to another month changes the list, including past months.
+- A month with no trips shows "No trips this month"; with no trips at all it still shows "No trips yet — create one in Trip Wizard". The "No upcoming trips" message goes away.
+- Tapping a legend entry still opens that trip in the Wizard. The list still scrolls if long.
+
+**Reuse:** `renderHorizon()` (the legend loop filters by the shown month instead of by active / upcoming status).
+
+**Verification plan:** twelve trips spread over about four months, three to four per month: each month's legend holds exactly the trips overlapping it, in date order; a trip spanning a month boundary appears in both months; empty months and past months; legend swatches match the grid; tapping an entry opens that trip; earlier suites re-run.
+
+### Twelve fixed trip colours
+Not yet authorized to build. Settled with Jon: a trip keeps the colour it gets when it is created, so the same colour on the calendar months later means the same trip. A cancelled trip's colour is not reused for the replacement; the new trip simply gets the next colour.
+
+- Palette of 12 distinct colours in a fixed order that starts red, then green (shades chosen at build time, checked against each other and the dark theme with screenshots; the first two are red and green as Jon described; the rest are well separated, for example blue, amber, violet, cyan, magenta, and so on, ending before the cycle repeats).
+- Each trip stores a colour number (`colorIdx`, 0 to 11) set at creation from a creation counter that only moves forward and is saved with the trips (so deleting a trip never rewinds it). Trip 1 is red, trip 2 green, trip 13 red again, trip 14 green again. Editing a trip never changes its colour.
+- Trips saved before this build, and trips in older backups with no colour, are numbered once in date order the first time they load (0, 1, 2, ...) and the counter continues after them; that is then permanent.
+- The colour number is part of a backup (Export) and comes back on Import (the Import checklist and restore points carry it with the trips). An imported trip with no colour gets the next number from the counter. Imported trips may share a colour with existing ones; nothing is recoloured.
+- The Travel Horizon Calendar grid and legend use the stored colour instead of the position in date order (replaces the 8-colour, date-order palette from Build 46). Split days use the two trips' stored colours.
+- Wizard list and other screens are unchanged.
+
+**Reuse:** `hzColor()` / `hzPalette` in the calendar code, the trips load / normalise / save path (`normalizeTrip`, `saveTrips`), the Export / Import trip normalisation.
+
+**Verification plan:** create 14 trips in a row and confirm colours 1 to 12 are all different and trips 13 and 14 are red and green; delete trip 3 and create another, which takes the next colour and does not reuse the freed one; edit a trip's name, dates, and Starts / Ends at home and its colour stays; reload keeps colours; old stored trips without a colour are numbered in date order exactly once; Export then Import (and an older backup without colours) round-trips colours; split days use the stored colours; screenshots of the 12 colours together; earlier suites (including the backup and import ones) re-run.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
