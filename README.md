@@ -314,32 +314,20 @@ Flights can be moved earlier or later inside their own group, and a date that en
 - [x] Planner Inventory: "Missing: reordering stops." (flights are done); the Queue entry removed.
 - **Verification:** `verify29`, zero JS errors, 390px. Four outbound flights with distinct airline, number, confirmation, seat: buttons correct at the first, middle, and last positions; moving later and earlier (one, two, and to the end) reorders everything typed; selection follows; names stay Initial / Connection 1 / Connection 2 / Final; three Layover steps remain; return flights swap on their own with the outbound order untouched; a typed later date is not flagged, but moving the earlier-dated flight after it flags it red with the note and it keeps its typed date; the same date and a later date clear the flag; an untyped flight follows the previous date; a second stop's first flight dated before the first stop's last flight is flagged; reload keeps the moves; screenshot of the buttons and the red flag looked at. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 22, 23, 26, 28 pass; the known differences only in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`, `verify18`.
 
+### Build 43 (completed): Add a flight right after the current one
+- [x] `script.js`: the flight add button now shows on every outbound and return flight form, reads "+ Add Flight After This One", and inserts a blank flight at the current position + 1 (`flights.splice(node.flightIndex + 1, 0, newFlight())`; the return flights the same way), then selects it and calls `commitTrips()`. On the last flight it appends, as before. Position names and Layover steps follow the new order.
+- [x] Cache-bust bumped: `script.js?v=20→21` (shared with Build 44). Version: v1.08→v1.09 (shared with Build 44).
+- **Verification:** `verify30`, zero JS errors: the button is on a first flight; adding after the Initial inserts a Connection between it and the old Final (order 111|555|999), selection lands on the new blank flight, and the old Final keeps all its data and name; adding on the last flight appends; adding after a Connection inserts in position 3; the same on the return flights (901|902|903). The old code failed at the first check (no button on a first flight).
+
+### Build 44 (completed): Wizard step row follows the new selection
+Found by Jon: pressing Add did select the new flight, but the Wizard row did not scroll, so the new blue step was off-screen while the old flight sat in the middle and looked selected.
+- [x] `script.js`: `renderNodeTrack(center)` centres the selected step in the row (rectangle-based, as the Dashboard does) when the app changed the selection: Add flight, Add Flight After This One, Add Another Stop, Move earlier / later (`moveFlight`), Remove a flight or a stop, and opening or switching a trip (`refreshTripUI`). Any other redraw, including tapping a step, keeps the row's scroll position (`keepLeft`), so tapping does not slide the row.
+- [x] Found and fixed during verification: the first version used `offsetLeft` and was 38px off-centre every time (the row is not the offset parent); switched to rectangle measurements, and it now centres exactly (offset 0).
+- **Verification:** `verify30`: from the start of the row, Add, Move later, Remove, and Add stop each leave the selected step centred (offset 0, or fully visible at an edge); a direct tap leaves the row's scroll unchanged and selects that step; switching trips selects a step with no error. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 22, 23, 26, 28, 29 pass; the known differences only in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`, `verify18`.
+
 ## Build Queue
 
 _Empty — nothing queued right now._
-
-### Add a flight right after the current one
-Not yet authorized to build. Settled with Jon.
-
-- Every flight form (outbound and return) gets the add button, not only the last flight's. It reads "+ Add Flight After This One" and inserts a new blank flight directly after the flight being viewed in that flight's own group (a stop's outbound flights, or the return flights). On the last flight it behaves as "Add Another Flight" does today (appends).
-- Selection moves to the new flight. Position names (Initial, Connection n, Final, and the return names) and the Layover steps follow the new order; the new flight starts blank and its date follows the flight before it until typed.
-- The button keeps its place above Move earlier / Move later and Remove; the confirmation carry-forward is unaffected (it runs when an airline is chosen).
-- The trip's `modified` time updates like any edit.
-
-**Reuse:** the Add Another Flight wiring (`flights.push(newFlight())` becomes an insert at the current index + 1), `moveButtonsHTML()` placement, `commitTrips()`.
-
-**Verification plan:** from the Initial flight of a group of two, add a flight and confirm the new one is the Connection between them with the old Final still last; add after a Connection, after the Final (append), and on the return flights; typed data on the other flights is untouched; selection lands on the new flight; names and Layovers update; dates default correctly; reload; completion and lines update; earlier suites re-run.
-
-### Wizard step row follows the new selection
-Not yet authorized to build. Found by Jon: pressing Add on a flight does select the new flight, but the Wizard step row does not scroll, so the new blue step stays off-screen and the old flight sits in the middle, which looked like nothing had been added or selected.
-
-- After anything that changes the selection without Jon tapping a step (Add flight, Add Flight After This One, Add Another Stop, Move earlier / later, Remove a flight or a stop, opening or switching a trip), scroll the Wizard step row so the selected step is centred, as the Dashboard row already does.
-- Tapping a step directly leaves the row where it is (the step is already under his finger).
-- Horizontal only; the page's vertical scroll position is untouched (Build 32).
-
-**Reuse:** the Dashboard row's centring code in `renderDash()`.
-
-**Verification plan:** a trip with four flights and two stops, row scrolled to the left; add, move, and remove flights and stops and confirm each time that the selected step is centred in the row (bounding boxes), including near both ends of the row where it cannot fully centre; a direct tap does not move the row; switching trips; the page's vertical scroll unchanged; earlier suites re-run.
 
 ## Build Planner
 

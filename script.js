@@ -647,7 +647,8 @@
     if (!nodes.some(n => n.key === wizardState.selected)) wizardState.selected = firstStepKey(nodes);
   }
   const nodeTrack = document.getElementById('nodeTrack');
-  function renderNodeTrack() {
+  function renderNodeTrack(center) {
+    const keepLeft = nodeTrack.scrollLeft;
     ensureWizardSelection();
     const nodes = buildNodes();
     const selIdx = nodes.findIndex(n => n.key === wizardState.selected);
@@ -664,6 +665,10 @@
       div.addEventListener('click', () => { wizardState.selected = n.key; renderNodeTrack(); renderStepForm(); });
       nodeTrack.appendChild(div);
     });
+    /* centre the selected step when the app changed the selection (add, move, remove, open a trip); a tap leaves the row where it is */
+    const cur = nodeTrack.querySelector('.node.current');
+    if (center && cur) nodeTrack.scrollLeft += (cur.getBoundingClientRect().left + cur.offsetWidth / 2) - (nodeTrack.getBoundingClientRect().left + nodeTrack.clientWidth / 2);
+    else nodeTrack.scrollLeft = keepLeft;
     refreshWizardProgress();
   }
   /* Live step completion: node fills, the counter under the row, and the active trip's bar in the list (no re-draw, so the form keeps focus) */
@@ -907,7 +912,7 @@
     if (j < 0 || j >= list.length) return;
     const t = list[index]; list[index] = list[j]; list[j] = t;
     wizardState.selected = keyFor(j);
-    renderNodeTrack(); renderStepForm(); commitTrips();
+    renderNodeTrack(true); renderStepForm(); commitTrips();
   }
   function flightFormHTML(f, dateKey) {
     const airlineOpts = selectOptionsHTML(sortedByType('airline').map(a => a.name), f.airline, 'No airlines yet — add in Setup');
@@ -950,7 +955,7 @@
       const f = wizardState.stops[node.stopIndex].flights[node.flightIndex];
       html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
         flightFormHTML(f, 'f:' + node.stopIndex + ':' + node.flightIndex) + parserButtonHTML('Flight') +
-        (node.flightIndex === wizardState.stops[node.stopIndex].flights.length - 1 ? '<button class="add-flight-btn" id="wf-add-flight">+ Add Another Flight</button>' : '') +
+        '<button class="add-flight-btn" id="wf-add-flight">+ Add Flight After This One</button>' +
         moveButtonsHTML(node.flightIndex, wizardState.stops[node.stopIndex].flights.length) +
         (wizardState.stops[node.stopIndex].flights.length > 1 ? '<button class="add-flight-btn remove-btn" id="wf-remove-flight">Remove this flight</button>' : '');
     }
@@ -1028,7 +1033,7 @@
       const f = wizardState.returnFlights[node.flightIndex];
       html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
         flightFormHTML(f, 'rf:' + node.flightIndex + ':0') + parserButtonHTML('Flight') +
-        (node.flightIndex === wizardState.returnFlights.length - 1 ? '<button class="add-flight-btn" id="wf-add-return-flight">+ Add Another Flight</button>' : '') +
+        '<button class="add-flight-btn" id="wf-add-return-flight">+ Add Flight After This One</button>' +
         moveButtonsHTML(node.flightIndex, wizardState.returnFlights.length) +
         (wizardState.returnFlights.length > 1 ? '<button class="add-flight-btn remove-btn" id="wf-remove-flight">Remove this flight</button>' : '');
     }
@@ -1101,9 +1106,9 @@
       const addBtn = document.getElementById('wf-add-flight');
       if (addBtn) addBtn.addEventListener('click', () => {
         const flights = wizardState.stops[node.stopIndex].flights;
-        flights.push(newFlight());
-        wizardState.selected = 'stop' + node.stopIndex + '-flight-' + (flights.length - 1);
-        renderNodeTrack(); renderStepForm();
+        flights.splice(node.flightIndex + 1, 0, newFlight());
+        wizardState.selected = 'stop' + node.stopIndex + '-flight-' + (node.flightIndex + 1);
+        renderNodeTrack(true); renderStepForm(); commitTrips();
       });
       const mvE = document.getElementById('wf-move-earlier'), mvL = document.getElementById('wf-move-later'), fl = wizardState.stops[node.stopIndex].flights, fkey = j => 'stop' + node.stopIndex + '-flight-' + j;
       if (mvE) mvE.addEventListener('click', () => moveFlight(fl, node.flightIndex, -1, fkey));
@@ -1112,7 +1117,7 @@
       if (rmBtn) twoTap(rmBtn, 'Tap again to remove', () => {
         wizardState.stops[node.stopIndex].flights.splice(node.flightIndex, 1);
         wizardState.selected = 'stop' + node.stopIndex + '-flight-' + Math.max(0, node.flightIndex - 1);
-        renderNodeTrack(); renderStepForm(); commitTrips();
+        renderNodeTrack(true); renderStepForm(); commitTrips();
       });
     }
     else if (node.type === 'rental') {
@@ -1159,14 +1164,14 @@
         wizardState.stops.push(newStop());
         const newIdx = wizardState.stops.length - 1;
         wizardState.selected = 'stop' + newIdx + '-flight-0';
-        renderNodeTrack(); renderStepForm();
+        renderNodeTrack(true); renderStepForm();
       });
       const rmStop = document.getElementById('wf-remove-stop');
       if (rmStop) twoTap(rmStop, 'Tap again to remove', () => {
         wizardState.stops.splice(node.stopIndex, 1);
         wizardState.selected = node.stopIndex > 0 ? 'stop' + (node.stopIndex - 1) + '-rentalreturn' : 'stop0-flight-0';
         dashSelected = '';
-        renderNodeTrack(); renderStepForm(); commitTrips();
+        renderNodeTrack(true); renderStepForm(); commitTrips();
       });
     }
     else if (node.type === 'returnFlight') {
@@ -1180,9 +1185,9 @@
       upperInput(document.getElementById('wf-flight-seat'), v => f.seat = v);
       const addBtn = document.getElementById('wf-add-return-flight');
       if (addBtn) addBtn.addEventListener('click', () => {
-        wizardState.returnFlights.push(newFlight());
-        wizardState.selected = 'return-flight-' + (wizardState.returnFlights.length - 1);
-        renderNodeTrack(); renderStepForm();
+        wizardState.returnFlights.splice(node.flightIndex + 1, 0, newFlight());
+        wizardState.selected = 'return-flight-' + (node.flightIndex + 1);
+        renderNodeTrack(true); renderStepForm(); commitTrips();
       });
       const mvE = document.getElementById('wf-move-earlier'), mvL = document.getElementById('wf-move-later'), rfl = wizardState.returnFlights, rkey = j => 'return-flight-' + j;
       if (mvE) mvE.addEventListener('click', () => moveFlight(rfl, node.flightIndex, -1, rkey));
@@ -1191,7 +1196,7 @@
       if (rmBtn) twoTap(rmBtn, 'Tap again to remove', () => {
         wizardState.returnFlights.splice(node.flightIndex, 1);
         wizardState.selected = 'return-flight-' + Math.max(0, node.flightIndex - 1);
-        renderNodeTrack(); renderStepForm(); commitTrips();
+        renderNodeTrack(true); renderStepForm(); commitTrips();
       });
     }
     else if (node.type === 'uberHome') {
@@ -1513,7 +1518,7 @@
       if (pastOpen) g.past.forEach(t => pipelineList.appendChild(tripRow(t)));
     }
   }
-  function refreshTripUI() { renderPipeline(); renderWizardShell(); renderNodeTrack(); renderStepForm(); }
+  function refreshTripUI() { renderPipeline(); renderWizardShell(); renderNodeTrack(true); renderStepForm(); }
   function setActiveTrip(id) { activeTripId = id; saveActive(); dashSelected = ''; loadItinerary(); refreshTripUI(); }
   function loadTrips() {
     let list = [], act = '';
