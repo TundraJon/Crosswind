@@ -1425,9 +1425,13 @@
       name, start: raw.start, end: raw.end,
       startsAtHome: raw.startsAtHome !== false, endsAtHome: raw.endsAtHome !== false,
       modified: (typeof raw.modified === 'string' && !isNaN(Date.parse(raw.modified))) ? raw.modified : '',
+      colorIdx: (Number.isInteger(raw.colorIdx) && raw.colorIdx >= 0 && raw.colorIdx < 12) ? raw.colorIdx : null,
       itinerary: normalizeItinerary(raw.itinerary)
     };
   }
+  /* A trip's calendar colour (0 to 11) is set once, when it is created, from a counter that only moves forward */
+  let nextColor = 0;
+  function giveColor(t) { if (t.colorIdx == null) { t.colorIdx = nextColor % 12; nextColor++; } }
   function normalizeTripList(list) {
     const seen = {}, out = [];
     (Array.isArray(list) ? list : []).forEach(raw => {
@@ -1466,7 +1470,7 @@
   function defaultActiveId() { const g = splitTrips(); const l = g.active.concat(g.upcoming); return l.length ? l[0].id : ''; }
 
   function tripContent(t) { return JSON.stringify([t.name, t.start, t.end, t.startsAtHome, t.endsAtHome, t.itinerary]); }
-  function saveTrips() { try { localStorage.setItem(TRIPS_KEY, JSON.stringify({ v: 1, trips })); } catch (e) {} }
+  function saveTrips() { try { localStorage.setItem(TRIPS_KEY, JSON.stringify({ v: 1, trips, nextColor })); } catch (e) {} }
   function saveActive() { try { localStorage.setItem(ACTIVE_KEY, activeTripId); } catch (e) {} }
   function commitTrips(e) {
     if (!e || e.type !== 'input') refreshWizardProgress(); /* progress updates when a field is left, not on every keystroke */
@@ -1520,10 +1524,10 @@
   }
   /* ============ TRAVEL HORIZON CALENDAR (Dashboard popup, read-only) ============ */
   const horizonModal = document.getElementById('horizonModal');
-  const hzPalette = ['#4dd8ff', '#f0a832', '#4de88a', '#e85dd0', '#9b7bff', '#ff7a59', '#e8e04d', '#4de8d0'];
+  const hzPalette = ['#ff5c5c', '#4de88a', '#4d8dff', '#f0a832', '#9b7bff', '#4dd8ff', '#e85dd0', '#b5e84d', '#ff8a4d', '#2fbfa5', '#ff9ec7', '#f3e45a'];
   let hzMonth = new Date();
   function hzTripsByStart() { return trips.slice().sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : (a.id < b.id ? -1 : 1)); }
-  function hzColor(t) { return hzPalette[hzTripsByStart().findIndex(x => x.id === t.id) % hzPalette.length]; }
+  function hzColor(t) { return hzPalette[(t.colorIdx == null ? 0 : t.colorIdx) % hzPalette.length]; }
   function openTripFromHorizon(t) { closeHorizon(); setActiveTrip(t.id); showScreen('screenWizard'); }
   function closeHorizon() { horizonModal.classList.remove('open'); }
   function renderHorizon() {
@@ -1532,17 +1536,19 @@
     const grid = document.getElementById('hzGrid'), legend = document.getElementById('hzLegend'), away = document.getElementById('hzDaysAway');
     grid.innerHTML = ''; legend.innerHTML = '';
     const firstDay = new Date(y, mo, 1).getDay(), totalDays = new Date(y, mo + 1, 0).getDate(), today = dayStart(new Date());
-    for (let i = 0; i < firstDay; i++) { const b = document.createElement('div'); b.className = 'cal-day blank'; grid.appendChild(b); }
+    const cells = Math.ceil((firstDay + totalDays) / 7) * 7;
+    const gridStart = new Date(y, mo, 1 - firstDay), gridEnd = new Date(y, mo, cells - firstDay);
     let awayDays = 0;
-    for (let d = 1; d <= totalDays; d++) {
-      const date = new Date(y, mo, d), cell = document.createElement('div');
-      cell.className = 'cal-day'; cell.textContent = d;
+    for (let i = 0; i < cells; i++) {
+      const date = new Date(y, mo, 1 - firstDay + i), inMonth = date.getMonth() === mo, cell = document.createElement('div');
+      cell.className = 'cal-day' + (inMonth ? '' : ' dim'); cell.textContent = date.getDate();
       if (date.getTime() === today.getTime()) cell.classList.add('today-marker');
       const cover = sorted.filter(t => fromISODate(t.start) <= date && date <= fromISODate(t.end));
       if (cover.length) {
-        awayDays++; cell.classList.add('hz-trip');
+        if (inMonth) awayDays++;
+        cell.classList.add('hz-trip');
         const cols = cover.map(hzColor);
-        cell.style.background = cols.length === 1 ? cols[0] : 'linear-gradient(135deg, ' + cols.map((c, i) => c + ' ' + (i * 100 / cols.length) + '% ' + ((i + 1) * 100 / cols.length) + '%').join(', ') + ')';
+        cell.style.background = cols.length === 1 ? cols[0] : 'linear-gradient(135deg, ' + cols.map((c, k) => c + ' ' + (k * 100 / cols.length) + '% ' + ((k + 1) * 100 / cols.length) + '%').join(', ') + ')';
         const starting = cover.filter(t => fromISODate(t.start).getTime() === date.getTime());
         const pick = starting.length ? starting[starting.length - 1] : cover[cover.length - 1];
         cell.addEventListener('click', () => openTripFromHorizon(pick));
@@ -1550,15 +1556,13 @@
       grid.appendChild(cell);
     }
     away.textContent = trips.length ? 'Days away this month: ' + awayDays + ' of ' + totalDays : '';
-    const booked = sorted.filter(t => { const st = tripStatus(t); return st === 'active' || st === 'upcoming'; });
-    if (!trips.length) { const e = document.createElement('div'); e.className = 'hz-empty'; e.textContent = 'No trips yet — create one in Trip Wizard'; legend.appendChild(e); }
-    else if (!booked.length) { const e = document.createElement('div'); e.className = 'hz-empty'; e.textContent = 'No upcoming trips'; legend.appendChild(e); }
-    booked.forEach(t => {
+    /* legend: every trip visible on the grid (dimmed days included), as coloured name cells in date order */
+    const visible = sorted.filter(t => fromISODate(t.start) <= gridEnd && fromISODate(t.end) >= gridStart);
+    if (!visible.length) { const e = document.createElement('div'); e.className = 'hz-empty'; e.textContent = trips.length ? 'No trips this month' : 'No trips yet — create one in Trip Wizard'; legend.appendChild(e); }
+    visible.forEach(t => {
       const item = document.createElement('div'); item.className = 'hz-item';
-      const txt = document.createElement('div'); const nm = document.createElement('b'); nm.textContent = t.name; const dt = document.createElement('span'); dt.className = 'd'; dt.textContent = fmtTripDates(t);
-      txt.appendChild(nm); txt.appendChild(dt);
-      const sw = document.createElement('div'); sw.className = 'hz-sw'; sw.style.background = hzColor(t);
-      item.appendChild(txt); item.appendChild(sw);
+      const nm = t.name.toUpperCase(); item.textContent = nm.length > 12 ? nm.slice(0, 12).trimEnd() + '…' : nm;
+      item.style.color = hzColor(t); item.title = t.name;
       item.addEventListener('click', () => openTripFromHorizon(t));
       legend.appendChild(item);
     });
@@ -1573,9 +1577,14 @@
   function setActiveTrip(id) { activeTripId = id; saveActive(); dashSelected = ''; loadItinerary(); refreshTripUI(); }
   function loadTrips() {
     let list = [], act = '';
-    try { const raw = JSON.parse(localStorage.getItem(TRIPS_KEY)); if (raw && Array.isArray(raw.trips)) list = normalizeTripList(raw.trips); } catch (e) {}
+    let counter = 0;
+    try { const raw = JSON.parse(localStorage.getItem(TRIPS_KEY)); if (raw && Array.isArray(raw.trips)) { list = normalizeTripList(raw.trips); if (Number.isInteger(raw.nextColor) && raw.nextColor > 0) counter = raw.nextColor; } } catch (e) {}
     try { act = localStorage.getItem(ACTIVE_KEY) || ''; } catch (e) {}
+    nextColor = Math.max(counter, list.reduce((m, t) => t.colorIdx == null ? m : Math.max(m, t.colorIdx + 1), 0));
+    const uncoloured = list.filter(t => t.colorIdx == null).sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
+    uncoloured.forEach(giveColor);
     trips = list; tripSnaps = {};
+    if (uncoloured.length || nextColor !== counter) saveTrips();
     trips.forEach(t => { tripSnaps[t.id] = tripContent(t); });
     activeTripId = trips.some(t => t.id === act) ? act : defaultActiveId();
     dashSelected = ''; loadItinerary(); refreshTripUI();
@@ -1625,8 +1634,8 @@
       t.name = name; t.start = toISODate(s); t.end = toISODate(e); t.startsAtHome = startsAtHome; t.endsAtHome = endsAtHome;
       commitTrips();
     } else {
-      const t = { id: newTripId(), name, start: toISODate(s), end: toISODate(e), startsAtHome, endsAtHome, modified: new Date().toISOString(), itinerary: newItinerary() };
-      trips.push(t); tripSnaps[t.id] = tripContent(t);
+      const t = { id: newTripId(), name, start: toISODate(s), end: toISODate(e), startsAtHome, endsAtHome, modified: new Date().toISOString(), colorIdx: null, itinerary: newItinerary() };
+      giveColor(t); trips.push(t); tripSnaps[t.id] = tripContent(t);
       activeTripId = t.id; saveActive(); saveTrips(); dashSelected = ''; loadItinerary();
     }
     closeProjectModal(); refreshTripUI();
@@ -1908,6 +1917,7 @@
         favorites = pendingImport.favorites; saveFavorites(); renderFavorites();
       } else {
         const t = r.trip; t.modified = now;
+        if (t.colorIdx == null) { const same = trips.find(x => x.id === t.id); if (same && same.colorIdx != null) t.colorIdx = same.colorIdx; else giveColor(t); }
         const i = trips.findIndex(x => x.id === t.id);
         if (i >= 0) trips[i] = t; else trips.push(t);
         tripSnaps[t.id] = tripContent(t);

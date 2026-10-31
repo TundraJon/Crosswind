@@ -338,61 +338,27 @@ A read-only month view of booked trips, answering "how booked am I".
 - **Verification:** `verify31`, 41 checks, zero JS errors, trips seeded after the page loaded (past, active, back-to-back upcoming, later upcoming): every day of this month, next, previous, and the past trip's month (13 months back crosses a year) matches the expected colour or split from an independent calculation; days-away counts match each month; the handoff day is a 50/50 gradient of the two trips' colours; tapping it opens the starting trip, a single-trip day and a legend entry open their trips, a blank day does nothing, tapping outside closes; the past trip shows on its month but not in the legend; legend colours match the grid; empty state; a trip name with quotes, tags, and an ampersand shows as text; nine trips scroll the legend inside the popup; no horizontal overflow; screenshots of the popup, split day, and long legend looked at. Regression: suites 2c, 3, 4, 5b, 7, 14, 15, 17, 22, 23, 26, 28, 29, 30 pass; the known differences only in `verify9c`, `verify10b`, `verify11`, `verify12`, `verify13`, `verify18`.
 - Note: a trip's colour comes from its place in date order, so adding a trip that starts earlier than existing ones can shift the later trips' colours.
 
+### Build 47: Horizon legend shows the trips of the month being viewed (completed)
+- [x] `script.js` `renderHorizon()`: the legend no longer lists all active and upcoming trips; it lists trips that touch the displayed month. Built together with Build 49, so the final rule is the wider one: every trip visible on the grid, dimmed days included (a trip spanning a month boundary shows in both months; past months work the same way). "No trips this month" / "No trips yet — create one in Trip Wizard" replace "No upcoming trips".
+- **Verification:** `verify32`: April 2027 lists exactly the four trips visible (including one visible only on dimmed March days); May lists the trip visible only on dimmed April/May days plus its own; Feb 2027 shows "No trips this month"; legend order is date order.
+
+### Build 48: Twelve fixed trip colours (completed)
+- [x] `script.js`: palette of 12 in a fixed order starting red, green (`#ff5c5c`, `#4de88a`, `#4d8dff`, `#f0a832`, `#9b7bff`, `#4dd8ff`, `#e85dd0`, `#b5e84d`, `#ff8a4d`, `#2fbfa5`, `#ff9ec7`, `#f3e45a`). Each trip stores `colorIdx` (0 to 11), set once at creation from a forward-only counter `nextColor` saved in the trips store (`{v:1, trips, nextColor}`); editing never changes it and deleting never rewinds the counter. `normalizeTrip` keeps a valid `colorIdx`; `loadTrips()` numbers trips without one once, in date order, and saves; Import gives a trip with no colour the next number (or keeps the colour of the same trip it replaces). The colour travels in Export, Import, and restore points. `hzColor()` now reads the stored colour (replaces the 8-colour date-order palette from Build 46, so trips no longer shift colour when an earlier trip is added).
+- **Verification:** `verify32`: twelve old trips stored out of order are numbered 0 to 11 in date order exactly once and stay put across a reload; the 13th trip created through the UI is colour 0 (red) and the 14th is colour 1 (green); deleting the newest trip and creating another gives the next colour (2), not the freed one, and the counter does not rewind; editing the name, dates, and Ends at home keeps the colour; Export carries every colour and an older backup with no colours imports with a number assigned; screenshot of all twelve colours looked at.
+
+### Build 49: Horizon calendar shows the adjoining months' days, dimmed (completed)
+- [x] `script.js` `renderHorizon()`: the grid fills out to whole weeks; the cells before the 1st and after the last day are the real previous / next month days (class `dim`, `opacity: .4` in `styles.css`), carrying trip colours, split days, the today marker, and the same tap behaviour as any day. "Days away this month: N of M" counts only the real month.
+- **Verification:** `verify32`: for April 2027, Feb 2027, Feb 2026 (a Sunday start, 28 days: no dimmed days), Feb 2028 (leap), Dec 2026, Jan 2027, May, Sep, and Oct 2027 the cell count is a whole number of weeks, the leading dimmed count equals the weekday of the 1st, the trailing count fills the last week, the first dimmed cell is the real previous-month day number, the first trailing cell is 1, and dimmed cells are at opacity .4; March 26 to 31 carry the trip's red on dimmed days; the days-away count equals an independent April-only count; tapping a dimmed trip day opens that trip; screenshot looked at.
+
+### Build 50: Horizon legend as compact coloured name cells (completed)
+- [x] `script.js` / `styles.css`: the legend is a two-column grid (`.hz-legend`) of cells in date order; each cell is the trip name uppercased and cut to 12 characters with "…" (stored name unchanged, full name as the tooltip), in the trip's colour (the text itself, no swatch), no dates. Tapping opens the trip. `max-height: 84px` so three rows (six trips) fit and more scroll. Names go in with `textContent`.
+- [x] Found and fixed during verification: with a 118px max height, eight trips still fit without scrolling; tightened to 84px so more than six scroll.
+- [x] Cache-bust bumped: `script.js?v=22→23`, `styles.css?v=18→19` (Builds 47 to 50). Version: v1.10→v1.11 (Builds 47 to 50).
+- **Verification:** `verify32` (84 checks, zero JS errors): April legend cells are `SA763 NATAWA…`, `KAHULUI TRIB…`, `NEW YORK SA2…`, `SHORT` in date order, each in its trip's colour, left then right then next row, no dates, tooltip is the full name; a name with quotes and tags shows as text; six trips fit, eight scroll; no horizontal overflow; screenshots looked at. Regression: suites 2c, 3, 4, 5b, 7, 8b, 14, 15, 17, 22, 23, 26, 28, 29, 30 pass. Expected differences: `verify11` (two new: the stored trips shape now has `nextColor` and trips have `colorIdx`), `verify31` (tested the old 8-colour, date-order, right-aligned legend; replaced by `verify32`), and the known ones in `verify9c`, `verify10b`, `verify12`, `verify13`, `verify18`.
+
 ## Build Queue
 
 _Empty — nothing queued right now._
-
-### Horizon legend shows the trips of the month being viewed
-Not yet authorized to build. Settled with Jon (a year of bookings would make the all-trips legend far too long).
-
-- The Travel Horizon Calendar legend lists only the trips that touch the month being displayed (any day of the trip falls inside that month), in date order, with the colour swatch, name, and dates as today. Paging to another month changes the list, including past months. (If the dimmed adjoining days entry below is also built, the legend lists every trip visible on the grid, dimmed days included.)
-- A month with no trips shows "No trips this month"; with no trips at all it still shows "No trips yet — create one in Trip Wizard". The "No upcoming trips" message goes away.
-- Tapping a legend entry still opens that trip in the Wizard. The list still scrolls if long.
-
-**Reuse:** `renderHorizon()` (the legend loop filters by the shown month instead of by active / upcoming status).
-
-**Verification plan:** twelve trips spread over about four months, three to four per month: each month's legend holds exactly the trips overlapping it, in date order; a trip spanning a month boundary appears in both months; empty months and past months; legend swatches match the grid; tapping an entry opens that trip; earlier suites re-run.
-
-### Twelve fixed trip colours
-Not yet authorized to build. Settled with Jon: a trip keeps the colour it gets when it is created, so the same colour on the calendar months later means the same trip. A cancelled trip's colour is not reused for the replacement; the new trip simply gets the next colour.
-
-- Palette of 12 distinct colours in a fixed order that starts red, then green (shades chosen at build time, checked against each other and the dark theme with screenshots; the first two are red and green as Jon described; the rest are well separated, for example blue, amber, violet, cyan, magenta, and so on, ending before the cycle repeats).
-- Each trip stores a colour number (`colorIdx`, 0 to 11) set at creation from a creation counter that only moves forward and is saved with the trips (so deleting a trip never rewinds it). Trip 1 is red, trip 2 green, trip 13 red again, trip 14 green again. Editing a trip never changes its colour.
-- Trips saved before this build, and trips in older backups with no colour, are numbered once in date order the first time they load (0, 1, 2, ...) and the counter continues after them; that is then permanent.
-- The colour number is part of a backup (Export) and comes back on Import (the Import checklist and restore points carry it with the trips). An imported trip with no colour gets the next number from the counter. Imported trips may share a colour with existing ones; nothing is recoloured.
-- The Travel Horizon Calendar grid and legend use the stored colour instead of the position in date order (replaces the 8-colour, date-order palette from Build 46). Split days use the two trips' stored colours.
-- Wizard list and other screens are unchanged.
-
-**Reuse:** `hzColor()` / `hzPalette` in the calendar code, the trips load / normalise / save path (`normalizeTrip`, `saveTrips`), the Export / Import trip normalisation.
-
-**Verification plan:** create 14 trips in a row and confirm colours 1 to 12 are all different and trips 13 and 14 are red and green; delete trip 3 and create another, which takes the next colour and does not reuse the freed one; edit a trip's name, dates, and Starts / Ends at home and its colour stays; reload keeps colours; old stored trips without a colour are numbered in date order exactly once; Export then Import (and an older backup without colours) round-trips colours; split days use the stored colours; screenshots of the 12 colours together; earlier suites (including the backup and import ones) re-run.
-
-### Horizon calendar shows the adjoining months' days, dimmed
-Not yet authorized to build. Settled with Jon (yes to tapping dimmed days like any other, and to the legend covering every trip visible on the grid).
-
-- The Travel Horizon Calendar grid fills out to whole weeks: the blank cells before the 1st become the previous month's last days, and the blank cells after the last day become the next month's first days (a month ending on a Wednesday shows Thursday to Saturday of the next month). They show the real day numbers, slightly dimmed (reduced opacity, no change to the layout).
-- Trip colours continue onto the dimmed days (also dimmed), including split days, so a trip that crosses a month boundary shows its full length in one view. Today's marker shows on a dimmed day if today falls there.
-- Tapping a dimmed day behaves like any other day: a trip day opens that trip in the Wizard (a split day opens the trip that is starting); a blank dimmed day does nothing.
-- "Days away this month: N of M" counts only the real month, not the dimmed days.
-- The legend lists every trip visible on the grid, dimmed days included, in date order (this widens the "Horizon legend shows the trips of the month being viewed" entry, which counts a trip when it touches the month itself).
-
-**Reuse:** `renderHorizon()` (the blank-cell loops become dimmed real days; the same colour and tap code), the `.cal-day` styles.
-
-**Verification plan:** months that start on each weekday and end on each weekday (including one starting on Sunday, with no leading days, and one ending on Saturday); the dimmed days carry the right day numbers; a trip crossing into the next month shows colour on the dimmed days and its legend entry appears; a split day on a dimmed cell; tapping dimmed days; the days-away count ignores them; February in a leap and a non-leap year; paging across a year end; screenshots of the dimmed look; earlier suites re-run.
-
-### Horizon legend as compact coloured name cells
-Not yet authorized to build. Settled with Jon (two columns, uppercase, no dates, scroll past six trips).
-
-- The Travel Horizon Calendar legend becomes a block of cells across the bottom of the popup (replacing the right-aligned list with swatches): two columns, filling left to right then down, in date order.
-- Each cell is the trip's name in that trip's colour (the text itself is coloured; no swatch), uppercased and cut to about 12 characters with an ellipsis ("SA763 NATAWA…"). The stored name is not changed; the full name is the cell's tooltip.
-- No dates in the legend. Tapping a cell opens that trip in the Wizard, as the legend entries do now.
-- More than six trips (three rows): the block scrolls inside the popup instead of growing. An odd count leaves the last cell on the left.
-- The empty messages stay as they are ("No trips this month" / "No trips yet — create one in Trip Wizard"). Which trips are listed is set by the month-legend entry and the adjoining-days entry (this entry changes only how the legend looks).
-- Names are set with `textContent`, so quotes, tags, and ampersands show as plain text.
-
-**Reuse:** `renderHorizon()`'s legend loop, `hzColor()` and the `.hz-legend` styles.
-
-**Verification plan:** one to six trips: two-column layout fills left to right in date order; each cell's text colour matches the trip's colour on the grid; a long name is cut at about 12 characters with an ellipsis and a short one is not; odd counts; more than six scroll; tapping a cell opens that trip; a name with quotes and tags displays as text; fits at 390px with no horizontal overflow; screenshots; earlier suites re-run.
 
 ## Build Planner
 
