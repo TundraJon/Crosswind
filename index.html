@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.12) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.13) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -11,7 +11,7 @@
 <link rel="preload" href="fonts/chakra-petch-400-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/chakra-petch-600-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/michroma-400-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=20">
+<link rel="stylesheet" href="styles.css?v=21">
 </head>
 <body>
 
@@ -36,6 +36,7 @@
       <div class="card-title">Home Base</div>
       <label class="fld" for="addrInput">Address</label>
       <input type="text" id="addrInput" placeholder="Not set">
+      <div class="fld-note" id="addrLoc"></div>
       <div style="margin-top:6px;"><span class="badge off" id="cassBadge">CASS Validated</span></div>
       <div class="fld-note">Needs online lookup — coming soon</div>
       <label class="fld" for="homeAirportInput">Home Airport</label>
@@ -238,7 +239,7 @@
       </div>
     </div>
   </div>
-  <div class="dock" id="dashDock" style="margin-top:12px;"><button class="btn primary grow" id="copyAddrBtn">[ Copy Address ]<small>Paste into your GPS app</small></button></div>
+  <div class="dock" id="dashDock" style="margin-top:12px;"><button class="btn primary grow" id="copyAddrBtn">[ Copy Address ]<small>Paste into your GPS app</small></button><button class="btn grow" id="compassBtn" style="display:none;">🧭 Compass<small>Works offline</small></button></div>
   <button id="stateToggle">⇄ Dev: Toggle Ground / Airborne</button>
 </div>
 
@@ -268,6 +269,23 @@
       <div class="btn-row" style="margin-top:10px;"><button class="btn ghost" id="reqClearBtn">Clear</button><button class="btn primary grow" id="reqDisplayBtn">Display</button></div>
     </div>
   </div>
+</div>
+<!-- Driving screen: direction and distance to a saved place from GPS alone (works offline) -->
+<div id="driveScreen" class="drive-screen" style="display:none;">
+  <div class="drive-head"><button class="btn ghost" id="driveBack">← Back</button><div class="drive-dest" id="driveDest"></div></div>
+  <div class="quick-card drive-card">
+    <div class="telem-grid">
+      <div class="drive-compass"><div class="drive-plane" id="drivePlane" style="--course:0; --rel:0;">
+        <div class="drive-ring"><span class="drive-n">N</span></div>
+        <svg class="drive-arrow" viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,6 76,86 50,70 24,86" fill="#4dd8ff" stroke="#04151c" stroke-width="3" stroke-linejoin="round"/></svg>
+      </div><div class="drive-fwd">▲</div></div>
+      <div class="telem-col right">
+        <div class="t-lab">Ground Speed</div><div class="t-val" id="driveSpeed">0</div>
+        <div class="t-lab">Distance</div><div class="t-val" id="driveDist">—</div>
+      </div>
+    </div>
+  </div>
+  <div class="drive-msg" id="driveMsg" style="display:none;"></div>
 </div>
 <div id="reqDisplay"><div id="reqDisplayText"></div><button id="reqBackBtn" aria-label="Back">&#8592;</button></div>
 <div id="rotateOverlay"><div class="icon">&#x21BB;</div><div>Rotate your phone to landscape</div></div>
@@ -333,7 +351,7 @@
 
 <script src="airports.js?v=1"></script>
 <script src="hotel-brands.js?v=2"></script>
-<script src="script.js?v=23"></script>
+<script src="script.js?v=24"></script>
 
 </body>
 </html>

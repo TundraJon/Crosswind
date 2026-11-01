@@ -171,6 +171,7 @@
   const PROFILE_KEY = 'crosswindProfile';
   const addrInput = document.getElementById('addrInput');
   const homeAirportInput = document.getElementById('homeAirportInput');
+  let homeLat = null, homeLon = null; /* the home address, looked up once (driving compass) */
   const ktnInput = document.getElementById('ktnInput');
   const ktnNote = document.getElementById('ktnNote');
   const unitGroups = document.querySelectorAll('#screenSetup .unit-switch');
@@ -209,7 +210,7 @@
   function stepIcon(sys) { const c = stepCustom[sys]; const ic = (c && c.icon) ? firstIcon(cleanText(c.icon)) : ''; return ic || stepSystem.find(r => r.sys === sys).icon; }
 
   function emptyProfile() {
-    return { v: 1, address: '', homeAirport: '', programs: [], touchless: {}, ktn: '', ktnExp: '',
+    return { v: 1, address: '', addrLat: null, addrLon: null, homeAirport: '', programs: [], touchless: {}, ktn: '', ktnExp: '',
       units: { speed: 'mph', temp: 'f', dist: 'mi' }, stepDefaults: {}, modified: '' };
   }
   function normalizeProfile(raw) {
@@ -217,6 +218,7 @@
     if (!raw || typeof raw !== 'object') return p;
     const str = v => typeof v === 'string' ? v : '';
     p.address = str(raw.address); p.homeAirport = str(raw.homeAirport);
+    p.addrLat = coordOrNull(raw.addrLat, 90); p.addrLon = coordOrNull(raw.addrLon, 180);
     p.ktn = str(raw.ktn).toUpperCase().slice(0, 9); p.ktnExp = str(raw.ktnExp);
     p.modified = (typeof raw.modified === 'string' && !isNaN(Date.parse(raw.modified))) ? raw.modified : '';
     if (Array.isArray(raw.programs)) {
@@ -254,7 +256,7 @@
   let lastProfileSnap = '';
   function profileContent() {
     const t = {}; Object.keys(touchless).forEach(k => { if (touchless[k]) t[k] = true; });
-    return { v: 1, address: addrInput.value, homeAirport: homeAirportInput.value,
+    return { v: 1, address: addrInput.value, addrLat: homeLat, addrLon: homeLon, homeAirport: homeAirportInput.value,
       programs: programs.map(p => ({ type: p.type, name: p.name, id: p.id })), touchless: t,
       ktn: ktnInput.value, ktnExp: ktnExpInput.value, units: currentUnits(), stepDefaults: JSON.parse(JSON.stringify(stepCustom)) };
   }
@@ -272,7 +274,7 @@
     ktnNote.style.display = (v && !good) ? 'block' : 'none';
   }
   function applyProfile(p) {
-    addrInput.value = p.address; homeAirportInput.value = p.homeAirport;
+    addrInput.value = p.address; homeAirportInput.value = p.homeAirport; homeLat = p.addrLat; homeLon = p.addrLon;
     ktnInput.value = p.ktn; ktnExpInput.value = p.ktnExp;
     programs = p.programs; touchless = p.touchless; stepCustom = p.stepDefaults;
     unitGroups.forEach(g => g.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.val === p.units[g.dataset.unitGroup])));
@@ -281,7 +283,8 @@
     profileModified = p.modified || ''; lastProfileSnap = JSON.stringify(profileContent());
     renderLoyaltyList(); renderTsaAirlines(); renderNodeTrack(); renderStepForm();
   }
-  addrInput.addEventListener('input', saveProfile);
+  addrInput.addEventListener('input', () => { homeLat = homeLon = null; setLocNote(document.getElementById('addrLoc'), addrInput.value.trim() ? 'pending' : ''); saveProfile(); });
+  addrInput.addEventListener('blur', () => locatePlace(homePlace()));
   homeAirportInput.addEventListener('input', saveProfile);
   ktnInput.addEventListener('input', () => {
     const pos = ktnInput.selectionStart;
@@ -302,6 +305,9 @@
     const byCity = airportData.filter(a => !a.code.startsWith(code) && a.city.toLowerCase().startsWith(city)).sort(rank);
     return byCode.concat(byCity).slice(0, 8);
   }
+  /* An airport code from what is typed or stored ("MCO", "mco", "MCO - Orlando FL"); anything else gives '' */
+  function airportCode(text) { const m = String(text || '').trim().match(/^([A-Za-z]{3})(?:\s*[-–]|$)/); return m ? m[1].toUpperCase() : ''; }
+  function airportByCode(code) { return airportData.find(a => a.code === code) || null; }
   /* Shared suggestion list. opts: find(text) -> [{ label }], onPick(item), showOnFocus (show the list when the field is focused),
      exactOnBlur(text) -> item (expand text left in the field to that item when leaving it) */
   function attachSuggest(input, listEl, opts) {
@@ -547,13 +553,13 @@
   /* ============ TRIP WIZARD: full round-trip, multi-stop state ============ */
   let trips = [];
   let activeTripId = '';
-  function newFlight() { return { airline: '', flightNum: '', conf: '', seat: '', date: '' }; }
+  function newFlight() { return { airline: '', flightNum: '', conf: '', seat: '', date: '', from: '', to: '' }; }
   function newStop() {
     return {
-      destination: { name: '', address: '', contact: '', phone: '' },
+      destination: { name: '', address: '', contact: '', phone: '', lat: null, lon: null },
       flights: [ newFlight() ],
       rental: { company: '', cls: 'Economy', color: '', plate: '', pickup: '', ret: '', conf: '' },
-      hotel: { chain: '', brand: '', name: '', address: '', room: '', checkIn: '', checkOut: '', conf: '' }
+      hotel: { chain: '', brand: '', name: '', address: '', room: '', checkIn: '', checkOut: '', conf: '', lat: null, lon: null }
     };
   }
   const wizardState = {
@@ -747,6 +753,28 @@
       '<button class="suggest-btn" id="' + id + '-cal" style="margin-top:0;">📅</button></div>' +
       '<div class="fld-note date-note" id="' + id + '-note" style="display:none;">Outside the trip dates</div>';
   }
+  /* From / To airport of every flight: what was typed, else a default (shown, not stored): the first outbound flight leaves the Home Airport only when the trip starts at home, each later flight leaves where the one before landed, and the last return flight lands at the Home Airport only when the trip ends at home */
+  function effAirports() {
+    const trip = activeTrip(), out = {};
+    if (!trip) return out;
+    const home = airportCode(homeAirportInput.value);
+    const seq = [];
+    wizardState.stops.forEach((st, si) => st.flights.forEach((f, fi) => seq.push({ key: 'f:' + si + ':' + fi, f, last: false })));
+    wizardState.returnFlights.forEach((f, fi) => seq.push({ key: 'rf:' + fi + ':0', f, last: fi === wizardState.returnFlights.length - 1 }));
+    let prevTo = trip.startsAtHome ? home : '';
+    seq.forEach(x => {
+      const from = x.f.from || prevTo, to = x.f.to || ((x.last && trip.endsAtHome) ? home : '');
+      out[x.key] = { from, to }; prevTo = to;
+    });
+    return out;
+  }
+  /* The airport the rental car is picked up at: where the last flight before the Rental step lands */
+  function rentalAirportCode(si) {
+    const fl = wizardState.stops[si] && wizardState.stops[si].flights;
+    if (!fl || !fl.length) return '';
+    const e = effAirports()['f:' + si + ':' + (fl.length - 1)];
+    return e ? e.to : '';
+  }
   function refreshStepDates() {
     const trip = activeTrip();
     if (!trip) return;
@@ -920,6 +948,11 @@
       '<div>' + dateFieldHTML('wf-date', 'Date', dateKey) + '</div>' +
       '<div><label class="fld">Airline</label><select id="wf-flight-airline">' + airlineOpts + '</select></div>' +
       '</div>' +
+      '<div class="fld-grid">' +
+      '<div><label class="fld">From</label><input type="text" id="wf-from" placeholder="MCO" autocomplete="off"></div>' +
+      '<div><label class="fld">To</label><input type="text" id="wf-to" placeholder="SFO" autocomplete="off"></div>' +
+      '</div>' +
+      '<div class="suggest-list" id="wf-from-suggest" style="display:none;"></div><div class="suggest-list" id="wf-to-suggest" style="display:none;"></div>' +
       '<div class="fld-note val-note" id="wf-order-note" style="display:none;">Earlier than the flight before it</div>' +
       '<div class="flight-row3">' +
       '<div class="fnum"><label class="fld">Flight #</label><input type="text" id="wf-flight-num" placeholder="402" maxlength="6" value="' + esc(f.flightNum) + '"></div>' +
@@ -976,7 +1009,7 @@
       const compOpts = selectOptionsHTML(sortedByType('rental').map(c => c.name), r.company, 'No rental programs yet');
       const classes = ['Economy','Compact','Intermediate/Midsize','Standard','Full-Size','Premium','Luxury','SUV (Compact)','SUV (Standard/Full-Size)','Minivan'];
       const classOpts = classes.map(c => '<option' + (c === r.cls ? ' selected' : '') + '>' + c + '</option>').join('');
-      html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div><div class="fld-grid">' +
+      html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' + pickupAirportNote(si) + '<div class="fld-grid">' +
         '<div><label class="fld">Company</label><select id="wf-rental-company">' + compOpts + '</select></div>' +
         '<div><label class="fld">Class</label><select id="wf-rental-class">' + classOpts + '</select></div>' +
         '<div>' + dateFieldHTML('wf-rental-pick', 'Pickup Date', 'rPick:' + si + ':0') + '</div>' +
@@ -996,7 +1029,7 @@
         '</div>' +
         '<div class="suggest-list" id="wf-brand-suggest" style="display:none;"></div>' +
         '<label class="fld">Hotel Name</label><input type="text" id="wf-hotel-name" placeholder="e.g. Lambeau Field Hilton" value="' + esc(h.name) + '">' +
-        '<label class="fld">Address</label><input type="text" id="wf-hotel-address" placeholder="—" value="' + esc(h.address) + '">' +
+        '<label class="fld">Address</label><input type="text" id="wf-hotel-address" placeholder="—" value="' + esc(h.address) + '"><div class="fld-note" id="wf-hotel-loc"></div>' +
         '<button class="suggest-btn" id="wf-hotel-suggest" disabled title="Needs online lookup — coming soon">📍 Suggest Address</button>' +
         '<div class="fld-note">Needs online lookup — coming soon</div>' +
         '<div class="fld-grid">' +
@@ -1011,7 +1044,7 @@
       const d = wizardState.stops[node.stopIndex].destination;
       html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
         '<label class="fld">Place Name</label><input type="text" id="wf-dest-name" placeholder="e.g. Hollywood Health Center" value="' + esc(d.name) + '">' +
-        '<label class="fld">Address</label><input type="text" id="wf-dest-address" placeholder="—" value="' + esc(d.address) + '">' +
+        '<label class="fld">Address</label><input type="text" id="wf-dest-address" placeholder="—" value="' + esc(d.address) + '"><div class="fld-note" id="wf-dest-loc"></div>' +
         '<button class="suggest-btn" id="wf-dest-suggest" disabled title="Needs online lookup — coming soon">📍 Suggest Address</button>' +
         '<div class="fld-note">Needs online lookup — coming soon</div>' +
         '<div class="fld-grid"><div><label class="fld">Contact Name</label><input type="text" id="wf-dest-contact" value="' + esc(d.contact) + '"></div><div><label class="fld">Contact Phone</label><input type="text" id="wf-dest-phone" value="' + esc(formatPhone(d.phone)) + '"></div></div>' +
@@ -1023,6 +1056,7 @@
       const isLastStop = node.stopIndex === wizardState.stops.length - 1;
       html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
         '<div class="return-ref">Returning: ' + esc(r.company || '—') + ' — ' + esc(r.cls) +
+        (rentalAirportCode(node.stopIndex) ? '<div class="rr-sub">Return to airport: <b>' + esc(rentalAirportCode(node.stopIndex)) + '</b></div>' : '') +
         '<div class="rr-sub">Return date: ' + (effDateText('rRet:' + node.stopIndex + ':0') || '—') + '</div>' +
         '<div class="rr-sub">No time needed — inferred from the next flight\'s boarding time.</div></div>' +
         (isLastStop ? '<button class="add-flight-btn" id="wf-add-stop">+ Add Another Stop</button>' : '') +
@@ -1085,6 +1119,23 @@
     equalizeStepHeight(nodes, node);
   }
 
+  /* From / To airport fields of the flight on screen: autocomplete, stored as a code when left, defaults shown until typed */
+  function pickupAirportNote(si) { const c = rentalAirportCode(si); return c ? '<div class="fld-note" id="wf-pickup-airport">Pickup airport: <b>' + esc(c) + '</b></div>' : ''; }
+  function wireFlightAirports(f, key) {
+    const fromEl = document.getElementById('wf-from'), toEl = document.getElementById('wf-to');
+    const show = () => {
+      const e = effAirports()[key] || { from: '', to: '' };
+      if (document.activeElement !== fromEl) fromEl.value = f.from || e.from;
+      if (document.activeElement !== toEl) toEl.value = f.to || e.to;
+    };
+    [[fromEl, 'from', 'wf-from-suggest'], [toEl, 'to', 'wf-to-suggest']].forEach(([el, prop, listId]) => {
+      let dirty = false;
+      el.addEventListener('input', () => { dirty = true; });
+      attachSuggest(el, document.getElementById(listId), { find: findAirports, onPick: a => { el.value = a.code; f[prop] = a.code; dirty = false; show(); } });
+      el.addEventListener('blur', () => { if (dirty) { dirty = false; f[prop] = airportCode(el.value); } show(); });
+    });
+    show();
+  }
   function wireStepFormInputs(node) {
     if (node.type === 'uberOut') {
       const pu = document.getElementById('wf-uber-pickup'), doff = document.getElementById('wf-uber-dropoff');
@@ -1103,6 +1154,7 @@
       upperInput(confEl, v => f.conf = v, () => { updateConfColor(confEl, confNote); document.getElementById('wf-copy-note').style.display = 'none'; });
       updateConfColor(confEl, confNote);
       upperInput(document.getElementById('wf-flight-seat'), v => f.seat = v);
+      wireFlightAirports(f, 'f:' + node.stopIndex + ':' + node.flightIndex);
       const addBtn = document.getElementById('wf-add-flight');
       if (addBtn) addBtn.addEventListener('click', () => {
         const flights = wizardState.stops[node.stopIndex].flights;
@@ -1145,14 +1197,18 @@
           commitTrips();
         }
       });
-      document.getElementById('wf-hotel-address').addEventListener('input', e => h.address = e.target.value);
+      document.getElementById('wf-hotel-address').addEventListener('input', e => { h.address = e.target.value; h.lat = h.lon = null; setLocNote(document.getElementById('wf-hotel-loc'), h.address.trim() ? 'pending' : ''); });
+      document.getElementById('wf-hotel-address').addEventListener('blur', () => locatePlace(hotelPlace(h)));
+      setLocNote(document.getElementById('wf-hotel-loc'), !h.address.trim() ? '' : (h.lat != null ? 'ok' : 'pending'));
       document.getElementById('wf-hotel-room').addEventListener('input', e => h.room = e.target.value);
       upperInput(document.getElementById('wf-hotel-conf'), v => h.conf = v);
     }
     else if (node.type === 'destination') {
       const d = wizardState.stops[node.stopIndex].destination;
       document.getElementById('wf-dest-name').addEventListener('input', e => { d.name = e.target.value; renderNodeTrack(); });
-      document.getElementById('wf-dest-address').addEventListener('input', e => d.address = e.target.value);
+      document.getElementById('wf-dest-address').addEventListener('input', e => { d.address = e.target.value; d.lat = d.lon = null; setLocNote(document.getElementById('wf-dest-loc'), d.address.trim() ? 'pending' : ''); });
+      document.getElementById('wf-dest-address').addEventListener('blur', () => locatePlace(destPlace(d)));
+      setLocNote(document.getElementById('wf-dest-loc'), !d.address.trim() ? '' : (d.lat != null ? 'ok' : 'pending'));
       document.getElementById('wf-dest-contact').addEventListener('input', e => d.contact = e.target.value);
       const phoneEl = document.getElementById('wf-dest-phone');
       phoneEl.addEventListener('input', e => { d.phone = parsePhone(e.target.value); });
@@ -1183,6 +1239,7 @@
       upperInput(confEl, v => f.conf = v, () => { updateConfColor(confEl, confNote); document.getElementById('wf-copy-note').style.display = 'none'; });
       updateConfColor(confEl, confNote);
       upperInput(document.getElementById('wf-flight-seat'), v => f.seat = v);
+      wireFlightAirports(f, 'rf:' + node.flightIndex + ':0');
       const addBtn = document.getElementById('wf-add-return-flight');
       if (addBtn) addBtn.addEventListener('click', () => {
         wizardState.returnFlights.splice(node.flightIndex + 1, 0, newFlight());
@@ -1248,7 +1305,8 @@
       const f = dashFlightFor(node);
       const fl = [f.airline, f.flightNum].filter(x => x && String(x).trim()).join(' ');
       const dateKey = node.type === 'flight' ? 'f:' + node.stopIndex + ':' + node.flightIndex : 'rf:' + node.flightIndex + ':0';
-      html += '<div class="qc-route"><span class="apt">—</span><span class="arr">⟶</span><span class="apt">—</span></div>' +
+      const ap = effAirports()[dateKey] || { from: '', to: '' };
+      html += '<div class="qc-route"><span class="apt">' + esc(ap.from || '—') + '</span><span class="arr">⟶</span><span class="apt">' + esc(ap.to || '—') + '</span></div>' +
         line('DATE: <b>' + dv(effDateText(dateKey)) + '</b>') +
         line('FLIGHT: <b>' + dv(fl) + '</b> | SEAT: <b>' + dv(f.seat) + '</b>') +
         line('CONFIRMATION: <b>' + dv(f.conf) + '</b> | GATE: <b>—</b>') +
@@ -1335,7 +1393,10 @@
     dashCard.style.display = showAir ? 'none' : 'block';
     cardAir.style.display = showAir ? 'block' : 'none';
     dashAddr = (dashAddressFor(node) || '').trim();
-    dashDock.style.display = dashAddr ? 'flex' : 'none';
+    dashCompass = dashCompassTarget(node);
+    copyAddrBtn.style.display = dashAddr ? '' : 'none';
+    compassBtn.style.display = dashCompass ? '' : 'none';
+    dashDock.style.display = (dashAddr || dashCompass) ? 'flex' : 'none';
   }
   document.getElementById('stateToggle').addEventListener('click', () => {
     airborne = !airborne;
@@ -1389,10 +1450,11 @@
   function activeTrip() { return trips.find(t => t.id === activeTripId) || null; }
 
   function isoOrBlank(v) { return (typeof v === 'string' && fromISODate(v)) ? v : ''; }
+  function coordOrNull(v, max) { return (typeof v === 'number' && isFinite(v) && Math.abs(v) <= max) ? v : null; }
   function normalizeFlight(f) {
     const s = v => typeof v === 'string' ? cleanText(v) : '';
     f = (f && typeof f === 'object') ? f : {};
-    return { airline: s(f.airline), flightNum: s(f.flightNum), conf: s(f.conf), seat: s(f.seat), date: isoOrBlank(f.date) };
+    return { airline: s(f.airline), flightNum: s(f.flightNum), conf: s(f.conf), seat: s(f.seat), date: isoOrBlank(f.date), from: airportCode(s(f.from)), to: airportCode(s(f.to)) };
   }
   function normalizeItinerary(raw) {
     if (!raw || typeof raw !== 'object') return newItinerary();
@@ -1404,10 +1466,10 @@
       const d = st.destination || {}, r = st.rental || {}, h = st.hotel || {};
       const flights = (Array.isArray(st.flights) ? st.flights : []).map(normalizeFlight);
       out.stops.push({
-        destination: { name: s(d.name), address: s(d.address), contact: s(d.contact), phone: parsePhone(s(d.phone)) },
+        destination: { name: s(d.name), address: s(d.address), contact: s(d.contact), phone: parsePhone(s(d.phone)), lat: coordOrNull(d.lat, 90), lon: coordOrNull(d.lon, 180) },
         flights: flights.length ? flights : [ normalizeFlight() ],
         rental: { company: s(r.company), cls: s(r.cls) || 'Economy', color: s(r.color), plate: s(r.plate).toUpperCase(), pickup: isoOrBlank(r.pickup), ret: isoOrBlank(r.ret), conf: s(r.conf) },
-        hotel: { chain: s(h.chain), brand: s(h.brand), name: s(h.name), address: s(h.address), room: s(h.room), checkIn: isoOrBlank(h.checkIn), checkOut: isoOrBlank(h.checkOut), conf: s(h.conf) }
+        hotel: { chain: s(h.chain), brand: s(h.brand), name: s(h.name), address: s(h.address), room: s(h.room), checkIn: isoOrBlank(h.checkIn), checkOut: isoOrBlank(h.checkOut), conf: s(h.conf), lat: coordOrNull(h.lat, 90), lon: coordOrNull(h.lon, 180) }
       });
     });
     if (!out.stops.length) out.stops.push(newStop());
@@ -1522,6 +1584,147 @@
       if (pastOpen) g.past.forEach(t => pipelineList.appendChild(tripRow(t)));
     }
   }
+  /* ============ PLACE LOOKUP + DRIVING COMPASS (works offline once an address is located) ============ */
+  /* An address is turned into coordinates once, while online (OpenStreetMap Nominatim, address text only, one request at a time), and saved with the address. */
+  let geoChain = Promise.resolve(), geoLast = 0;
+  function geocodeAddress(addr) {
+    const run = async () => {
+      const wait = geoLast + 1100 - Date.now();
+      if (wait > 0) await new Promise(res => setTimeout(res, wait));
+      geoLast = Date.now();
+      const resp = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(addr), { headers: { 'Accept': 'application/json' } });
+      if (!resp.ok) throw new Error('lookup failed');
+      const a = await resp.json();
+      if (!Array.isArray(a) || !a.length) return null;
+      const lat = parseFloat(a[0].lat), lon = parseFloat(a[0].lon);
+      return (isFinite(lat) && isFinite(lon)) ? { lat, lon } : null;
+    };
+    const p = geoChain.then(run, run);
+    geoChain = p.catch(() => {});
+    return p;
+  }
+  function setLocNote(el, state) {
+    if (!el) return;
+    const t = { ok: '📍 Located', pending: 'Not located yet', busy: 'Looking up…', offline: 'Not located yet — will retry when online', notfound: 'Address not found — adjust it', error: 'Not located yet — will retry' };
+    el.textContent = t[state] || '';
+    el.classList.toggle('val-note', state === 'notfound');
+  }
+  function quietSaveTrip(t) { tripSnaps[t.id] = tripContent(t); saveTrips(); }
+  function hotelPlace(h, t) { return { addr: () => h.address, has: () => h.lat != null && h.lon != null, set: (a, o) => { h.lat = a; h.lon = o; }, note: () => document.getElementById('wf-hotel-loc'), persist: () => quietSaveTrip(t || activeTrip()) }; }
+  function destPlace(d, t) { return { addr: () => d.address, has: () => d.lat != null && d.lon != null, set: (a, o) => { d.lat = a; d.lon = o; }, note: () => document.getElementById('wf-dest-loc'), persist: () => quietSaveTrip(t || activeTrip()) }; }
+  function homePlace() { return { addr: () => addrInput.value, has: () => homeLat != null && homeLon != null, set: (a, o) => { homeLat = a; homeLon = o; }, note: () => document.getElementById('addrLoc'), persist: () => { lastProfileSnap = JSON.stringify(profileContent()); try { localStorage.setItem(PROFILE_KEY, JSON.stringify(snapshotProfile())); } catch (e) {} } }; }
+  async function locatePlace(place, silent) {
+    const addr = place.addr().trim(), note = () => silent ? null : place.note();
+    if (!addr) { place.set(null, null); setLocNote(note(), ''); return false; }
+    if (place.has()) { setLocNote(note(), 'ok'); return false; }
+    if (!navigator.onLine) { setLocNote(note(), 'offline'); return false; }
+    setLocNote(note(), 'busy');
+    try {
+      const res = await geocodeAddress(addr);
+      if (place.addr().trim() !== addr) return false; /* the address changed while looking */
+      if (res) { place.set(res.lat, res.lon); place.persist(); setLocNote(note(), 'ok'); return true; }
+      place.set(null, null); setLocNote(note(), 'notfound'); return false;
+    } catch (e) { setLocNote(note(), 'error'); return false; }
+  }
+  /* Addresses saved while offline (or when a lookup failed) are tried again when the app opens online or the phone comes back online */
+  let retrying = false;
+  async function retryLocations() {
+    if (retrying || !navigator.onLine) return;
+    retrying = true;
+    try {
+      let found = false;
+      if (addrInput.value.trim() && homeLat == null) found = (await locatePlace(homePlace())) || found;
+      for (const t of trips) for (const st of t.itinerary.stops) {
+        if (st.hotel.address.trim() && st.hotel.lat == null) found = (await locatePlace(hotelPlace(st.hotel, t), true)) || found;
+        if (st.destination.address.trim() && st.destination.lat == null) found = (await locatePlace(destPlace(st.destination, t), true)) || found;
+      }
+      if (found && !(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) { renderStepForm(); renderDash(); }
+    } finally { retrying = false; }
+  }
+  window.addEventListener('online', () => retryLocations());
+
+  /* ---- Great-circle maths ---- */
+  const EARTH_M = 6371000, toRad = d => d * Math.PI / 180;
+  function distanceM(la1, lo1, la2, lo2) {
+    const dLa = toRad(la2 - la1), dLo = toRad(lo2 - lo1);
+    const x = Math.sin(dLa / 2) ** 2 + Math.cos(toRad(la1)) * Math.cos(toRad(la2)) * Math.sin(dLo / 2) ** 2;
+    return 2 * EARTH_M * Math.asin(Math.min(1, Math.sqrt(x)));
+  }
+  function bearingDeg(la1, lo1, la2, lo2) {
+    const y = Math.sin(toRad(lo2 - lo1)) * Math.cos(toRad(la2));
+    const x = Math.cos(toRad(la1)) * Math.sin(toRad(la2)) - Math.sin(toRad(la1)) * Math.cos(toRad(la2)) * Math.cos(toRad(lo2 - lo1));
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  }
+
+  /* ---- Where the Compass button on the Dashboard points ---- */
+  const compassBtn = document.getElementById('compassBtn');
+  let dashCompass = null;
+  function dashCompassTarget(node) {
+    let name = '', lat = null, lon = null;
+    if (node.type === 'hotel') { const h = wizardState.stops[node.stopIndex].hotel; name = h.name.trim() || 'Hotel'; lat = h.lat; lon = h.lon; }
+    else if (node.type === 'destination') { const d = wizardState.stops[node.stopIndex].destination; name = d.name.trim() || 'Objective'; lat = d.lat; lon = d.lon; }
+    else if (node.type === 'home' || node.type === 'uberHome') { name = 'Home'; lat = homeLat; lon = homeLon; }
+    else if (node.type === 'rentalReturn') { const code = rentalAirportCode(node.stopIndex), ap = airportByCode(code); if (ap) { name = 'Return rental — ' + code; lat = ap.lat; lon = ap.lon; } }
+    return (lat != null && lon != null) ? { name, lat, lon } : null;
+  }
+
+  /* ---- The driving screen: arrow to the destination, relative to the direction of travel (GPS course only), ground speed, distance ---- */
+  const driveScreen = document.getElementById('driveScreen');
+  const MOVING_MS = 2.2352; /* 5 mph */
+  let driveWatch = null, driveDest = null, drivePrev = null, driveSpeed = null, driveCourse = null, driveMph = true;
+  function fmtDriveDist(m) {
+    const km = currentUnits().dist === 'km';
+    if (km) return m < 100 ? Math.round(m) + ' <small>M</small>' : (m / 1000).toFixed(1) + ' <small>KM</small>';
+    const mi = m / 1609.344;
+    return mi < 0.1 ? Math.round(m * 3.28084) + ' <small>FT</small>' : mi.toFixed(1) + ' <small>MI</small>';
+  }
+  function renderDrive(fix) {
+    const course = driveCourse == null ? 0 : driveCourse;
+    document.getElementById('drivePlane').style.setProperty('--course', course);
+    driveScreen.dataset.course = driveCourse == null ? '' : Math.round(driveCourse);
+    const spd = document.getElementById('driveSpeed');
+    const ms = (driveSpeed == null || driveSpeed < 0.5) ? 0 : driveSpeed;
+    spd.innerHTML = (driveMph ? Math.round(ms * 2.23694) : Math.round(ms * 3.6)) + ' <small>' + (driveMph ? 'MPH' : 'KPH') + '</small><span class="unit-pill" id="drivePill" title="Tap to switch units">' + (driveMph ? 'KPH' : 'MPH') + '</span>';
+    document.getElementById('drivePill').addEventListener('click', () => { driveMph = !driveMph; renderDrive(fix); });
+    if (!fix) { document.getElementById('driveDist').innerHTML = '—'; return; }
+    const dist = distanceM(fix.lat, fix.lon, driveDest.lat, driveDest.lon), brg = bearingDeg(fix.lat, fix.lon, driveDest.lat, driveDest.lon);
+    const rel = (brg - course + 360) % 360;
+    document.getElementById('drivePlane').style.setProperty('--rel', rel);
+    document.getElementById('driveDist').innerHTML = fmtDriveDist(dist);
+    driveScreen.dataset.rel = Math.round(rel); driveScreen.dataset.bearing = Math.round(brg); driveScreen.dataset.dist = Math.round(dist);
+  }
+  function driveMessage(t) { const m = document.getElementById('driveMsg'); m.textContent = t || ''; m.style.display = t ? 'block' : 'none'; }
+  function onDrivePos(pos) {
+    const c = pos.coords, now = pos.timestamp || Date.now(), fix = { lat: c.latitude, lon: c.longitude, t: now };
+    driveMessage('');
+    let spd = (typeof c.speed === 'number' && isFinite(c.speed)) ? c.speed : null;
+    if (drivePrev) {
+      const d = distanceM(drivePrev.lat, drivePrev.lon, fix.lat, fix.lon), dt = (now - drivePrev.t) / 1000;
+      if (spd == null && dt > 0.2) spd = d / dt;
+      if ((spd || 0) > MOVING_MS && d >= 3) driveCourse = (typeof c.heading === 'number' && isFinite(c.heading)) ? c.heading : bearingDeg(drivePrev.lat, drivePrev.lon, fix.lat, fix.lon);
+    }
+    if (spd != null) driveSpeed = (driveSpeed == null || spd < 0.3) ? spd : 0.6 * driveSpeed + 0.4 * spd; /* smoothed while moving; a standstill reads 0 at once */
+    if (!drivePrev || distanceM(drivePrev.lat, drivePrev.lon, fix.lat, fix.lon) >= 3) drivePrev = fix; else drivePrev = { lat: drivePrev.lat, lon: drivePrev.lon, t: now };
+    renderDrive(fix);
+  }
+  function onDriveErr(e) {
+    if (e && e.code === 1) driveMessage('Location is turned off for this site. Allow it in the browser settings to use the compass.');
+    else if (e && e.code === 2) driveMessage('No GPS position yet. Try again with a clear view of the sky.');
+    else driveMessage('Waiting for GPS…');
+  }
+  function openDrive(target) {
+    driveDest = target; drivePrev = null; driveSpeed = null; driveCourse = null; driveMph = currentUnits().speed !== 'kph';
+    document.getElementById('driveDest').textContent = target.name;
+    driveScreen.style.display = 'flex'; driveScreen.dataset.rel = ''; driveScreen.dataset.dist = '';
+    renderDrive(null);
+    if (!navigator.geolocation) { driveMessage('This device has no GPS.'); return; }
+    driveMessage('Waiting for GPS…');
+    driveWatch = navigator.geolocation.watchPosition(onDrivePos, onDriveErr, { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 });
+  }
+  function closeDrive() { if (driveWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(driveWatch); driveWatch = null; driveScreen.style.display = 'none'; }
+  compassBtn.addEventListener('click', () => { if (dashCompass) openDrive(dashCompass); });
+  document.getElementById('driveBack').addEventListener('click', closeDrive);
+
   /* ============ TRAVEL HORIZON CALENDAR (Dashboard popup, read-only) ============ */
   const horizonModal = document.getElementById('horizonModal');
   const hzPalette = ['#ff5c5c', '#4de88a', '#4d8dff', '#f0a832', '#9b7bff', '#4dd8ff', '#e85dd0', '#b5e84d', '#ff8a4d', '#2fbfa5', '#ff9ec7', '#f3e45a'];
@@ -1932,6 +2135,7 @@
 
   applyProfile(loadProfile());
   loadTrips();
+  setTimeout(retryLocations, 1500);
   updateLastUsed();
   renderFavorites();
   renderAll();
