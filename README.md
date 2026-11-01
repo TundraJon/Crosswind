@@ -377,6 +377,19 @@ Not yet authorized to build. Settled with Jon.
 
 **Verification plan:** computed font of every button on each screen is Chakra Petch; screenshots of the changed buttons before and after.
 
+### Driving compass screen (offline direction and distance)
+Not yet authorized to build. Settled with Jon (coordinates looked up once when an address is saved; screen styled like the flight panel; no destination chips).
+
+- **Purpose:** drive with no signal. The phone's GPS and compass work offline, so the screen shows the direction and distance to a saved place.
+- **Coordinates:** when Jon leaves the Hotel or Objective address field, or saves the Setup home address, and the phone is online, the address is looked up once with OpenStreetMap's free Nominatim service (one request at a time, address text only) and the latitude and longitude are saved with that address in the trip (and Setup). A small note under the field shows "📍 Located" or "Not located yet" (offline, or address not found: adjust the address). If it was offline, the lookup retries when the app next opens online. Changing the address clears the old coordinates and looks up again. Coordinates travel in backups.
+- **Entry:** a **Compass** button beside Copy Address on the Dashboard, for the steps with a place: Hotel, Objective / To, Home and Uber Home (Setup home address), and Rental Return (the Home Airport from Setup, whose coordinates are already in `airports.js`; assumed "back to the airport", adjust if wrong). Hidden when the place has no coordinates yet. It opens a full-screen driving view with that place as the fixed destination (no chips or switching on the screen) and a Back button.
+- **Layout (like the airborne cockpit panel):** compass on the left with the needle pointing to the destination; on the right a big Ground Speed from GPS (tap to swap mph / km/h like the flight one, default from Setup) with the Distance to the destination below it (Setup distance units); the destination name at the top. No ETA.
+- **How it works:** distance by the haversine formula and bearing by the great-circle formula from the GPS fix; compass heading from the phone's orientation sensor (needle angle = bearing minus heading); speed from GPS, smoothed. Asks for location and compass permission the first time; if denied or unavailable it says so plainly instead of showing wrong numbers. Nothing here needs a network.
+
+**Reuse:** `airports.js` coordinates, the airborne cockpit styles (`.telem-grid`, `.compass`, `.t-val`), the ground-speed unit pill, `dashAddressFor()` and the Dashboard dock, Setup units, the full-screen overlay pattern used by the Request display.
+
+**Verification plan (the real sensors cannot be tested in the sandbox):** the distance and bearing maths against known points (including across the equator and the date line); the needle angle for simulated headings; simulated GPS positions and speeds with Playwright's geolocation and a faked orientation event; the lookup with a faked service response (found, not found, offline then retry later), coordinates saved and cleared when the address changes, carried in Export / Import; permission-denied and no-sensor messages; unit swap; screenshot at 390px; then a real-phone check by Jon (compass accuracy and GPS speed).
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
@@ -395,7 +408,6 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Missing: reordering stops.
 
 ### Other screens not yet designed
-- Compass-only fallback view (similar to the in-flight cockpit, minus flight data).
 - Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal).
 - Aviation weather / delay risk (METAR/TAF), never discussed.
 - Airplane Mode / wireless settings deep-link, never revisited after flashlight was cut.
