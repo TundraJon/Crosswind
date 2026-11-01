@@ -393,6 +393,17 @@ Not yet authorized to build. Settled with Jon (Contact Name, Place Name, Hotel N
 
 **Verification plan:** the attribute is on exactly those three inputs; typing still stores exactly what is typed (including a lowercase word); the real keyboard behaviour needs a check on Jon's phone (headless Chromium has no keyboard).
 
+### Phone time picker button on time fields
+Not yet authorized to build. Settled with Jon (button beside the field; typing stays).
+
+- Each time field gets a 🕐 button beside it, like the 📅 beside dates: Uber Pickup and Drop-off Time (outbound) and Uber Home Pickup and Drop-off Time. Tapping it opens the phone's own time picker (a hidden time input opened with `showPicker()`, falling back to focusing it where that is not supported).
+- The chosen time is written into the text field in the existing format (`fmtTime`, e.g. "5:30 PM") and saved like typed text. The field's current value, when it parses, is the picker's starting time. Typing and the smart parsing (`wireSmartTimeInput`) are unchanged.
+- No other fields change (these four are the only time fields).
+
+**Reuse:** `wireSmartTimeInput()`, `parseSmartTime()` / `fmtTime()`, the 📅 button style (`.suggest-btn`).
+
+**Verification plan:** the button is next to all four time fields and fits at 390px; a picked time (simulated by setting the hidden input) appears in the field in "h:mm AM/PM" form and is saved and shown on the Dashboard; the starting value comes from the current text; typing "5p" still works; empty and unparseable text open at a sensible time; the real phone picker needs a check on Jon's phone.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
