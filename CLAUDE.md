@@ -95,7 +95,7 @@ The header comment at the top of `index.html` carries the app version in hundred
 3. Drive the UI like a user: click real buttons, fill real inputs, read state back from the rendered DOM. Don't poke internal JS state.
 4. Print each check with a label and expected value beside the actual value, so the output audits itself.
 5. Screenshot for any visual claim (layout, icons, color, alignment) and look at it.
-6. Re-run earlier verification scripts before calling a build done, to catch regressions.
+6. Re-run only the earlier checks the change could touch, and say which and why. Run broader regression only for shared code (saving, importing, backups, the step row, calendars). Don't run everything for a small or isolated change (a fonts-only change gets a fonts check, not the full suite).
 7. Use realistic data and state, not only the near-empty happy path.
 8. **Reproduce a reported bug first.** Write a script that fails the exact way the user described, then form a root-cause theory, fix it, and re-run the same script to prove it closes. Never patch a theory that hasn't been reproduced.
 9. Anything that needs a live network call (APIs, CDN fonts) may not be verifiable in the sandbox. Say so explicitly, verify the logic in isolation, and flag the rest for a real-device check.
