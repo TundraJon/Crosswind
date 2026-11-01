@@ -356,22 +356,18 @@ A read-only month view of booked trips, answering "how booked am I".
 - [x] Cache-bust bumped: `script.js?v=22→23`, `styles.css?v=18→19` (Builds 47 to 50). Version: v1.10→v1.11 (Builds 47 to 50).
 - **Verification:** `verify32` (84 checks, zero JS errors): April legend cells are `SA763 NATAWA…`, `KAHULUI TRIB…`, `NEW YORK SA2…`, `SHORT` in date order, each in its trip's colour, left then right then next row, no dates, tooltip is the full name; a name with quotes and tags shows as text; six trips fit, eight scroll; no horizontal overflow; screenshots looked at. Regression: suites 2c, 3, 4, 5b, 7, 8b, 14, 15, 17, 22, 23, 26, 28, 29, 30 pass. Expected differences: `verify11` (two new: the stored trips shape now has `nextColor` and trips have `colorIdx`), `verify31` (tested the old 8-colour, date-order, right-aligned legend; replaced by `verify32`), and the known ones in `verify9c`, `verify10b`, `verify12`, `verify13`, `verify18`.
 
+### Build 51 (completed): Host the fonts in the repo
+The app no longer asks Google for fonts; Chakra Petch and Michroma are served from the site itself.
+- [x] New `fonts/`: ten woff2 files (`chakra-petch-{400,500,600,700}-{latin,latin-ext}.woff2`, `michroma-400-{latin,latin-ext}.woff2`, about 97KB in all), taken from Google Fonts, plus the two official OFL licence texts (`OFL-ChakraPetch.txt`, `OFL-Michroma.txt`) instead of the short note the Queue described.
+- [x] `styles.css`: ten `@font-face` rules at the top with the same `unicode-range` splits Google uses, `font-display: swap`, relative URLs; the `--font-display` / `--font-body` stacks are unchanged.
+- [x] `index.html`: the two Google `<link>` lines (preconnect and stylesheet) removed; `<link rel="preload">` for Chakra Petch 400 and 600 and Michroma 400 (Latin).
+- [x] Cache-bust bumped: `styles.css?v=19→20`. Version: v1.11→v1.12.
+- **Verification:** served over HTTP (like GitHub Pages) with `fonts.googleapis.com` and `fonts.gstatic.com` blocked: zero requests to Google, zero failed requests, each font file requested once (the preloads are reused); Chakra Petch 400, 600, 700, Michroma 400, and the Latin-extended file for accented text (José, Zürich, Łódź) all load; every visible text on Setup, Wizard, Dashboard, Request, and Media is Chakra Petch or Michroma (the logo is Michroma). Five screens screenshotted with the old Google-hosted fonts and with the local fonts: byte-for-byte identical. As Jon asked, the full regression suites were not run for this fonts-only change.
+- Note: opened directly from `file://` the three preload requests fail (the browser blocks the cross-origin font preload) but the fonts still load through the CSS; the live site is unaffected.
+
 ## Build Queue
 
 _Empty — nothing queued right now._
-
-### Host the fonts in the repo
-Not yet authorized to build. Settled with Jon (Latin plus Latin-extended; the offline app is a separate Planner item).
-
-- The app loads Chakra Petch (weights 400, 500, 600, 700) and Michroma (400) from Google Fonts on every open, so with no connection on a first load it falls back to system fonts. Both fonts are open-license (SIL OFL), so they can be hosted here.
-- New `fonts/` folder with the `latin` and `latin-ext` woff2 files for those five faces (about ten files, roughly 90KB) downloaded from Google Fonts, plus a short `fonts/LICENSE.txt` naming both fonts and their OFL licence. Thai and Vietnamese sets are left out.
-- `styles.css`: `@font-face` rules for each face and subset with the same `unicode-range` splits Google uses, `font-display: swap`, and relative `url()`s. The existing `--font-display` / `--font-body` stacks and their fallbacks stay.
-- `index.html`: the two Google `<link>` lines (preconnect and stylesheet) are removed; optional `<link rel="preload">` for the Latin body weights so the first paint uses the right font. The app then makes no request to Google.
-- Cache-bust: `styles.css` bumped (and the font file names stay fixed; they never change).
-
-**Reuse:** the existing font stacks in `styles.css`.
-
-**Verification plan:** with every request to `fonts.googleapis.com` and `fonts.gstatic.com` blocked, the page loads the five faces from `fonts/` (document font checks plus the network log: no Google requests, no failed font requests); headings render in Michroma and body text in each weight (screenshots against the current look); accented text (José, Zürich, Łódź) renders from the Latin-extended file; works from `file://` and the live Pages site; page weight added is about 90KB; earlier suites re-run.
 
 ## Build Planner
 
@@ -389,6 +385,9 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; forms for every step type with real step dates, confirmation numbers, and gentle validation; Add Another Flight / Stop; "Select…" dropdowns fed by Setup; smart times on Uber fields.
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
 - Missing: reordering stops.
+
+### Inconsistency: some buttons use the browser's default font
+Found while checking fonts for Build 51 (same before that build). The symbol buttons (📅, ↺, ✎, ⏮ ▶ ⏭) and three text buttons (Verify Address, Suggest Nearest Airport, and the Dev toggle) are drawn in the browser's default font (Arial on the test machine) instead of Chakra Petch, because those buttons do not set `font-family`. Open question: make every button use the app font (one small CSS rule), or leave the symbol buttons alone?
 
 ### Other screens not yet designed
 - Compass-only fallback view (similar to the in-flight cockpit, minus flight data).
