@@ -369,6 +369,14 @@ The app no longer asks Google for fonts; Chakra Petch and Michroma are served fr
 
 _Empty — nothing queued right now._
 
+### Buttons use the app font
+Not yet authorized to build. Settled with Jon.
+
+- Every button uses the app font (Chakra Petch) like the rest of the text: one CSS rule, `button { font-family: inherit; }`, replacing the browser default (Arial) on the symbol buttons (📅, ↺, ✎, ⏮ ▶ ⏭) and the Verify Address, Suggest Nearest Airport, and Dev toggle buttons. Buttons that already set a font are unchanged.
+- Check the symbol buttons still look right (emoji fall back as before) and nothing shifts.
+
+**Verification plan:** computed font of every button on each screen is Chakra Petch; screenshots of the changed buttons before and after.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
@@ -385,9 +393,6 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; forms for every step type with real step dates, confirmation numbers, and gentle validation; Add Another Flight / Stop; "Select…" dropdowns fed by Setup; smart times on Uber fields.
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
 - Missing: reordering stops.
-
-### Inconsistency: some buttons use the browser's default font
-Found while checking fonts for Build 51 (same before that build). The symbol buttons (📅, ↺, ✎, ⏮ ▶ ⏭) and three text buttons (Verify Address, Suggest Nearest Airport, and the Dev toggle) are drawn in the browser's default font (Arial on the test machine) instead of Chakra Petch, because those buttons do not set `font-family`. Open question: make every button use the app font (one small CSS rule), or leave the symbol buttons alone?
 
 ### Other screens not yet designed
 - Compass-only fallback view (similar to the in-flight cockpit, minus flight data).
