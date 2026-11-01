@@ -436,6 +436,9 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
 - Missing: reordering stops.
 
+### Driving screen: reuse the airborne speed tape
+Idea from Jon, not designed. The vertical speed tape being built for the airborne panel (scrolling scale, pointer box, small alternate-unit footer) might replace the plain Ground Speed number on the driving compass screen, adapted to mph or km/h with a finer scale (every 5 or 10 mph). Open questions: whether to build it after the airborne panel is done and looks right on a phone; the scale range and tick spacing for driving speeds; whether the 3-second GPS ping used for the airborne panel is too slow for driving (the driving screen currently watches GPS continuously); and whether the driving screen should also get the GPS status dot.
+
 ### Other screens not yet designed
 - Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal).
 - Aviation weather / delay risk (METAR/TAF), never discussed.
