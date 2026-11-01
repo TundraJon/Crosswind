@@ -9,7 +9,8 @@
     navBtns.forEach(b => b.classList.toggle('active', b.dataset.screen === id));
     window.scrollTo(0, 0);
     if (id === 'screenWizard') refreshWizardSpacer();
-    if (id === 'screenDash') { gsPrimaryIsMph = currentUnits().speed !== 'kph'; renderGroundSpeed(); renderDash(); }
+    if (id !== 'screenDash') stopAir();
+    if (id === 'screenDash') renderDash();
   }
   navBtns.forEach(b => b.addEventListener('click', () => showScreen(b.dataset.screen)));
   document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showScreen(b.dataset.goto)));
@@ -98,6 +99,28 @@
   }
   function fmtDate(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
   function fmtTime(d) { return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
+  /* A 🕐 button beside a time field opens the phone's own time picker; the pick is written back in the field's format */
+  function timeFieldHTML(id, placeholder, value, after) {
+    return '<div style="display:flex; gap:6px; align-items:center;"><input type="text" id="' + id + '" placeholder="' + placeholder + '" value="' + esc(value) + '"><button class="suggest-btn" id="' + id + '-clk" style="margin-top:0;" aria-label="Pick a time">🕐</button></div>' +
+      '<input type="time" class="time-pick" id="' + id + '-tp" tabindex="-1" aria-hidden="true">' + (after || '');
+  }
+  function wireTimePicker(input) {
+    const btn = document.getElementById(input.id + '-clk'), tp = document.getElementById(input.id + '-tp');
+    if (!btn || !tp) return;
+    btn.addEventListener('click', () => {
+      const p = parseSmartTime(input.value, new Date());
+      tp.value = p ? String(p.getHours()).padStart(2, '0') + ':' + String(p.getMinutes()).padStart(2, '0') : '';
+      try { if (tp.showPicker) tp.showPicker(); else { tp.focus(); tp.click(); } } catch (e) { tp.focus(); }
+    });
+    tp.addEventListener('change', () => {
+      if (!tp.value) return;
+      const hm = tp.value.split(':'), d = new Date(); d.setHours(+hm[0], +hm[1], 0, 0);
+      input.value = fmtTime(d);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      tp.blur();
+    });
+    tp.addEventListener('cancel', () => tp.blur());
+  }
   function wireSmartDateInput(el, getStart) {
     el.addEventListener('blur', () => { const p = parseSmartDate(el.value, new Date(), getStart ? getStart() : null); if (p) el.value = fmtDate(p); });
   }
@@ -979,8 +1002,8 @@
       html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
         dateFieldHTML('wf-date', 'Date', 'uberOut') +
         '<div class="fld-grid">' +
-        '<div><label class="fld">Pickup Time</label><input type="text" id="wf-uber-pickup" placeholder="e.g. 4:30 PM" value="' + esc(wizardState.uberOut.pickup) + '"></div>' +
-        '<div><label class="fld">Drop-off Time <span class="fld-opt">(optional)</span></label><input type="text" id="wf-uber-dropoff" placeholder="e.g. 5:10 PM" value="' + esc(wizardState.uberOut.dropoff) + '"></div>' +
+        '<div><label class="fld">Pickup Time</label>' + timeFieldHTML('wf-uber-pickup', 'e.g. 4:30 PM', wizardState.uberOut.pickup) + '</div>' +
+        '<div><label class="fld">Drop-off Time <span class="fld-opt">(optional)</span></label>' + timeFieldHTML('wf-uber-dropoff', 'e.g. 5:10 PM', wizardState.uberOut.dropoff) + '</div>' +
         '</div>' + parserButtonHTML('Uber');
     }
 
@@ -1028,7 +1051,7 @@
         '<div><label class="fld">Brand</label><input type="text" id="wf-hotel-brand" placeholder="e.g. Courtyard" autocomplete="off" value="' + esc(h.brand) + '"></div>' +
         '</div>' +
         '<div class="suggest-list" id="wf-brand-suggest" style="display:none;"></div>' +
-        '<label class="fld">Hotel Name</label><input type="text" id="wf-hotel-name" placeholder="e.g. Lambeau Field Hilton" value="' + esc(h.name) + '">' +
+        '<label class="fld">Hotel Name</label><input type="text" id="wf-hotel-name" autocapitalize="words" placeholder="e.g. Lambeau Field Hilton" value="' + esc(h.name) + '">' +
         '<label class="fld">Address</label><input type="text" id="wf-hotel-address" placeholder="—" value="' + esc(h.address) + '"><div class="fld-note" id="wf-hotel-loc"></div>' +
         '<button class="suggest-btn" id="wf-hotel-suggest" disabled title="Needs online lookup — coming soon">📍 Suggest Address</button>' +
         '<div class="fld-note">Needs online lookup — coming soon</div>' +
@@ -1043,11 +1066,11 @@
     else if (node.type === 'destination') {
       const d = wizardState.stops[node.stopIndex].destination;
       html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
-        '<label class="fld">Place Name</label><input type="text" id="wf-dest-name" placeholder="e.g. Hollywood Health Center" value="' + esc(d.name) + '">' +
+        '<label class="fld">Place Name</label><input type="text" id="wf-dest-name" autocapitalize="words" placeholder="e.g. Hollywood Health Center" value="' + esc(d.name) + '">' +
         '<label class="fld">Address</label><input type="text" id="wf-dest-address" placeholder="—" value="' + esc(d.address) + '"><div class="fld-note" id="wf-dest-loc"></div>' +
         '<button class="suggest-btn" id="wf-dest-suggest" disabled title="Needs online lookup — coming soon">📍 Suggest Address</button>' +
         '<div class="fld-note">Needs online lookup — coming soon</div>' +
-        '<div class="fld-grid"><div><label class="fld">Contact Name</label><input type="text" id="wf-dest-contact" value="' + esc(d.contact) + '"></div><div><label class="fld">Contact Phone</label><input type="text" id="wf-dest-phone" value="' + esc(formatPhone(d.phone)) + '"></div></div>' +
+        '<div class="fld-grid"><div><label class="fld">Contact Name</label><input type="text" id="wf-dest-contact" autocapitalize="words" value="' + esc(d.contact) + '"></div><div><label class="fld">Contact Phone</label><input type="text" id="wf-dest-phone" value="' + esc(formatPhone(d.phone)) + '"></div></div>' +
         parserButtonHTML('Destination');
     }
 
@@ -1076,8 +1099,8 @@
       html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
         dateFieldHTML('wf-date', 'Date', 'uberHome') +
         '<div class="fld-grid">' +
-        '<div><label class="fld">Pickup Time</label><input type="text" id="wf-uberhome-pickup" placeholder="e.g. 6:15 PM" value="' + esc(wizardState.uberHome.pickup) + '"><div class="fld-note">(usually set live at baggage claim)</div></div>' +
-        '<div><label class="fld">Drop-off Time <span class="fld-opt">(optional)</span></label><input type="text" id="wf-uberhome-dropoff" placeholder="e.g. 6:50 PM" value="' + esc(wizardState.uberHome.dropoff) + '"></div>' +
+        '<div><label class="fld">Pickup Time</label>' + timeFieldHTML('wf-uberhome-pickup', 'e.g. 6:15 PM', wizardState.uberHome.pickup, '<div class="fld-note">(usually set live at baggage claim)</div>') + '</div>' +
+        '<div><label class="fld">Drop-off Time <span class="fld-opt">(optional)</span></label>' + timeFieldHTML('wf-uberhome-dropoff', 'e.g. 6:50 PM', wizardState.uberHome.dropoff) + '</div>' +
         '</div>';
     }
 
@@ -1141,7 +1164,7 @@
       const pu = document.getElementById('wf-uber-pickup'), doff = document.getElementById('wf-uber-dropoff');
       pu.addEventListener('input', e => wizardState.uberOut.pickup = e.target.value);
       doff.addEventListener('input', e => wizardState.uberOut.dropoff = e.target.value);
-      wireSmartTimeInput(pu); wireSmartTimeInput(doff);
+      wireSmartTimeInput(pu); wireSmartTimeInput(doff); wireTimePicker(pu); wireTimePicker(doff);
       pu.addEventListener('blur', () => wizardState.uberOut.pickup = pu.value);
       doff.addEventListener('blur', () => wizardState.uberOut.dropoff = doff.value);
     }
@@ -1260,7 +1283,7 @@
       const pu = document.getElementById('wf-uberhome-pickup'), doff = document.getElementById('wf-uberhome-dropoff');
       pu.addEventListener('input', e => wizardState.uberHome.pickup = e.target.value);
       doff.addEventListener('input', e => wizardState.uberHome.dropoff = e.target.value);
-      wireSmartTimeInput(pu); wireSmartTimeInput(doff);
+      wireSmartTimeInput(pu); wireSmartTimeInput(doff); wireTimePicker(pu); wireTimePicker(doff);
       pu.addEventListener('blur', () => wizardState.uberHome.pickup = pu.value);
       doff.addEventListener('blur', () => wizardState.uberHome.dropoff = doff.value);
     }
@@ -1367,7 +1390,7 @@
       dashTrack.innerHTML = '';
       dashCard.innerHTML = '<div class="qc-line">No active trip — create one in Trip Wizard</div>';
       dashCard.style.display = 'block'; cardAir.style.display = 'none';
-      dashAddr = ''; dashDock.style.display = 'none';
+      dashAddr = ''; dashDock.style.display = 'none'; stopAir();
       return;
     }
     const nodes = buildNodes();
@@ -1392,6 +1415,7 @@
     const showAir = airborne && (node.type === 'flight' || node.type === 'returnFlight');
     dashCard.style.display = showAir ? 'none' : 'block';
     cardAir.style.display = showAir ? 'block' : 'none';
+    if (showAir) startAir(); else stopAir();
     dashAddr = (dashAddressFor(node) || '').trim();
     dashCompass = dashCompassTarget(node);
     copyAddrBtn.style.display = dashAddr ? '' : 'none';
@@ -1402,15 +1426,6 @@
     airborne = !airborne;
     renderDash();
   });
-  const groundSpeedVal = document.getElementById('groundSpeedVal');
-  let gsPrimaryIsMph = true;
-  const gsMph = 580, gsKph = Math.round(580 * 1.60934);
-  function renderGroundSpeed() {
-    if (gsPrimaryIsMph) groundSpeedVal.innerHTML = gsMph + ' <small style="font-size:0.7rem;">MPH</small><span class="unit-pill" id="groundSpeedPill" title="Tap to swap primary unit">(kph)</span>';
-    else groundSpeedVal.innerHTML = gsKph + ' <small style="font-size:0.7rem;">KPH</small><span class="unit-pill" id="groundSpeedPill" title="Tap to swap primary unit">(mph)</span>';
-    document.getElementById('groundSpeedPill').addEventListener('click', () => { gsPrimaryIsMph = !gsPrimaryIsMph; renderGroundSpeed(); });
-  }
-  renderGroundSpeed();
   const copyAddrBtn = document.getElementById('copyAddrBtn');
   copyAddrBtn.addEventListener('click', async () => {
     const addr = dashAddr;
@@ -1584,6 +1599,73 @@
       if (pastOpen) g.past.forEach(t => pipelineList.appendChild(tripRow(t)));
     }
   }
+  /* ============ AIRBORNE PANEL: airspeed tape + heading compass, live from GPS (one ping every 3 seconds) ============ */
+  const AIR_K = 2.4, AIR_CENTER = 100, KT_PER_MS = 1.943844;
+  let airTimer = null, airStatusTimer = null, airFix = null, airPrev = null, airKnots = null, airHdg = null, airDenied = false, airBuilt = false;
+  function buildAir() {
+    if (airBuilt) return; airBuilt = true;
+    const strip = document.getElementById('airStrip'); let html = '';
+    for (let v = 900; v >= 0; v -= 5) {
+      const y = Math.round((900 - v) * AIR_K);
+      if (v % 10 === 0) html += '<div class="tk" style="top:' + y + 'px"></div><div class="tl" style="top:' + y + 'px">' + v + '</div>'; else html += '<div class="tk5" style="top:' + y + 'px"></div>';
+    }
+    strip.innerHTML = html; strip.style.height = Math.round(900 * AIR_K) + 'px';
+    const dial = document.getElementById('airDial'); let d = '<circle r="90"/>';
+    for (let a = 0; a < 360; a += 5) { const maj = a % 10 === 0; d += '<line class="' + (maj ? 'mj' : '') + '" x1="0" y1="-90" x2="0" y2="' + (maj ? -78 : -84) + '" transform="rotate(' + a + ')"/>'; }
+    for (let a = 0; a < 360; a += 30) {
+      const card = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }[a];
+      d += '<text class="' + (card ? 'card' : '') + '" transform="rotate(' + a + ') translate(0,-62)">' + (card || (a / 10)) + '</text>';
+    }
+    dial.innerHTML = d;
+  }
+  function airStatusNow() {
+    if (airDenied || !airFix) return 'red';
+    const age = (Date.now() - airFix.at) / 1000;
+    return age <= 3.5 ? 'green' : age <= 9 ? 'yellow' : 'red';
+  }
+  function renderAir() {
+    buildAir();
+    const st = airStatusNow(), live = st !== 'red' && airKnots != null;
+    const box = document.getElementById('airStatus'); box.querySelector('i').className = 'air-dot ' + st; box.querySelector('span').textContent = st === 'green' ? 'GPS LOCK' : st === 'yellow' ? 'GPS STALE' : 'NO GPS';
+    const kt = live ? Math.round(airKnots) : null;
+    document.getElementById('airPtr').textContent = live ? kt : '—';
+    document.getElementById('airKph').textContent = live ? Math.round(airKnots * 1.852) + ' km/h' : '— km/h';
+    document.getElementById('airMph').textContent = live ? Math.round(airKnots * 1.150779) + ' mph' : '— mph';
+    const v = Math.max(0, Math.min(900, live ? airKnots : 0));
+    document.getElementById('airStrip').style.transform = 'translateY(' + (AIR_CENTER - (900 - v) * AIR_K) + 'px)';
+    const hdg = (st !== 'red' && airHdg != null) ? airHdg : null;
+    document.getElementById('airHdg').textContent = hdg == null ? '---' : String(Math.round(hdg) % 360 === 0 ? 360 : Math.round(hdg) % 360).padStart(3, '0');
+    document.getElementById('airDial').setAttribute('transform', 'rotate(' + (hdg == null ? 0 : -hdg) + ')');
+    const c = document.getElementById('cardAir'); c.dataset.status = st; c.dataset.knots = live ? kt : ''; c.dataset.heading = hdg == null ? '' : Math.round(hdg) % 360;
+  }
+  function onAirPos(pos) {
+    const c = pos.coords, t = pos.timestamp || Date.now(), fix = { lat: c.latitude, lon: c.longitude, t, at: Date.now() };
+    let ms = (typeof c.speed === 'number' && isFinite(c.speed)) ? c.speed : null;
+    if (airPrev) {
+      const d = distanceM(airPrev.lat, airPrev.lon, fix.lat, fix.lon), dt = (t - airPrev.t) / 1000;
+      if (ms == null && dt > 0.5) ms = d / dt;
+      if ((ms || 0) > MOVING_MS && d >= 3) airHdg = (typeof c.heading === 'number' && isFinite(c.heading)) ? c.heading : bearingDeg(airPrev.lat, airPrev.lon, fix.lat, fix.lon);
+    }
+    if (ms != null) { const kn = ms * KT_PER_MS; airKnots = (airKnots == null || ms < 0.3) ? kn : 0.5 * airKnots + 0.5 * kn; }
+    airPrev = fix; airFix = fix; airDenied = false;
+    const m = document.getElementById('airMsg'); m.style.display = 'none';
+    renderAir();
+  }
+  function onAirErr(e) {
+    if (e && e.code === 1) { airDenied = true; const m = document.getElementById('airMsg'); m.textContent = 'Location is turned off for this site. Allow it to see speed and heading.'; m.style.display = 'block'; }
+    renderAir();
+  }
+  function pingAir() { if (navigator.geolocation) navigator.geolocation.getCurrentPosition(onAirPos, onAirErr, { enableHighAccuracy: true, maximumAge: 0, timeout: 3000 }); }
+  function startAir() {
+    buildAir();
+    if (airTimer) return;
+    airFix = null; airPrev = null; airKnots = null; airHdg = null; airDenied = false;
+    if (!navigator.geolocation) { const m = document.getElementById('airMsg'); m.textContent = 'This device has no GPS.'; m.style.display = 'block'; renderAir(); return; }
+    renderAir(); pingAir();
+    airTimer = setInterval(pingAir, 3000); airStatusTimer = setInterval(renderAir, 1000);
+  }
+  function stopAir() { if (airTimer) { clearInterval(airTimer); clearInterval(airStatusTimer); airTimer = airStatusTimer = null; } }
+
   /* ============ PLACE LOOKUP + DRIVING COMPASS (works offline once an address is located) ============ */
   /* An address is turned into coordinates once, while online (OpenStreetMap Nominatim, address text only, one request at a time), and saved with the address. */
   let geoChain = Promise.resolve(), geoLast = 0;

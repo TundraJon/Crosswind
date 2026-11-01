@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.13) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.14) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -11,7 +11,7 @@
 <link rel="preload" href="fonts/chakra-petch-400-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/chakra-petch-600-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/michroma-400-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=21">
+<link rel="stylesheet" href="styles.css?v=22">
 </head>
 <body>
 
@@ -224,19 +224,27 @@
     <div class="node-track" id="dashTrack"></div>
     <div class="quick-card" id="dashCard"></div>
     <div class="quick-card" id="cardAir" style="display:none;">
-      <div class="telem-grid">
-        <div class="telem-col">
-          <div class="t-lab">Cockpit Telemetry</div><div class="t-val">504 <small style="font-size:0.7rem;">KTS</small></div>
-          <div class="t-sub">ALTITUDE: 34,000 FT<br>STATUS: GPS-DERIVED (OFFLINE)</div>
-          <div class="t-lab">Ground Speed Calc</div><div class="t-val" id="groundSpeedVal"></div>
+      <div class="air-status" id="airStatus"><i class="air-dot red"></i><span>NO GPS</span></div>
+      <div class="air-grid">
+        <div class="air-left">
+          <div class="tape-head">Knots</div>
+          <div class="tape" id="airTape"><div class="tape-strip" id="airStrip"></div><div class="tape-ptr" id="airPtr">—</div></div>
+          <div class="tape-alt"><div id="airKph">— km/h</div><div id="airMph">— mph</div></div>
         </div>
-        <div class="compass"><span class="cd n">N</span><span class="cd e">E</span><span class="cd s">S</span><span class="cd w">W</span><span class="needle">➤</span></div>
+        <div class="air-mid">
+          <div class="hdg-box" id="airHdg">---</div>
+          <svg class="air-rose" viewBox="-100 -100 200 200" aria-hidden="true">
+            <g id="airDial"></g>
+            <g class="reticle"><line x1="-14" y1="0" x2="14" y2="0"/><line x1="0" y1="-14" x2="0" y2="14"/><path d="M0 -10 L6 8 L0 4 L-6 8 Z"/></g>
+          </svg>
+        </div>
         <div class="telem-col right">
           <div class="t-lab">Flight Log (3D GPS)</div><div class="t-val">+2h 15m</div>
           <div class="t-sub">ETA MCI: 08:30 PM (LCL)</div>
           <div class="t-lab">Distance to Target</div><div class="t-val">980 <small style="font-size:0.7rem;">MI</small></div>
         </div>
       </div>
+      <div class="drive-msg" id="airMsg" style="display:none;"></div>
     </div>
   </div>
   <div class="dock" id="dashDock" style="margin-top:12px;"><button class="btn primary grow" id="copyAddrBtn">[ Copy Address ]<small>Paste into your GPS app</small></button><button class="btn grow" id="compassBtn" style="display:none;">🧭 Compass<small>Works offline</small></button></div>
@@ -351,7 +359,7 @@
 
 <script src="airports.js?v=1"></script>
 <script src="hotel-brands.js?v=2"></script>
-<script src="script.js?v=24"></script>
+<script src="script.js?v=25"></script>
 
 </body>
 </html>

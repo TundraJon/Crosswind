@@ -212,13 +212,6 @@
   .telem-col .t-val .unit-pill:hover { color: var(--cyan); border-color: var(--cyan-dim); }
   .telem-col .t-sub { font-size: 0.66rem; color: var(--text-dim); margin-bottom: 8px; }
   .telem-col.right { text-align: right; }
-  .compass { width: 104px; height: 104px; border: 2px solid var(--cyan-dim); border-radius: 50%; position: relative; box-shadow: var(--glow-cyan), inset 0 0 20px rgba(77, 216, 255, 0.08); flex-shrink: 0; }
-  .compass .needle { position: absolute; top: 50%; left: 50%; font-size: 2rem; color: var(--cyan); transform: translate(-50%, -55%) rotate(38deg); text-shadow: var(--glow-cyan); }
-  .compass .cd { position: absolute; font-size: 0.52rem; color: var(--text-dim); }
-  .compass .n { top: 4px; left: 50%; transform: translateX(-50%); }
-  .compass .e { right: 6px; top: 50%; transform: translateY(-50%); }
-  .compass .s { bottom: 4px; left: 50%; transform: translateX(-50%); }
-  .compass .w { left: 6px; top: 50%; transform: translateY(-50%); }
   .qc-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; text-align: left; }
   .qc-inputs.one { grid-template-columns: 1fr; }
   .qc-inputs label.fld { margin-top: 0; }
@@ -268,3 +261,29 @@
   .drive-arrow { position: absolute; inset: 12%; width: 76%; height: 76%; transform: rotate(calc(var(--rel) * 1deg)); }
   .drive-fwd { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); color: var(--amber); font-size: 0.7rem; }
   .drive-msg { color: var(--amber); text-align: center; font-size: 0.8rem; padding: 6px; }
+  .time-pick { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; border: 0; padding: 0; }
+  /* Airborne panel: airspeed tape (left), heading compass (centre), status dot (top right) */
+  #cardAir { position: relative; padding-top: 22px; }
+  .air-status { position: absolute; top: 8px; right: 12px; display: flex; align-items: center; gap: 5px; font-size: 0.58rem; letter-spacing: 0.1em; color: var(--text-dim); }
+  .air-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .air-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .air-dot.yellow { background: #f3e45a; box-shadow: 0 0 6px #f3e45a; }
+  .air-grid { display: grid; grid-template-columns: 86px 1fr 96px; gap: 8px; align-items: end; text-align: left; }
+  .air-left { align-self: start; }
+  .tape-head { text-align: center; font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cyan); margin-bottom: 4px; }
+  .tape { position: relative; height: 200px; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--bg-input); }
+  .tape-strip { position: absolute; left: 0; top: 0; width: 100%; will-change: transform; }
+  .tape-strip .tk { position: absolute; left: 0; width: 22px; border-top: 2px solid var(--text-dim); height: 0; }
+  .tape-strip .tk5 { position: absolute; left: 0; width: 12px; border-top: 1px solid var(--text-faint); height: 0; }
+  .tape-strip .tl { position: absolute; left: 26px; transform: translateY(-50%); font-size: 0.7rem; color: var(--text); }
+  .tape-ptr { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); min-width: 40px; text-align: center; border: 2px solid var(--cyan); background: var(--bg-page); color: var(--text); font-weight: 700; font-size: 0.9rem; padding: 3px 4px; box-shadow: var(--glow-cyan); }
+  .tape-alt { margin-top: 4px; text-align: center; font-size: 0.6rem; color: var(--text-dim); line-height: 1.5; }
+  .air-mid { position: relative; align-self: end; display: flex; flex-direction: column; align-items: center; }
+  .hdg-box { position: relative; z-index: 2; margin-bottom: -6px; min-width: 46px; text-align: center; border: 2px solid var(--cyan); background: var(--bg-page); color: var(--text); font-weight: 700; font-size: 0.95rem; letter-spacing: 0.06em; padding: 2px 6px; }
+  .air-rose { width: 100%; max-width: 150px; aspect-ratio: 1; }
+  #airDial line { stroke: var(--text-dim); stroke-width: 1; }
+  #airDial line.mj { stroke: var(--text); stroke-width: 1.6; }
+  #airDial text { fill: var(--text); font-size: 12px; text-anchor: middle; dominant-baseline: central; font-family: inherit; }
+  #airDial text.card { fill: var(--amber); font-size: 15px; font-weight: 700; }
+  #airDial circle { fill: none; stroke: var(--cyan-dim); stroke-width: 1.5; }
+  .reticle line, .reticle path { stroke: var(--cyan); stroke-width: 2; fill: none; }
