@@ -404,6 +404,19 @@ Not yet authorized to build. Settled with Jon (button beside the field; typing s
 
 **Verification plan:** the button is next to all four time fields and fits at 390px; a picked time (simulated by setting the hidden input) appears in the field in "h:mm AM/PM" form and is saved and shown on the Dashboard; the starting value comes from the current text; typing "5p" still works; empty and unparseable text open at a sensible time; the real phone picker needs a check on Jon's phone.
 
+### Airborne panel: airspeed tape and heading compass (live from GPS)
+Not yet authorized to build. Settled with Jon (live GPS, heading-up rose, tape about plus or minus 40 knots). Replaces the left and centre of the airborne card; the right third stays as it is.
+
+- **Right third unchanged:** Flight Log (3D GPS), ETA, and Distance to Target keep their current content and style.
+- **Left: vertical airspeed tape** on the left edge. Header "KNOTS" centred at the top. A vertical scrolling scale with major ticks and numeric labels every 10 knots (for example 480, 470, 460, 450), showing about plus or minus 40 knots around the current speed and scrolling as speed changes. A solid-bordered horizontal pointer box (chevron) on the right side of the tape sits at the vertical centre and shows the current speed value. At the bottom, the same speed in smaller subtle text, stacked: km/h, then mph (for example 863 km/h, 536 mph). The old left column (Cockpit Telemetry 504, Altitude, Status, Ground Speed Calc and its unit swap) is removed.
+- **Centre-bottom: circular compass rose** near the bottom centre. A rotating dial with medium-precision radial tick marks all round (a tick every 5 degrees, longer every 10), labelled N, E, S, W and the aviation numbers for each 30 degrees (3, 6, 12, 15, 21, 24, 33 and so on). Heading-up: the dial rotates so the current heading sits at the top. A small solid rectangular box anchored at the top outer edge of the circle shows the exact current heading in bold digits (for example 348). A minimalist crosshair / aircraft reference symbol in the centre.
+- **Live data:** speed from the phone's GPS (metres per second to knots, smoothed); heading from the GPS course, held when the speed is too low for a reliable course (the phone's compass sensor is not used), the same method as the driving screen. Location permission is asked for when the airborne panel first shows; with no permission or no fix it shows dashes and a plain message instead of fake numbers. GPS only runs while the airborne panel is on screen.
+- The Dev toggle between ground and airborne stays.
+
+**Reuse:** the driving screen's GPS watch, course, and smoothing code (`onDrivePos`, `distanceM`, `bearingDeg`), the existing airborne card and `.compass` styles, `.telem-grid`.
+
+**Verification plan:** simulated GPS speeds and positions (Playwright geolocation): the tape scrolls and its pointer shows the knots value, labels fall on every 10, km/h and mph equal the knots conversion; the rose rotates to put the heading at the top and the heading box matches, including wrap-around at 0 and 360; heading held when slow; dashes and a message when permission is denied; GPS stops when the panel is hidden; the right third unchanged; layout at 390px; screenshots of both widgets; the real GPS speed at flight speeds and the plane's window GPS fix need a check on a real flight.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
