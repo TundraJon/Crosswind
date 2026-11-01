@@ -385,6 +385,14 @@ The app no longer asks Google for fonts; Chakra Petch and Michroma are served fr
 
 _Empty — nothing queued right now._
 
+### Capitalize names as typed
+Not yet authorized to build. Settled with Jon (Contact Name, Place Name, Hotel Name).
+
+- Add `autocapitalize="words"` to the Objective step's Contact Name and Place Name inputs and the Hotel step's Hotel Name input, so the phone keyboard starts each word with a capital by default. Nothing is forced in code: the user can still type a lowercase letter (McDonald, de la Cruz), and saved text is stored exactly as typed.
+- No other fields change.
+
+**Verification plan:** the attribute is on exactly those three inputs; typing still stores exactly what is typed (including a lowercase word); the real keyboard behaviour needs a check on Jon's phone (headless Chromium has no keyboard).
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
