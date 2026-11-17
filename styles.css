@@ -287,3 +287,5 @@
   #airDial text.card { fill: var(--amber); font-size: 15px; font-weight: 700; }
   #airDial circle { fill: none; stroke: var(--cyan-dim); stroke-width: 1.5; }
   .reticle line, .reticle path { stroke: var(--cyan); stroke-width: 2; fill: none; }
+  .chk-line { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; color: var(--text-dim); margin-top: 4px; }
+  .chk-line input { width: auto; }

@@ -576,12 +576,12 @@
   /* ============ TRIP WIZARD: full round-trip, multi-stop state ============ */
   let trips = [];
   let activeTripId = '';
-  function newFlight() { return { airline: '', flightNum: '', conf: '', seat: '', date: '', from: '', to: '' }; }
+  function newFlight() { return { airline: '', flightNum: '', conf: '', seat: '', date: '', from: '', to: '', dep: '', arr: '', arrDay: 0 }; }
   function newStop() {
     return {
       destination: { name: '', address: '', contact: '', phone: '', lat: null, lon: null },
       flights: [ newFlight() ],
-      rental: { company: '', cls: 'Economy', color: '', plate: '', pickup: '', ret: '', conf: '' },
+      rental: { company: '', cls: 'Economy', color: '', plate: '', pickup: '', ret: '', conf: '', pickupTime: '', retTime: '' },
       hotel: { chain: '', brand: '', name: '', address: '', room: '', checkIn: '', checkOut: '', conf: '', lat: null, lon: null }
     };
   }
@@ -976,6 +976,10 @@
       '<div><label class="fld">To</label><input type="text" id="wf-to" placeholder="SFO" autocomplete="off"></div>' +
       '</div>' +
       '<div class="suggest-list" id="wf-from-suggest" style="display:none;"></div><div class="suggest-list" id="wf-to-suggest" style="display:none;"></div>' +
+      '<div class="fld-grid">' +
+      '<div><label class="fld">Departure Time</label>' + timeFieldHTML('wf-dep', 'e.g. 8:35 AM', f.dep) + '</div>' +
+      '<div><label class="fld">Arrival Time</label>' + timeFieldHTML('wf-arr', 'e.g. 9:45 AM', f.arr) + '<label class="chk-line"><input type="checkbox" id="wf-arr-next"' + (f.arrDay ? ' checked' : '') + '> +1 day</label></div>' +
+      '</div>' +
       '<div class="fld-note val-note" id="wf-order-note" style="display:none;">Earlier than the flight before it</div>' +
       '<div class="flight-row3">' +
       '<div class="fnum"><label class="fld">Flight #</label><input type="text" id="wf-flight-num" placeholder="402" maxlength="6" value="' + esc(f.flightNum) + '"></div>' +
@@ -985,10 +989,7 @@
       '<div class="fld-note val-note" id="wf-conf-note" style="display:none;">Confirmation is usually 6 letters/numbers</div>' +
       '<div class="fld-note" id="wf-copy-note" style="display:none;"></div>' +
       '<div class="autofill-box"><div class="af-label">Auto-Filled via Flight Tracker API</div><div class="fld-grid">' +
-      '<div><label class="fld">Gate</label><input type="text" value="—" disabled></div>' +
-      '<div><label class="fld">Destination</label><input type="text" value="—" disabled></div>' +
-      '<div><label class="fld">Departure Time</label><input type="text" value="—" disabled></div>' +
-      '<div><label class="fld">Landing Time</label><input type="text" value="—" disabled></div></div></div>';
+      '<div><label class="fld">Gate</label><input type="text" value="—" disabled></div></div></div>';
   }
 
   function stepFormHTML(node) {
@@ -1037,6 +1038,8 @@
         '<div><label class="fld">Class</label><select id="wf-rental-class">' + classOpts + '</select></div>' +
         '<div>' + dateFieldHTML('wf-rental-pick', 'Pickup Date', 'rPick:' + si + ':0') + '</div>' +
         '<div>' + dateFieldHTML('wf-rental-ret', 'Return Date', 'rRet:' + si + ':0') + '</div>' +
+        '<div><label class="fld">Pickup Time</label>' + timeFieldHTML('wf-rental-picktime', 'e.g. 2:00 PM', r.pickupTime) + '</div>' +
+        '<div><label class="fld">Return Time</label>' + timeFieldHTML('wf-rental-rettime', 'e.g. 6:00 PM', r.retTime) + '</div>' +
         '<div><label class="fld">Confirmation # <span class="fld-opt">(optional)</span></label><input type="text" id="wf-rental-conf" placeholder="—" value="' + esc(r.conf) + '"></div><div></div>' +
         '<div><label class="fld">Color <span class="fld-opt">(at pickup)</span></label><input type="text" id="wf-rental-color" placeholder="—" value="' + esc(r.color) + '"></div>' +
         '<div><label class="fld">License Plate <span class="fld-opt">(at pickup)</span></label><input type="text" id="wf-rental-plate" placeholder="—" value="' + esc(r.plate) + '"></div>' +
@@ -1144,6 +1147,14 @@
 
   /* From / To airport fields of the flight on screen: autocomplete, stored as a code when left, defaults shown until typed */
   function pickupAirportNote(si) { const c = rentalAirportCode(si); return c ? '<div class="fld-note" id="wf-pickup-airport">Pickup airport: <b>' + esc(c) + '</b></div>' : ''; }
+  /* Departure / Arrival time of the flight on screen, with the phone time picker; "+1 day" for an overnight arrival */
+  function wireFlightTimes(f) {
+    const dep = document.getElementById('wf-dep'), arr = document.getElementById('wf-arr'), nx = document.getElementById('wf-arr-next');
+    dep.addEventListener('input', () => { f.dep = dep.value; }); arr.addEventListener('input', () => { f.arr = arr.value; });
+    wireSmartTimeInput(dep); wireSmartTimeInput(arr); wireTimePicker(dep); wireTimePicker(arr);
+    dep.addEventListener('blur', () => { f.dep = dep.value; }); arr.addEventListener('blur', () => { f.arr = arr.value; });
+    nx.addEventListener('change', () => { f.arrDay = nx.checked ? 1 : 0; });
+  }
   function wireFlightAirports(f, key) {
     const fromEl = document.getElementById('wf-from'), toEl = document.getElementById('wf-to');
     const show = () => {
@@ -1178,6 +1189,7 @@
       updateConfColor(confEl, confNote);
       upperInput(document.getElementById('wf-flight-seat'), v => f.seat = v);
       wireFlightAirports(f, 'f:' + node.stopIndex + ':' + node.flightIndex);
+      wireFlightTimes(f);
       const addBtn = document.getElementById('wf-add-flight');
       if (addBtn) addBtn.addEventListener('click', () => {
         const flights = wizardState.stops[node.stopIndex].flights;
@@ -1203,6 +1215,10 @@
       upperInput(document.getElementById('wf-rental-conf'), v => r.conf = v);
       document.getElementById('wf-rental-color').addEventListener('input', e => r.color = e.target.value);
       upperInput(document.getElementById('wf-rental-plate'), v => r.plate = v);
+      const pt = document.getElementById('wf-rental-picktime'), rt = document.getElementById('wf-rental-rettime');
+      pt.addEventListener('input', () => { r.pickupTime = pt.value; }); rt.addEventListener('input', () => { r.retTime = rt.value; });
+      wireSmartTimeInput(pt); wireSmartTimeInput(rt); wireTimePicker(pt); wireTimePicker(rt);
+      pt.addEventListener('blur', () => { r.pickupTime = pt.value; }); rt.addEventListener('blur', () => { r.retTime = rt.value; });
     }
     else if (node.type === 'hotel') {
       const h = wizardState.stops[node.stopIndex].hotel;
@@ -1263,6 +1279,7 @@
       updateConfColor(confEl, confNote);
       upperInput(document.getElementById('wf-flight-seat'), v => f.seat = v);
       wireFlightAirports(f, 'rf:' + node.flightIndex + ':0');
+      wireFlightTimes(f);
       const addBtn = document.getElementById('wf-add-return-flight');
       if (addBtn) addBtn.addEventListener('click', () => {
         wizardState.returnFlights.splice(node.flightIndex + 1, 0, newFlight());
@@ -1333,7 +1350,7 @@
         line('DATE: <b>' + dv(effDateText(dateKey)) + '</b>') +
         line('FLIGHT: <b>' + dv(fl) + '</b> | SEAT: <b>' + dv(f.seat) + '</b>') +
         line('CONFIRMATION: <b>' + dv(f.conf) + '</b> | GATE: <b>—</b>') +
-        line('BOARDING: <b>—</b> | LANDING: <b>—</b>') +
+        line('BOARDING: <b>' + dv(f.dep) + '</b> | LANDING: <b>' + dv(f.arr ? f.arr + (f.arrDay ? ' (+1)' : '') : '') + '</b>') +
         line('TSA PRECHECK: <span class="wt">' + dv(document.getElementById('ktnInput').value) + '</span>');
     }
     else if (node.type === 'layover') {
@@ -1342,7 +1359,7 @@
     else if (node.type === 'rental') {
       const r = wizardState.stops[node.stopIndex].rental;
       html += line('COMPANY: <b>' + dv(r.company) + '</b> | CLASS: <b>' + dv(r.cls) + '</b>') +
-        line('PICKUP: <b>' + dv(effDateText('rPick:' + node.stopIndex + ':0')) + '</b> | RETURN: <b>' + dv(effDateText('rRet:' + node.stopIndex + ':0')) + '</b>') +
+        line('PICKUP: <b>' + dv([effDateText('rPick:' + node.stopIndex + ':0'), r.pickupTime].filter(Boolean).join(' ')) + '</b> | RETURN: <b>' + dv([effDateText('rRet:' + node.stopIndex + ':0'), r.retTime].filter(Boolean).join(' ')) + '</b>') +
         line('CONFIRMATION: <b>' + dv(r.conf) + '</b>') +
         '<div class="qc-inputs"><div><label class="fld">Plate #</label><input type="text" id="dash-plate"></div>' +
         '<div><label class="fld">Color</label><input type="text" id="dash-color"></div></div>';
@@ -1469,7 +1486,7 @@
   function normalizeFlight(f) {
     const s = v => typeof v === 'string' ? cleanText(v) : '';
     f = (f && typeof f === 'object') ? f : {};
-    return { airline: s(f.airline), flightNum: s(f.flightNum), conf: s(f.conf), seat: s(f.seat), date: isoOrBlank(f.date), from: airportCode(s(f.from)), to: airportCode(s(f.to)) };
+    return { airline: s(f.airline), flightNum: s(f.flightNum), conf: s(f.conf), seat: s(f.seat), date: isoOrBlank(f.date), from: airportCode(s(f.from)), to: airportCode(s(f.to)), dep: s(f.dep), arr: s(f.arr), arrDay: f.arrDay === 1 ? 1 : 0 };
   }
   function normalizeItinerary(raw) {
     if (!raw || typeof raw !== 'object') return newItinerary();
@@ -1483,7 +1500,7 @@
       out.stops.push({
         destination: { name: s(d.name), address: s(d.address), contact: s(d.contact), phone: parsePhone(s(d.phone)), lat: coordOrNull(d.lat, 90), lon: coordOrNull(d.lon, 180) },
         flights: flights.length ? flights : [ normalizeFlight() ],
-        rental: { company: s(r.company), cls: s(r.cls) || 'Economy', color: s(r.color), plate: s(r.plate).toUpperCase(), pickup: isoOrBlank(r.pickup), ret: isoOrBlank(r.ret), conf: s(r.conf) },
+        rental: { company: s(r.company), cls: s(r.cls) || 'Economy', color: s(r.color), plate: s(r.plate).toUpperCase(), pickup: isoOrBlank(r.pickup), ret: isoOrBlank(r.ret), conf: s(r.conf), pickupTime: s(r.pickupTime), retTime: s(r.retTime) },
         hotel: { chain: s(h.chain), brand: s(h.brand), name: s(h.name), address: s(h.address), room: s(h.room), checkIn: isoOrBlank(h.checkIn), checkOut: isoOrBlank(h.checkOut), conf: s(h.conf), lat: coordOrNull(h.lat, 90), lon: coordOrNull(h.lon, 180) }
       });
     });
@@ -1502,6 +1519,7 @@
       name, start: raw.start, end: raw.end,
       startsAtHome: raw.startsAtHome !== false, endsAtHome: raw.endsAtHome !== false,
       modified: (typeof raw.modified === 'string' && !isNaN(Date.parse(raw.modified))) ? raw.modified : '',
+      agencyRef: typeof raw.agencyRef === 'string' ? cleanText(raw.agencyRef).slice(0, 12) : '',
       colorIdx: (Number.isInteger(raw.colorIdx) && raw.colorIdx >= 0 && raw.colorIdx < 12) ? raw.colorIdx : null,
       itinerary: normalizeItinerary(raw.itinerary)
     };
@@ -1807,6 +1825,167 @@
   compassBtn.addEventListener('click', () => { if (dashCompass) openDrive(dashCompass); });
   document.getElementById('driveBack').addEventListener('click', closeDrive);
 
+  /* ============ IMPORT A BOOKING (.ics, PDF, or pasted text) ============ */
+  const itinModal = document.getElementById('itinModal');
+  let itinFiles = [], itinModel = null, itinLayout = null, itinRows = [], itinExisting = null;
+  function loadPdfJs() {
+    if (window.pdfjsLib) return Promise.resolve();
+    return new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'lib/pdf.min.js?v=1'; sc.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js?v=1'; res(); }; sc.onerror = () => rej(new Error('The PDF reader could not be loaded (it needs the app files, so open the app once online).')); document.head.appendChild(sc); });
+  }
+  async function pdfToText(file) {
+    await loadPdfJs();
+    const doc = await window.pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; let out = '';
+    for (let p = 1; p <= doc.numPages; p++) { const tc = await (await doc.getPage(p)).getTextContent(); out += window.CrosswindBooking.rowsFromItems(tc.items.map(i => ({ s: i.str, x: i.transform[4], y: i.transform[5] }))) + '\n'; }
+    return out;
+  }
+  function itinMsg(text) { ['itinMsg', 'itinMsg2'].forEach(id => { const m = document.getElementById(id); m.textContent = text || ''; m.style.display = text ? 'block' : 'none'; }); }
+  function niceCase(t) {
+    const letters = t.replace(/[^A-Za-z]/g, '');
+    if (!letters || letters.replace(/[^A-Z]/g, '').length / letters.length < 0.8) return t;
+    return t.toLowerCase().replace(/\b[a-z]+/g, w => (w.length === 2 && STATE_CODES.indexOf(w.toUpperCase()) >= 0) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)).replace(/\b(\d+)(st|nd|rd|th)\b/gi, (m0, n, x) => n + x.toLowerCase());
+  }
+  const STATE_CODES = 'AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC US'.split(' ');
+  function programMatch(type, word) {
+    const w = String(word || '').toLowerCase().split(' ')[0]; if (!w) return '';
+    const p = programs.find(x => x.type === type && x.name.toLowerCase().indexOf(w) >= 0); return p ? p.name : '';
+  }
+  function hotelChainAndBrand(name) {
+    const n = String(name || '').toLowerCase(); const hit = hotelBrandData.find(x => x.match.some(k => n.indexOf(k) >= 0));
+    if (!hit) return { chain: '', brand: '' };
+    const prog = programs.find(x => x.type === 'hotel' && hit.match.some(k => x.name.toLowerCase().indexOf(k) >= 0));
+    const major = majorHotelChains.find(m => m.match.some(k => hit.match.indexOf(k) >= 0));
+    const brand = hit.brands.slice().sort((a, b) => b.length - a.length).find(b => n.indexOf(b.toLowerCase()) >= 0) || '';
+    return { chain: prog ? prog.name : (major ? major.name : ''), brand };
+  }
+  function itinFlightObj(f) {
+    return Object.assign(newFlight(), { airline: programMatch('airline', f.airline || CrosswindBooking.CARRIERS[f.code]) || f.airline || CrosswindBooking.CARRIERS[f.code] || '', flightNum: f.number, conf: f.conf || '', seat: f.seat || '', date: f.date || '', from: f.from || '', to: f.to || '', dep: f.dep || '', arr: f.arr || '', arrDay: (f.arrDate && f.date && f.arrDate > f.date) ? 1 : 0 });
+  }
+  function itineraryFromLayout(L, keep) {
+    const it = newItinerary(); it.stops = [];
+    L.stops.forEach(sp => {
+      const st = newStop(); st.flights = sp.flights.filter(keep).map(itinFlightObj); if (!st.flights.length) st.flights = [newFlight()];
+      if (sp.hotel && keep(sp.hotel)) { const h = sp.hotel, cb = hotelChainAndBrand(h.name); Object.assign(st.hotel, { chain: cb.chain, brand: cb.brand, name: niceCase(h.name), address: niceCase(h.address), checkIn: h.checkIn || '', checkOut: h.checkOut || '', conf: h.conf || '' }); }
+      if (sp.car && keep(sp.car)) { const c = sp.car; Object.assign(st.rental, { company: programMatch('rental', c.company) || c.company || '', conf: c.conf || '', pickup: c.pickDate || '', ret: c.retDate || '', pickupTime: c.pickTime || '', retTime: c.retTime || '' }); }
+      it.stops.push(st);
+    });
+    if (!it.stops.length) it.stops.push(newStop());
+    it.returnFlights = L.returns.filter(keep).map(itinFlightObj); if (!it.returnFlights.length) it.returnFlights = [newFlight()];
+    return normalizeItinerary(it);
+  }
+  /* field-by-field changes an updated booking would make to a trip saved from the same reference */
+  function itineraryDiff(oldIt, newIt) {
+    const out = [], same = oldIt.stops.length === newIt.stops.length && oldIt.stops.every((s, i) => s.flights.length === newIt.stops[i].flights.length) && oldIt.returnFlights.length === newIt.returnFlights.length;
+    if (!same) return { same: false, rows: out };
+    const cmp = (label, o, n, keys) => keys.forEach(k => { if (n[k] !== '' && n[k] != null && n[k] !== o[k]) out.push({ label: label + ' ' + k, from: o[k], to: n[k], apply: () => { o[k] = n[k]; } }); });
+    oldIt.stops.forEach((s, i) => { s.flights.forEach((f, j) => cmp('Stop ' + (i + 1) + ' flight ' + (j + 1), f, newIt.stops[i].flights[j], ['airline', 'flightNum', 'conf', 'seat', 'date', 'from', 'to', 'dep', 'arr', 'arrDay'])); cmp('Stop ' + (i + 1) + ' hotel', s.hotel, newIt.stops[i].hotel, ['chain', 'brand', 'name', 'address', 'checkIn', 'checkOut', 'conf']); cmp('Stop ' + (i + 1) + ' rental', s.rental, newIt.stops[i].rental, ['company', 'conf', 'pickup', 'ret', 'pickupTime', 'retTime']); });
+    oldIt.returnFlights.forEach((f, j) => cmp('Return flight ' + (j + 1), f, newIt.returnFlights[j], ['airline', 'flightNum', 'conf', 'seat', 'date', 'from', 'to', 'dep', 'arr', 'arrDay']));
+    return { same: true, rows: out };
+  }
+  function itinAddRow(list, text, small, checked, extra) {
+    const row = document.createElement('label'); row.className = 'restore-row check';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = checked;
+    const info = document.createElement('div'); const b = document.createElement('b'); b.textContent = text; info.appendChild(b);
+    if (small) { const sm = document.createElement('small'); sm.textContent = small; info.appendChild(sm); }
+    if (extra) info.appendChild(extra);
+    row.appendChild(cb); row.appendChild(info); list.appendChild(row); return cb;
+  }
+  function airportEditor(f, prop) {
+    const wrap = document.createElement('div'), inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = (prop === 'from' ? 'From' : 'To') + ' airport'; inp.value = f[prop] || ''; inp.style.maxWidth = '120px';
+    inp.addEventListener('input', () => { f[prop] = airportCode(inp.value); });
+    wrap.appendChild(inp); return wrap;
+  }
+  function showItinPreview() {
+    const m = itinModel, L = itinLayout = CrosswindBooking.layout(m), sum = CrosswindBooking.tripSummary(m);
+    document.getElementById('itinStep1').style.display = 'none'; document.getElementById('itinStep2').style.display = 'block';
+    const warn = document.getElementById('itinWarn'); warn.innerHTML = '';
+    m.warnings.forEach(w => { const d = document.createElement('div'); d.className = 'fld-note val-note'; d.textContent = '⚠ ' + w; warn.appendChild(d); });
+    const dest = m.flights.length ? m.flights[0] : null;
+    const city = niceCase(sum.city || (dest && dest.toName ? dest.toName.split(',')[0] : ''));
+    document.getElementById('itinName').value = (city ? city + ' ' : '') + (sum.start ? fmtShortDate(sum.start) + (sum.end && sum.end !== sum.start ? '–' + (sum.end.slice(0, 7) === sum.start.slice(0, 7) ? String(+sum.end.slice(8)) : fmtShortDate(sum.end)) : '') : '');
+    document.getElementById('itinStart').value = sum.start ? fmtDate(fromISODate(sum.start)) : ''; document.getElementById('itinEnd').value = sum.end ? fmtDate(fromISODate(sum.end)) : '';
+    document.getElementById('itinRef').textContent = m.ref ? 'Agency reference: ' + m.ref : '';
+    const list = document.getElementById('itinList'); list.innerHTML = ''; itinRows = [];
+    const add = (obj, text, small, extra) => { const cb = itinAddRow(list, text, small, true, extra); itinRows.push({ obj, cb }); };
+    L.stops.forEach((sp, i) => {
+      if (L.stops.length > 1 || sp.hotel) { const h = document.createElement('div'); h.className = 'card-sub'; h.textContent = 'Stop ' + (i + 1) + (sp.hotel ? ' — ' + niceCase(sp.hotel.name) : ''); list.appendChild(h); }
+      sp.flights.forEach(f => add(f, f.code + f.number + '  ' + (f.from || '?') + ' ⟶ ' + (f.to || '?'), [f.date ? fmtDate(fromISODate(f.date)) : '', (f.dep || '') + (f.arr ? '–' + f.arr + (f.arrDate && f.date && f.arrDate > f.date ? ' (+1)' : '') : ''), f.seat ? 'seat ' + f.seat : '', f.conf ? 'conf ' + f.conf : '', f.inferredNextDay ? '(next day inferred)' : ''].filter(Boolean).join(' · '), (!f.from || !f.to) ? (function () { const w = document.createElement('div'); if (!f.from) w.appendChild(airportEditor(f, 'from')); if (!f.to) w.appendChild(airportEditor(f, 'to')); const n = document.createElement('small'); n.className = 'warn'; n.textContent = 'airport not identified: type a code'; w.appendChild(n); return w; })() : null));
+      if (sp.car) add(sp.car, 'Rental car — ' + (sp.car.company || '?'), [(sp.car.pickDate ? fmtDate(fromISODate(sp.car.pickDate)) : '') + ' ' + (sp.car.pickTime || ''), '→ ' + (sp.car.retDate ? fmtDate(fromISODate(sp.car.retDate)) : '') + ' ' + (sp.car.retTime || ''), sp.car.conf ? 'conf ' + sp.car.conf : ''].join(' ').replace(/\s+/g, ' ').trim());
+      if (sp.hotel) add(sp.hotel, 'Hotel — ' + niceCase(sp.hotel.name), [(sp.hotel.checkIn ? fmtDate(fromISODate(sp.hotel.checkIn)) : '') + ' → ' + (sp.hotel.checkOut ? fmtDate(fromISODate(sp.hotel.checkOut)) : ''), sp.hotel.conf ? 'conf ' + sp.hotel.conf : '', sp.hotel.address ? niceCase(sp.hotel.address) : 'no address in this booking'].join(' · '));
+    });
+    if (L.returns.length) { const h = document.createElement('div'); h.className = 'card-sub'; h.textContent = 'Return flights'; list.appendChild(h); L.returns.forEach(f => add(f, f.code + f.number + '  ' + (f.from || '?') + ' ⟶ ' + (f.to || '?'), [f.date ? fmtDate(fromISODate(f.date)) : '', (f.dep || '') + (f.arr ? '–' + f.arr + (f.arrDate && f.date && f.arrDate > f.date ? ' (+1)' : '') : ''), f.seat ? 'seat ' + f.seat : '', f.conf ? 'conf ' + f.conf : ''].filter(Boolean).join(' · '), (!f.from || !f.to) ? (function () { const w = document.createElement('div'); if (!f.from) w.appendChild(airportEditor(f, 'from')); if (!f.to) w.appendChild(airportEditor(f, 'to')); return w; })() : null)); }
+    const miss = []; if (!m.flights.some(f => f.seat)) miss.push('seats'); if (!m.flights.some(f => f.conf)) miss.push('flight confirmation'); if (m.hotels.length && !m.hotels.some(h => h.address)) miss.push('hotel address');
+    document.getElementById('itinMissing').textContent = miss.length ? 'Not in this booking: ' + miss.join(', ') + '.' : '';
+    itinExisting = m.ref ? trips.find(t => t.agencyRef === m.ref) : null;
+    const ex = document.getElementById('itinExisting'); ex.innerHTML = '';
+    if (itinExisting) {
+      ex.style.display = 'block';
+      const lab = document.createElement('div'); lab.className = 'card-sub'; lab.textContent = 'You already have a trip from this booking: ' + itinExisting.name; ex.appendChild(lab);
+      [['update', 'Update that trip'], ['new', 'Create a separate trip']].forEach(([v, t], i) => { const l = document.createElement('label'); l.className = 'chk-line'; const r = document.createElement('input'); r.type = 'radio'; r.name = 'itinMode'; r.value = v; r.checked = i === 0; l.appendChild(r); l.appendChild(document.createTextNode(' ' + t)); ex.appendChild(l); });
+    } else ex.style.display = 'none';
+    document.getElementById('itinImportBtn').disabled = !(m.flights.length || m.cars.length || m.hotels.length);
+    document.getElementById('itinImportBtn').textContent = itinExisting ? 'Continue' : 'Import trip';
+  }
+  function fmtShortDate(iso) { return fromISODate(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+  async function readItinerary() {
+    itinMsg(''); const inputs = [];
+    const btn = document.getElementById('itinRead'); btn.disabled = true; btn.textContent = 'Reading…';
+    try {
+      for (const f of itinFiles) {
+        const name = f.name || 'file';
+        if (/\.pdf$/i.test(name) || f.type === 'application/pdf') { let t = ''; try { t = await pdfToText(f); } catch (e) { itinMsg(name + ': ' + (e.message || 'could not be read as a PDF.')); return; } if (!t.replace(/\s/g, '')) { itinMsg(name + ' has no readable text (it may be a scan). Try the .ics file or paste the text.'); return; } inputs.push({ name, kind: 'text', text: t }); }
+        else { const t = await f.text(); inputs.push({ name, kind: /\.ics$/i.test(name) || /BEGIN:VCALENDAR/i.test(t) ? 'ics' : 'text', text: t }); }
+      }
+      const pasted = document.getElementById('itinPaste').value; if (pasted.trim()) inputs.push({ name: 'pasted text', kind: /BEGIN:VCALENDAR/i.test(pasted) ? 'ics' : 'text', text: pasted });
+      if (!inputs.length) { itinMsg('Choose a file or paste some booking text first.'); return; }
+      itinModel = CrosswindBooking.parse(inputs, { airports: airportData, today: new Date() });
+      if (!itinModel.flights.length && !itinModel.cars.length && !itinModel.hotels.length) { itinMsg('Nothing could be read from this. ' + (itinModel.warnings[0] || 'The layout was not recognised.')); return; }
+      showItinPreview();
+    } finally { btn.disabled = false; btn.textContent = 'Read'; }
+  }
+  function applyItinerary() {
+    const kept = new Set(itinRows.filter(r => r.cb.checked).map(r => r.obj)), keep = o => kept.has(o);
+    const it = itineraryFromLayout(itinLayout, keep), mode = (document.querySelector('input[name="itinMode"]:checked') || {}).value;
+    if (itinExisting && mode === 'update') {
+      const d = itineraryDiff(itinExisting.itinerary, it);
+      if (d.same) { showItinUpdate(d); return; }
+      showItinUpdate({ same: false, rows: [] }); return;
+    }
+    const name = cleanText(document.getElementById('itinName').value).trim() || 'Imported trip';
+    const s = parseSmartDate(document.getElementById('itinStart').value, new Date(), null), e = parseSmartDate(document.getElementById('itinEnd').value, new Date(), null);
+    if (!s || !e || e < s) { itinMsg('Check the trip dates (start before end).'); return; }
+    const home = airportCode(homeAirportInput.value), fl = itinLayout.stops.reduce((a, x) => a.concat(x.flights), []).concat(itinLayout.returns).filter(keep);
+    const t = { id: newTripId(), name, start: toISODate(s), end: toISODate(e), startsAtHome: home && fl.length ? fl[0].from === home : true, endsAtHome: home && fl.length ? fl[fl.length - 1].to === home : true, modified: new Date().toISOString(), colorIdx: null, agencyRef: itinModel.ref || '', itinerary: it };
+    giveColor(t); trips.push(t); tripSnaps[t.id] = tripContent(t); activeTripId = t.id; saveActive(); saveTrips(); dashSelected = ''; loadItinerary(); refreshTripUI(); closeItin(); retryLocations();
+  }
+  function showItinUpdate(d) {
+    const list = document.getElementById('itinList'); list.innerHTML = ''; itinRows = [];
+    document.getElementById('itinExisting').style.display = 'none'; document.getElementById('itinMissing').textContent = '';
+    const t = itinExisting;
+    if (!d.same) {
+      const n = document.createElement('div'); n.className = 'fld-note'; n.textContent = 'The number of flights or stops changed since you imported this booking, so it cannot be compared field by field.'; list.appendChild(n);
+      const imp = document.getElementById('itinImportBtn'); imp.textContent = 'Replace the trip\'s itinerary'; imp.disabled = false;
+      imp.onclick = () => { const kept = new Set(); const it = itineraryFromLayout(itinLayout, () => true); t.itinerary = it; t.modified = new Date().toISOString(); tripSnaps[t.id] = tripContent(t); saveTrips(); activeTripId = t.id; saveActive(); loadItinerary(); refreshTripUI(); closeItin(); retryLocations(); };
+      return;
+    }
+    if (!d.rows.length) { const n = document.createElement('div'); n.className = 'fld-note'; n.textContent = 'Nothing has changed since you imported this booking.'; list.appendChild(n); }
+    d.rows.forEach(r => { r.cb = itinAddRow(list, r.label, (r.from === '' ? '(empty)' : r.from) + ' → ' + r.to, true); });
+    const imp = document.getElementById('itinImportBtn'); imp.textContent = 'Apply selected changes'; imp.disabled = !d.rows.length;
+    imp.onclick = () => { d.rows.forEach(r => { if (r.cb.checked) r.apply(); }); t.modified = new Date().toISOString(); tripSnaps[t.id] = tripContent(t); saveTrips(); activeTripId = t.id; saveActive(); loadItinerary(); refreshTripUI(); closeItin(); retryLocations(); };
+  }
+  function openItin() {
+    itinFiles = []; itinModel = null; document.getElementById('itinFiles').value = ''; document.getElementById('itinFileList').textContent = ''; document.getElementById('itinPaste').value = ''; itinMsg('');
+    document.getElementById('itinStep1').style.display = 'block'; document.getElementById('itinStep2').style.display = 'none';
+    const imp = document.getElementById('itinImportBtn'); imp.onclick = applyItinerary; itinModal.classList.add('open');
+  }
+  function closeItin() { itinModal.classList.remove('open'); }
+  document.getElementById('importItinBtn').addEventListener('click', openItin);
+  document.getElementById('itinChoose').addEventListener('click', () => document.getElementById('itinFiles').click());
+  document.getElementById('itinFiles').addEventListener('change', e => { itinFiles = Array.from(e.target.files); document.getElementById('itinFileList').textContent = itinFiles.map(f => f.name).join(', '); });
+  document.getElementById('itinRead').addEventListener('click', readItinerary);
+  document.getElementById('itinCancel').addEventListener('click', closeItin);
+  document.getElementById('itinBack').addEventListener('click', () => { document.getElementById('itinStep1').style.display = 'block'; document.getElementById('itinStep2').style.display = 'none'; });
+  itinModal.addEventListener('click', e => { if (e.target === itinModal) closeItin(); });
+
   /* ============ TRAVEL HORIZON CALENDAR (Dashboard popup, read-only) ============ */
   const horizonModal = document.getElementById('horizonModal');
   const hzPalette = ['#ff5c5c', '#4de88a', '#4d8dff', '#f0a832', '#9b7bff', '#4dd8ff', '#e85dd0', '#b5e84d', '#ff8a4d', '#2fbfa5', '#ff9ec7', '#f3e45a'];
@@ -1919,7 +2098,7 @@
       t.name = name; t.start = toISODate(s); t.end = toISODate(e); t.startsAtHome = startsAtHome; t.endsAtHome = endsAtHome;
       commitTrips();
     } else {
-      const t = { id: newTripId(), name, start: toISODate(s), end: toISODate(e), startsAtHome, endsAtHome, modified: new Date().toISOString(), colorIdx: null, itinerary: newItinerary() };
+      const t = { id: newTripId(), name, start: toISODate(s), end: toISODate(e), startsAtHome, endsAtHome, modified: new Date().toISOString(), colorIdx: null, agencyRef: '', itinerary: newItinerary() };
       giveColor(t); trips.push(t); tripSnaps[t.id] = tripContent(t);
       activeTripId = t.id; saveActive(); saveTrips(); dashSelected = ''; loadItinerary();
     }
