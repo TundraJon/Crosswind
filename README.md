@@ -453,11 +453,21 @@ Not yet authorized to build. The Ground RTT button (today called Compass: `#comp
 ### Queue 3: Replace the Dev toggle with one RTT button (Airborne RTT / Ground RTT)
 Not yet authorized to build. Names: the full-screen driving screen is **Ground RTT** (real-time telemetry); the flight panel is **Airborne RTT**. The "Compass" button is renamed.
 - Remove `#stateToggle` ("Dev: Toggle Ground / Airborne"), the `airborne` variable, and its click handler.
-- One button in the Dashboard dock, in the position the Compass button has now (`#compassBtn`, rename to `#rttBtn`), label set by the selected step: **Airborne RTT** on Flight and Return Flight steps, **Ground RTT** on Uber, Rental, Hotel, Objective, Rental Return, and Uber Home (and Home). Hidden when the step has no target (no coordinates), and on Layover until the Planner item "Ground RTT on a layover" is built.
+- One button in the Dashboard dock, in the position the Compass button has now (`#compassBtn`, rename to `#rttBtn`), label set by the selected step: **Airborne RTT** on Flight and Return Flight steps, **Ground RTT** on Uber, Rental, Hotel, Objective, Rental Return, and Uber Home (and Home). Hidden when the step has no target (no coordinates). On Layover the button reads Ground RTT too, but only once Queue 4 is built; until then it stays hidden there.
 - Airborne RTT: tapping shows `#cardAir` in place of the flight card and starts GPS (`startAir()`); the button then reads "Flight Details" and tapping it goes back and stops GPS. It starts off every time: changing step, or leaving the Dashboard, turns it off. GPS stays off until the button is tapped.
 - Ground RTT: opens the full-screen driving screen as today.
 - Dock shows when Copy Address or the RTT button applies, as now.
 - Verify: no toggle on screen; button label per step type; Airborne RTT on, off, and reset on step change; Ground RTT still opens; GPS pings only while a panel is open. Cache-bust and version bump.
+
+### Queue 4: Ground RTT on a layover (walking mode)
+Not yet authorized to build. Build after Queue 1 (tape restyle) and Queue 3 (RTT button). For walking between gates and terminals. Decided by Jon: the arrow points straight up, Distance shows "—", and the tape has a 5 mph window, max 60 mph, 1 mph ticks. Defaults I added, change if you disagree:
+- The Layover step gets the Ground RTT button, with no target. The driving screen opens with the title "Layover" in place of a place name.
+- Arrow fixed straight up (no bearing). The ring and N marker still turn with the GPS course, so you can see which way you face.
+- Tape: 5 units visible top to bottom, scale 0 to 60 mph, a tick and a label at every 1 mph. In KPH mode: 8 km/h visible, scale 0 to 100 km/h, a tick and a label at every 1 km/h.
+- Pointer box and the other-unit footer show one decimal here (for example 2.8 mph, "4.5 km/h"), since whole numbers are too coarse at walking speed.
+- GPS course counts as "moving" above 1 mph here (the other Ground RTT uses 5 mph, which is faster than walking, so the ring would never turn).
+- Known limit: GPS indoors in a terminal can be weak and jumpy. It cannot be fixed in code; say so in the Log after a real-phone check.
+- Verify with simulated GPS at 0, 2, 3.5, and 60 mph, both units, 5 units in view, arrow straight up, Distance "—", ring turns at 2 mph.
 
 ## Build Planner
 
@@ -475,9 +485,6 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; Import Itinerary from .ics, PDF, or pasted text (Build 58); layover calculation with short and bad-order warnings (Builds 59, 60); rearrange flights (Build 42); forms for every step type with real step dates, confirmation numbers, and gentle validation; Add Another Flight / Stop; "Select…" dropdowns fed by Setup; smart times on Uber fields.
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, and the flight "Auto-Filled via Flight Tracker API" box (Gate only).
 - Missing: reordering stops (flights can be moved, Build 42).
-
-### Ground RTT on a layover
-Idea from Jon, not designed. On a Layover step the Ground RTT button could switch on ground speed for walking between gates and terminals. Open: a layover has no target, so what shows (heading compass without a target arrow? Distance shown as "—"?); whether the speed tape needs a walking scale (the 40-unit window of mph is coarse at 2 to 4 mph); whether it needs the gate or terminal later. Queue 3 hides the button on Layover until this is designed.
 
 ### Other screens not yet designed
 - Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal). A placeholder screen exists (`#screenMedia`); its buttons do nothing.
