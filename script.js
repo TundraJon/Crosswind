@@ -1641,8 +1641,49 @@
     }
   }
   /* ============ AIRBORNE PANEL: airspeed tape + heading compass, live from GPS (one ping every 3 seconds) ============ */
+  /* ---- GPS noise filter: movement only counts when several samples in a row agree ---- */
+  const MPH_MS = 0.44704, FLOOR_MS = 0.894 /* 2 mph */, FLOOR_WALK_MS = 0.3126 /* 0.7 mph */, FAST_MS = 4.4704 /* 10 mph */;
+  function newMotion() { return { buf: [], moving: false, fails: 0, lastSpd: null, lastHdg: null }; }
+  function angDiff(a, b) { return Math.abs(((a - b + 540) % 360) - 180); }
+  /* Two samples agree when both are above the speed floor, their headings are within 30 degrees, their speeds within max(1 mph, 25%),
+     and the ground really covered between them fits that speed and points the way the heading says (jitter in place does not). */
+  function motionPairAgree(a, b, floor) {
+    if (a.spd == null || b.spd == null || a.hdg == null || b.hdg == null || a.spd < floor || b.spd < floor) return false;
+    if (angDiff(a.hdg, b.hdg) > 30 || Math.abs(a.spd - b.spd) > Math.max(MPH_MS, 0.25 * Math.max(a.spd, b.spd))) return false;
+    const dt = (b.t - a.t) / 1000, covered = distanceM(a.lat, a.lon, b.lat, b.lon), expect = (a.spd + b.spd) / 2 * dt;
+    if ((expect >= 6 && covered < 0.5 * expect) || covered > 2 * expect + 3) return false; /* slow walking covers too little ground to judge the low end against GPS noise */
+    if (covered >= 3 && angDiff(bearingDeg(a.lat, a.lon, b.lat, b.lon), b.hdg) > 45) return false;
+    return true;
+  }
+  /* is there a run of n agreeing samples ending at buf[end]? (one sample may be skipped between two members, so a single wild fix does not break a run) */
+  function motionChain(buf, end, n, floor) {
+    if (n <= 1) return true;
+    for (let j = end - 1; j >= 0 && j >= end - 2; j--) if (motionPairAgree(buf[j], buf[end], floor) && motionChain(buf, j, n - 1, floor)) return true;
+    return false;
+  }
+  /* c = the device's coords, fix = { lat, lon, t }, o = { floor, bypassMs }. Returns { moving, speed (m/s), heading (deg or null) }.
+     Not moving = stationary: the caller shows speed 0 and holds the heading. bypassMs: at or above this speed a sample counts at once (the plane in flight).
+     Needs 3 agreeing samples below 10 mph and 2 from 10 mph up (4 when the device gives no speed, because jitter then looks like speed); once moving, 2 failed samples in a row stop it. */
+  function gpsMotion(m, c, fix, o) {
+    let prev = m.buf.length ? m.buf[m.buf.length - 1] : null;
+    if (prev && (fix.t <= prev.t || (fix.t - prev.t) / 1000 > 8)) { m.buf = []; m.moving = false; m.fails = 0; prev = null; }
+    let spd = (typeof c.speed === 'number' && isFinite(c.speed)) ? c.speed : null, hdg = (typeof c.heading === 'number' && isFinite(c.heading)) ? c.heading : null;
+    if (prev) {
+      const dt = (fix.t - prev.t) / 1000, d = distanceM(prev.lat, prev.lon, fix.lat, fix.lon);
+      if (spd == null) spd = d / dt;
+      if (hdg == null && d >= 1) hdg = bearingDeg(prev.lat, prev.lon, fix.lat, fix.lon);
+    }
+    const s = { lat: fix.lat, lon: fix.lon, t: fix.t, spd, hdg }, derived = !(typeof c.speed === 'number' && isFinite(c.speed)); /* derived: the device gave no speed, so it comes from position jumps */
+    m.buf.push(s); if (m.buf.length > 7) m.buf.shift();
+    let agree = false;
+    if (o.bypassMs != null && spd != null && spd >= o.bypassMs) agree = true;
+    else agree = motionChain(m.buf, m.buf.length - 1, derived ? 4 : ((spd != null && spd >= FAST_MS) ? 2 : 3), o.floor);
+    if (agree) { m.moving = true; m.fails = 0; m.lastSpd = spd; if (hdg != null) m.lastHdg = hdg; }
+    else if (m.moving) { m.fails++; if (m.fails >= 2) { m.moving = false; m.fails = 0; } }
+    return { moving: m.moving, speed: m.lastSpd, heading: m.lastHdg };
+  }
   const AIR_K = 2.4, AIR_CENTER = 100, KT_PER_MS = 1.943844;
-  let airTimer = null, airStatusTimer = null, airFix = null, airPrev = null, airKnots = null, airHdg = null, airDenied = false, airBuilt = false;
+  let airTimer = null, airStatusTimer = null, airFix = null, airMotion = newMotion(), airKnots = null, airHdg = null, airDenied = false, airBuilt = false;
   function dialMarkup() {
     let d = '<circle r="90"/>';
     for (let a = 0; a < 360; a += 5) { const maj = a % 10 === 0; d += '<line class="' + (maj ? 'mj' : '') + '" x1="0" y1="-90" x2="0" y2="' + (maj ? -78 : -84) + '" transform="rotate(' + a + ')"/>'; }
@@ -1684,14 +1725,10 @@
   }
   function onAirPos(pos) {
     const c = pos.coords, t = pos.timestamp || Date.now(), fix = { lat: c.latitude, lon: c.longitude, t, at: Date.now() };
-    let ms = (typeof c.speed === 'number' && isFinite(c.speed)) ? c.speed : null;
-    if (airPrev) {
-      const d = distanceM(airPrev.lat, airPrev.lon, fix.lat, fix.lon), dt = (t - airPrev.t) / 1000;
-      if (ms == null && dt > 0.5) ms = d / dt;
-      if ((ms || 0) > MOVING_MS && d >= 3) airHdg = (typeof c.heading === 'number' && isFinite(c.heading)) ? c.heading : bearingDeg(airPrev.lat, airPrev.lon, fix.lat, fix.lon);
-    }
-    if (ms != null) { const kn = ms * KT_PER_MS; airKnots = (airKnots == null || ms < 0.3) ? kn : 0.5 * airKnots + 0.5 * kn; }
-    airPrev = fix; airFix = fix; airDenied = false;
+    const r = gpsMotion(airMotion, c, fix, { floor: FLOOR_MS, bypassMs: FAST_MS });
+    if (r.moving && r.speed != null) { const kn = r.speed * KT_PER_MS; airKnots = (airKnots == null || airKnots < 0.5 || r.speed < 0.3) ? kn : 0.5 * airKnots + 0.5 * kn; if (r.heading != null) airHdg = r.heading; }
+    else airKnots = 0; /* not confirmed as moving: reads 0 and the heading is held */
+    airFix = fix; airDenied = false;
     const m = document.getElementById('airMsg'); m.style.display = 'none';
     renderAir();
   }
@@ -1703,7 +1740,7 @@
   function startAir() {
     buildAir();
     if (airTimer) return;
-    airFix = null; airPrev = null; airKnots = null; airHdg = null; airDenied = false;
+    airFix = null; airMotion = newMotion(); airKnots = null; airHdg = null; airDenied = false;
     if (!navigator.geolocation) { const m = document.getElementById('airMsg'); m.textContent = 'This device has no GPS.'; m.style.display = 'block'; renderAir(); return; }
     renderAir(); pingAir();
     airTimer = setInterval(pingAir, 3000); airStatusTimer = setInterval(renderAir, 1000);
@@ -1806,8 +1843,7 @@
   }
 
   /* ---- The driving screen: arrow to the destination, relative to the direction of travel (GPS course only), ground speed, distance ---- */
-  const MOVING_MS = 2.2352; /* 5 mph */
-  let driveDestFull = '', drivePing = null, driveStatusTimer = null, driveFixAt = null, driveDenied = false, driveBuiltUnit = '', driveDest = null, drivePrev = null, driveSpeed = null, driveCourse = null, driveMph = true;
+  let driveDestFull = '', drivePing = null, driveStatusTimer = null, driveFixAt = null, driveDenied = false, driveBuiltUnit = '', driveDest = null, driveMotion = newMotion(), driveHold = null, driveSpeed = null, driveCourse = null, driveMph = true;
   function fmtDriveDist(m) {
     const km = currentUnits().dist === 'km';
     if (km) return m < 100 ? Math.round(m) + ' <small>M</small>' : (m / 1000).toFixed(1) + ' <small>KM</small>';
@@ -1873,15 +1909,13 @@
   function onDrivePos(pos) {
     const c = pos.coords, now = pos.timestamp || Date.now(), fix = { lat: c.latitude, lon: c.longitude, t: now };
     driveMessage(''); driveFixAt = Date.now(); driveDenied = false; renderDriveStatus();
-    let spd = (typeof c.speed === 'number' && isFinite(c.speed)) ? c.speed : null;
-    if (drivePrev) {
-      const d = distanceM(drivePrev.lat, drivePrev.lon, fix.lat, fix.lon), dt = (now - drivePrev.t) / 1000;
-      if (spd == null && dt > 0.2) spd = d / dt;
-      if ((spd || 0) > (driveWalk() ? 0.447 : MOVING_MS) && d >= (driveWalk() ? 1 : 3)) driveCourse = (typeof c.heading === 'number' && isFinite(c.heading)) ? c.heading : bearingDeg(drivePrev.lat, drivePrev.lon, fix.lat, fix.lon);
-    }
-    if (spd != null) driveSpeed = (driveSpeed == null || spd < 0.3) ? spd : 0.6 * driveSpeed + 0.4 * spd; /* smoothed while moving; a standstill reads 0 at once */
-    if (!drivePrev || distanceM(drivePrev.lat, drivePrev.lon, fix.lat, fix.lon) >= (driveWalk() ? 1 : 3)) drivePrev = fix; else drivePrev = { lat: drivePrev.lat, lon: drivePrev.lon, t: now };
-    renderDrive(fix);
+    const r = gpsMotion(driveMotion, c, fix, { floor: driveWalk() ? FLOOR_WALK_MS : FLOOR_MS });
+    if (r.moving && r.speed != null) {
+      driveSpeed = (driveSpeed == null || driveSpeed < 0.3 || r.speed < 0.3) ? r.speed : 0.6 * driveSpeed + 0.4 * r.speed; /* smoothed while moving */
+      if (r.heading != null) driveCourse = r.heading;
+      driveHold = fix;
+    } else { driveSpeed = 0; if (!driveHold) driveHold = fix; } /* stationary: reads 0, the heading, arrow and Distance stay where they were */
+    renderDrive(driveHold || fix);
   }
   function onDriveErr(e) {
     if (e && e.code === 1) { driveDenied = true; renderDriveStatus(); driveMessage('Location is turned off for this site. Allow it in the browser settings to use the compass.'); }
@@ -1891,7 +1925,7 @@
   let driveDialBuilt = false;
   function startDrive(target) {
     if (drivePing) { driveDest = target; driveDestFull = target.name; fitDriveDest(); renderDrive(driveLastFix); return; }
-    driveDest = target; drivePrev = null; driveFixAt = null; driveDenied = false; driveSpeed = null; driveCourse = null; driveMph = currentUnits().speed !== 'kph'; driveBuiltUnit = '';
+    driveDest = target; driveMotion = newMotion(); driveHold = null; driveFixAt = null; driveDenied = false; driveSpeed = null; driveCourse = null; driveMph = currentUnits().speed !== 'kph'; driveBuiltUnit = '';
     if (!driveDialBuilt) { document.getElementById('driveDial').innerHTML = dialMarkup(); driveDialBuilt = true; }
     driveDestFull = target.name; fitDriveDest();
     cardGround.dataset.rel = ''; cardGround.dataset.dist = '';
