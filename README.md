@@ -516,7 +516,11 @@ Jon's portrait screenshot showed a tiny dial and a huge tape. Reproduced at 390x
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Bigger Ground RTT dial in portrait full screen, sized from the screen
+Not yet authorized to build. Jon found a large gap between the dial and the place / Distance block (137 px at 390x844). He chose to grow the dial, sized from the screen.
+- Replace the portrait dial limit `min(85vw, calc(62vh - 170px))` with the largest dial that fits both ways: `min(calc(100vw - 36px), calc(100vh - 198px - min(34vh, 300px)))` (screen width minus the card padding; screen height minus the fixed parts and the tape). The tape rule stays `min(34vh, 300px)`.
+- Expected sizes: 390x844 about 354 px (was 332), 360x740 about 290 px (unchanged, height-limited), 360x640 about 224 px. On a phone this tall the width is the limit, so the gap shrinks only by about 22 px (137 → about 115 px at 390x844); the rest would need the place / Distance block aligned to the top of the tape row (not part of this entry).
+- Verify at 390x844, 412x915, 360x740, and 360x640: dial equals the formula, nothing clipped, no sideways scroll, pointer still on the tick, landscape unchanged; measure the dial-to-name gap and report it; screenshots looked at. Cache-bust and version bump.
 
 ## Build Planner
 
