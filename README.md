@@ -564,7 +564,29 @@ Jon's phone screenshot showed the dial using about 56% of the screen height.
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Offline mode: service worker that saves the app on the phone
+Not yet authorized to build. Design settled with Jon. Build this one first; Queues 2 and 3 depend on it.
+- New `sw.js` at the repo root (scope: the whole app). It never has to change between builds.
+- Install: fetch `index.html` (bypassing the HTTP cache), read every `<script src>` and `<link rel="stylesheet" href>` it names, read every `url(...)` font in `styles.css`, add `lib/pdf.min.js` and `lib/pdf.worker.min.js`, and store all of it in the cache `crosswind-app`. `skipWaiting()` on install and `clients.claim()` on activate.
+- Fetch (same-origin GET only; the Nominatim address lookup and anything cross-origin pass straight through): `index.html` and page navigations are network-first with a 3 second timeout, then the cached copy (so airport wifi that hangs still opens the app); everything else is cache-first, and a miss is fetched and stored. The cache is keyed by the full URL, so the `?v=N` numbers keep it fresh: a new build's new numbers are fetched once.
+- Pruning: after each successful `index.html` fetch, and on activate, delete cached entries that the current `index.html`, `styles.css`, and the fixed PDF.js list no longer name.
+- No update prompt (Jon): a new version is picked up on the next load when online.
+- `script.js` registers it on load: `if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost') && !window.Capacitor) navigator.serviceWorker.register('sw.js')`; a registration failure is ignored.
+- `CLAUDE.md` gets one line: `sw.js` does not need a version bump; the existing `?v=N` rule keeps the offline cache fresh.
+- Verify with Playwright on a local server (service workers need http://localhost): load online and wait for the worker; go offline (`context.setOffline(true)`), reload: the app opens with styles, scripts, fonts, Setup, Wizard, Dashboard, and saved trips; the PDF.js files are in the cache; simulate a new build (a changed `?v=` number on the page): the new file is fetched and the old entry pruned; `index.html` delayed past 3 seconds falls back to the cached copy; a cross-origin request is not touched. Zero JS errors. A real phone and the real GitHub Pages address are not testable here. Cache-bust and version bump.
+
+### Queue 2: Offline mode: Offline badge and Setup status
+Not yet authorized to build. Build after Queue 1.
+- Header: a small amber OFFLINE pill, shown only while `navigator.onLine` is false (updated on the `online` and `offline` events), top right of the header.
+- Setup: a new "Offline" card. It reads "Ready offline: N files cached, M MB, version vX.YY" (file count from the `crosswind-app` cache, size from `navigator.storage.estimate()` or the sum of the cached responses, version read from the header comment of the cached `index.html`). If the worker is not active yet it reads "Not ready yet: open the app once while online and wait a moment".
+- A Clear cache button: asks first ("This removes the offline copy and downloads it again. Your trips and settings are not touched."), deletes `crosswind-app`, and re-runs the install; disabled with a note while offline (clearing then would leave no offline copy).
+- Verify: badge appears when offline and disappears when back online; the Setup line shows the count and version; Clear cache re-downloads and the count comes back; saved trips and profile untouched; offline the button is disabled; screenshots looked at. Cache-bust and version bump.
+
+### Queue 3: Home screen install (waiting on Jon's icon)
+Not yet authorized to build, and not buildable until Jon supplies the icon file (a square PNG, at least 512 x 512). Build after Queue 1 (installing needs the service worker).
+- `manifest.json`: name and short name "Crosswind", `start_url` `./index.html`, `scope` `./`, `display` `standalone` (Chrome's bars gone, which suits the full screen RTT), no orientation lock, background and theme colours from the app palette, and 192 and 512 icons plus a maskable 512 (made from Jon's file; the maskable one gets safe-area padding).
+- `index.html`: `<link rel="manifest">`, `<meta name="theme-color">`, and an apple touch icon link.
+- Verify: the manifest is fetched and parses, every icon file exists at its stated size, the theme colour is set, the worker is active (installability needs it); the Chrome "Install app" prompt and the installed look need a real phone, and are flagged for Jon. Cache-bust and version bump.
 
 ## Build Planner
 
@@ -587,11 +609,6 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal). A placeholder screen exists (`#screenMedia`); its buttons do nothing.
 - Aviation weather / delay risk (METAR/TAF), never discussed.
 - Airplane Mode / wireless settings deep-link, never revisited after flashlight was cut.
-
-### Open offline (the whole app, not only fonts)
-Design in progress with Jon. Facts: the whole app is static and about 0.7 MB (index.html, styles.css, 4 scripts, 12 hosted fonts), plus 1.4 MB of PDF.js loaded only when a PDF is imported; the only network call is the address lookup (`nominatim.openstreetmap.org`, already handles being offline); there is no manifest or icon yet. Saved data is in localStorage, which already works offline.
-- Proposed design: a service worker (`sw.js` at the repo root, so its scope is the whole app) that never needs changing between builds. On install it fetches `index.html`, caches every script, stylesheet, and font it names, and also the two PDF.js files. `index.html` is network-first (fresh when online, cached copy offline); everything else is cache-first, keyed by its full URL including the `?v=N` number, so a new build's new numbers are fetched once and old ones are pruned. No cache-version constant to bump and no "stale cache" case. Registered only on `https:` and `localhost`, not inside a Capacitor / Play Store build.
-- Open, for Jon: (A) a new version is picked up on the next load when online with no prompt (recommended), or a "New version ready, reload" prompt; (B) Add to Home screen: a `manifest.json` (standalone, so Chrome's bars are gone, landscape) and a generated compass icon (recommended) or one Jon supplies; (C) an Offline badge in the header and a Setup line "Ready offline, cached N files, version" with a Clear cache button.
 
 ### Step 4: real logic (needs data, API, or hardware)
 - Flight tracker auto-fill (Aviationstack or AirLabs, provider not chosen). Notes from a discussion with Jon (parked for when this is built):
