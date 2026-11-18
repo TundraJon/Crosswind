@@ -433,41 +433,35 @@ The driving compass screen now matches the airborne panel's GPS behaviour. Queue
 - **Verification:** scratch script `verify` (not committed), simulated GPS, headless Chromium, 780x390, zero JS errors: one request at open then about 1 per second (3 in 3 s), none after Back; dot green on a fix, yellow after about 5 s without one, red after about 11 s, red with the "turned off" message when denied, green again on recovery; tape top label 120 and 13 labels in mph, 200 and 11 labels in kph; pill switches the unit, header, labels, and footer; speed 0 reads 0 with the strip at the bottom; about 70 mph reads within 2 of 70 (speed is smoothed) with the footer km/h matching and the strip offset matching 2.4 px per mph; above 120 mph the strip stays at the top and the pointer shows the real speed; screenshot looked at (compass, tape, distance, dot all visible, nothing overlapping). A test copy of `script.js` exposed `openDrive` so the screen could open without a saved trip with coordinates.
 - **Not checked:** a real phone with real GPS; narrow portrait width (the app asks for landscape); the earlier driving-compass regression script (`verify35`) was not re-run, only distance and arrow were looked at in the screenshot.
 
+### Build 63: Ground RTT tape restyle (completed)
+Queue 1. The driving screen's speed tape now looks like Jon's example, and the card reads tape, compass, distance.
+- [x] `index.html` / `styles.css`: speed box moved to the left of the compass. Tape 112 px wide, 150 px high, vertical line on the right edge with ticks pointing left, a label left of each tick, the current speed in a cyan box on the left with a notch pointing at the tick line (`.dt-ptr`, keeps the id `#driveSpeed`). The footer is one line, larger, other unit only.
+- [x] `script.js`: `driveScale()` and `buildDriveTape()`: 40 units visible top to bottom (3.75 px per unit), scale 0 to 120 mph or 0 to 200 km/h, tick every 5, label every 10; the strip stops at the ends and the box keeps the real speed.
+- [x] Cache-bust bumped (Builds 63 to 66 together): `script.js?v=29→30`, `styles.css?v=26→27`. Version: v1.18→v1.19.
+- **Verification:** `verify2` (scratch, not committed, simulated GPS, headless Chromium 780x390, zero JS errors): 13 labels and 25 ticks, strip offset equals 75 − (120 − speed) × 3.75, whole-number pointer, tape then compass then distance left to right; screenshot looked at.
+
+### Build 64: Compass on Uber out and Rental pickup (completed)
+Queue 2.
+- [x] `script.js` `dashCompassTarget()`: `uberOut` points to the first flight's departure airport ("Airport — MCO"); `rental` points to the airport where the stop's last flight lands (`rentalAirportCode()`, "Pick up rental — CVG"). Both hidden when the airport is unknown.
+- [x] Cache-bust and version: see Build 63.
+- **Verification:** `verify2`: the button shows on both steps and the screen opens with the expected names (MCO, CVG).
+
+### Build 65: One RTT button replaces the Dev toggle (completed)
+Queue 3. The driving screen is now called Ground RTT and the flight panel Airborne RTT.
+- [x] `index.html` / `styles.css` / `script.js`: `#stateToggle`, its CSS, and the `airborne` variable removed. `#compassBtn` became `#rttBtn` in the same dock spot. Label by step: Airborne RTT on Flight and Return Flight; Ground RTT on Uber out, Rental, Hotel, Objective, Rental Return, Uber Home, Layover; hidden with no target. Airborne RTT: tap shows `#cardAir` and starts GPS, the button reads "Flight Details", tap again goes back. State is `airOn` / `airOnKey`; it resets when another step is selected and when leaving the Dashboard.
+- [x] Cache-bust and version: see Build 63.
+- **Verification:** `verify2`: no toggle on the page; button text per step; GPS off until tapped, pinging while open, back to the flight card on a second tap; panel off after changing steps. Found and fixed during verification: returning to the same flight step brought the panel back on by itself (now reset on every step change).
+
+### Build 66: Ground RTT on a layover, walking mode (completed)
+Queue 4.
+- [x] `script.js`: the Layover target is `{ name: 'Layover', walk: true }`. Walking mode: arrow straight up (`--rel` 0), Distance "—", ring and N marker still turn with the GPS course. Tape: mph 5 visible, 0 to 60, tick every 1, label every 5; km/h 5 visible, 0 to 100, tick every 1, label every 5. Pointer and footer show one decimal. "Moving" for the course is above 1 mph (0.447 m/s) and 1 m of travel, speed under 0.1 m/s reads 0.
+- [x] Cache-bust and version: see Build 63.
+- **Verification:** `verify2`: title "Layover", 13 labels and 61 ticks in mph, 21 labels and 101 ticks in km/h, Distance "—", arrow at 0, 1.2 m/s reads 2.6 mph (smoothed) with a matching strip offset, the ring turns to a 135° course at walking speed; screenshot looked at.
+- **Not checked:** a real phone with real GPS (indoor GPS in a terminal can be weak and jumpy); the old driving regression script (`verify35`) was not re-run.
+
 ## Build Queue
 
-### Queue 1: Driving screen tape restyle (40-unit window, pointer box)
-Not yet authorized to build. Driving screen only; the airborne tape is not changed. Replaces the Build 62 tape look, keeps its logic (unit from Setup, pill, one-line other-unit footer, GPS dot, 1-second ping).
-- Card order left to right: speed tape, compass, distance.
-- The tape shows 40 units top to bottom (current speed plus and minus 20): 40 mph, or 40 km/h in KPH. Tape height 150 px, so 3.75 px per unit. Pointer stays at the vertical centre.
-- Look from Jon's example: unit label on top (MPH or KPH, pill stays beside it); a vertical line at the right edge with tick marks pointing left from it; a label to the left of each 10 and a shorter tick at each 5; the current speed in a box on the left with a notch pointing right at the tick line at its level. The box reads the real speed even above the scale.
-- Scale stays 0 to 120 mph and 0 to 200 km/h. The strip may show blank space below 0 and above the top, as the airborne tape does.
-- Footer under the tape: one line, the other unit only ("N km/h" in mph mode), larger text than now.
-- Verify with simulated GPS at 0, 35, 70, 120 mph and above, both units, that exactly 40 units are in view, plus a screenshot looked at. Cache-bust and version bump as usual.
-
-### Queue 2: Compass button on Uber out and Rental pickup
-Not yet authorized to build. The Ground RTT button (today called Compass: `#compassBtn`, `dashCompassTarget()` in `script.js`) works today on Hotel, Objective, Home, Uber Home, and Rental Return. Add the two missing steps, with these defaults (change if you disagree):
-- Uber (start of trip, node type `uberOut`): points to the departure airport of the first flight (`airports.js` coordinates; name "Airport — CODE"). Uber has no address field, only times.
-- Rental (pickup, node type `rental`): points to the airport where the stop's last flight lands (`rentalAirportCode()`, the same airport the Rental Return step already uses). Name "Pick up rental — CODE".
-- Hidden when no airport is known, like Rental Return. Verify with a saved trip: button shows on both steps and the drive screen opens with the right name; hidden with no flights.
-
-### Queue 3: Replace the Dev toggle with one RTT button (Airborne RTT / Ground RTT)
-Not yet authorized to build. Names: the full-screen driving screen is **Ground RTT** (real-time telemetry); the flight panel is **Airborne RTT**. The "Compass" button is renamed.
-- Remove `#stateToggle` ("Dev: Toggle Ground / Airborne"), the `airborne` variable, and its click handler.
-- One button in the Dashboard dock, in the position the Compass button has now (`#compassBtn`, rename to `#rttBtn`), label set by the selected step: **Airborne RTT** on Flight and Return Flight steps, **Ground RTT** on Uber, Rental, Hotel, Objective, Rental Return, and Uber Home (and Home). Hidden when the step has no target (no coordinates). On Layover the button reads Ground RTT too, but only once Queue 4 is built; until then it stays hidden there.
-- Airborne RTT: tapping shows `#cardAir` in place of the flight card and starts GPS (`startAir()`); the button then reads "Flight Details" and tapping it goes back and stops GPS. It starts off every time: changing step, or leaving the Dashboard, turns it off. GPS stays off until the button is tapped.
-- Ground RTT: opens the full-screen driving screen as today.
-- Dock shows when Copy Address or the RTT button applies, as now.
-- Verify: no toggle on screen; button label per step type; Airborne RTT on, off, and reset on step change; Ground RTT still opens; GPS pings only while a panel is open. Cache-bust and version bump.
-
-### Queue 4: Ground RTT on a layover (walking mode)
-Not yet authorized to build. Build after Queue 1 (tape restyle) and Queue 3 (RTT button). For walking between gates and terminals. Decided by Jon: the arrow points straight up, Distance shows "—", the tape has a 5 mph window, max 60 mph, 1 mph ticks, and the KPH scale below. Defaults I added, change if you disagree:
-- The Layover step gets the Ground RTT button, with no target. The driving screen opens with the title "Layover" in place of a place name.
-- Arrow fixed straight up (no bearing). The ring and N marker still turn with the GPS course, so you can see which way you face.
-- Tape: 5 units visible top to bottom, scale 0 to 60 mph, a tick at every 1 mph, a label at every 5 mph. In KPH mode (set by Jon): 5 km/h visible, scale 0 to 100 km/h, a tick at every 1 km/h, a label at every 5 km/h.
-- Pointer box and the other-unit footer show one decimal here (for example 2.8 mph, "4.5 km/h"), since whole numbers are too coarse at walking speed.
-- GPS course counts as "moving" above 1 mph here (the other Ground RTT uses 5 mph, which is faster than walking, so the ring would never turn).
-- Known limit: GPS indoors in a terminal can be weak and jumpy. It cannot be fixed in code; say so in the Log after a real-phone check.
-- Verify with simulated GPS at 0, 2, 3.5, and 60 mph, both units, 5 units in view, arrow straight up, Distance "—", ring turns at 2 mph.
+_Empty — nothing queued right now._
 
 ## Build Planner
 

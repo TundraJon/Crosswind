@@ -220,7 +220,6 @@
   .dock .btn { flex: 1; font-size: 0.78rem; }
   .dock .btn small { display: block; font-weight: 400; font-size: 0.58rem; color: var(--text-dim); letter-spacing: 0.08em; margin-top: 2px; }
   .dock .btn.copied { border-color: var(--green); color: var(--green); }
-  #stateToggle { display: block; margin: 10px auto 0; background: transparent; border: 1px dashed var(--text-faint); color: var(--text-faint); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
   #lastUsedBtn { width: 100%; background: var(--bg-input); color: var(--text-dim); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font-family: var(--font-body); font-size: 0.8rem; text-align: left; margin-bottom: 10px; cursor: pointer; }
   .req-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .req-btn { background: var(--bg-input); border: 1px solid var(--line); border-radius: 10px; color: var(--text); font-family: var(--font-body); padding: 12px 6px; cursor: pointer; text-align: center; }
@@ -253,11 +252,16 @@
   .drive-head { display: flex; align-items: center; gap: 12px; }
   .drive-dest { flex: 1; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .drive-card { position: relative; padding-top: 22px; }
-  .drive-card .telem-grid { grid-template-columns: auto 86px 1fr; align-items: center; }
+  .drive-card .telem-grid { grid-template-columns: 112px auto 1fr; align-items: center; }
   .drive-speedbox { align-self: start; }
   .drive-speedbox .tape-head .unit-pill { font-size: 0.55rem; color: var(--text-dim); border: 1px solid var(--line); border-radius: 10px; padding: 1px 5px; margin-left: 4px; cursor: pointer; letter-spacing: 0.06em; }
   .drive-speedbox .tape-head .unit-pill:hover { color: var(--cyan); border-color: var(--cyan-dim); }
-  .drive-tape { height: 150px; }
+  .drive-tape { height: 150px; border-right: 2px solid var(--text); }
+  .drive-tape .tape-strip .tk { left: auto; right: 0; width: 20px; }
+  .drive-tape .tape-strip .tk5 { left: auto; right: 0; width: 10px; }
+  .drive-tape .tape-strip .tl { left: auto; right: 26px; font-size: 0.8rem; }
+  .dt-ptr { position: absolute; left: 0; top: 50%; transform: translateY(-50%); min-width: 60px; height: 30px; line-height: 30px; padding: 0 12px 0 6px; text-align: center; font-weight: 700; font-size: 0.95rem; background: var(--cyan); color: #04151c; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); }
+  .drive-speedbox .tape-alt { font-size: 0.95rem; color: var(--text); }
   .drive-card .telem-col .t-val { font-size: 1.9rem; }
   .drive-compass { position: relative; width: 150px; height: 150px; perspective: 380px; margin: 14px 8px 0 8px; }
   .drive-plane { position: relative; width: 100%; height: 100%; transform: rotateX(48deg); transform-style: preserve-3d; }

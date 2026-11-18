@@ -4,12 +4,13 @@
   /* ============ SCREEN NAV ============ */
   const screens = document.querySelectorAll('.screen');
   const navBtns = document.querySelectorAll('#devNav button');
+  let airOn = false, airOnKey = '';
   function showScreen(id) {
     screens.forEach(s => s.classList.toggle('active', s.id === id));
     navBtns.forEach(b => b.classList.toggle('active', b.dataset.screen === id));
     window.scrollTo(0, 0);
     if (id === 'screenWizard') refreshWizardSpacer();
-    if (id !== 'screenDash') stopAir();
+    if (id !== 'screenDash') { stopAir(); airOn = false; }
     if (id === 'screenDash') renderDash();
   }
   navBtns.forEach(b => b.addEventListener('click', () => showScreen(b.dataset.screen)));
@@ -1329,7 +1330,6 @@
   const dashCard = document.getElementById('dashCard');
   const dashDock = document.getElementById('dashDock');
   const cardAir = document.getElementById('cardAir');
-  let airborne = false;
   let dashSelected = 'uber-out';
   let dashAddr = '';
   function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -1437,27 +1437,26 @@
       if (idx < selIdx) cls += ' done passed'; else if (idx === selIdx) cls += ' current';
       div.className = cls; div.dataset.key = n.key;
       div.innerHTML = '<div class="nd">' + esc(n.icon) + '</div><div class="nl">' + esc(n.label) + '</div>';
-      div.addEventListener('click', () => { dashSelected = n.key; renderDash(); });
+      div.addEventListener('click', () => { if (n.key !== dashSelected) airOn = false; dashSelected = n.key; renderDash(); });
       dashTrack.appendChild(div);
     });
     const cur = dashTrack.querySelector('.node.current');
     if (cur) dashTrack.scrollLeft = cur.getBoundingClientRect().left - dashTrack.getBoundingClientRect().left + dashTrack.scrollLeft - (dashTrack.clientWidth - cur.offsetWidth) / 2;
     dashCard.innerHTML = dashCardHTML(node);
     wireDashInputs(node);
-    const showAir = airborne && (node.type === 'flight' || node.type === 'returnFlight');
+    const isFlight = node.type === 'flight' || node.type === 'returnFlight';
+    const showAir = airOn && airOnKey === node.key && isFlight;
     dashCard.style.display = showAir ? 'none' : 'block';
     cardAir.style.display = showAir ? 'block' : 'none';
     if (showAir) startAir(); else stopAir();
     dashAddr = (dashAddressFor(node) || '').trim();
-    dashCompass = dashCompassTarget(node);
+    dashCompass = isFlight ? null : dashCompassTarget(node);
+    rttMode = isFlight ? 'air' : (dashCompass ? 'ground' : '');
     copyAddrBtn.style.display = dashAddr ? '' : 'none';
-    compassBtn.style.display = dashCompass ? '' : 'none';
-    dashDock.style.display = (dashAddr || dashCompass) ? 'flex' : 'none';
+    rttBtn.style.display = rttMode ? '' : 'none';
+    rttBtn.innerHTML = rttMode === 'air' ? (showAir ? '📋 Flight Details<small>Back to the flight card</small>' : '✈ Airborne RTT<small>Live GPS speed and heading</small>') : '🧭 Ground RTT<small>Works offline</small>';
+    dashDock.style.display = (dashAddr || rttMode) ? 'flex' : 'none';
   }
-  document.getElementById('stateToggle').addEventListener('click', () => {
-    airborne = !airborne;
-    renderDash();
-  });
   const copyAddrBtn = document.getElementById('copyAddrBtn');
   copyAddrBtn.addEventListener('click', async () => {
     const addr = dashAddr;
@@ -1772,13 +1771,16 @@
   }
 
   /* ---- Where the Compass button on the Dashboard points ---- */
-  const compassBtn = document.getElementById('compassBtn');
-  let dashCompass = null;
+  const rttBtn = document.getElementById('rttBtn');
+  let dashCompass = null, rttMode = '';
   function dashCompassTarget(node) {
     let name = '', lat = null, lon = null;
     if (node.type === 'hotel') { const h = wizardState.stops[node.stopIndex].hotel; name = h.name.trim() || 'Hotel'; lat = h.lat; lon = h.lon; }
     else if (node.type === 'destination') { const d = wizardState.stops[node.stopIndex].destination; name = d.name.trim() || 'Objective'; lat = d.lat; lon = d.lon; }
     else if (node.type === 'home' || node.type === 'uberHome') { name = 'Home'; lat = homeLat; lon = homeLon; }
+    else if (node.type === 'layover') return { name: 'Layover', walk: true };
+    else if (node.type === 'uberOut') { const e = effAirports()['f:0:0'], ap = e && e.from ? airportByCode(e.from) : null; if (ap) { name = 'Airport — ' + e.from; lat = ap.lat; lon = ap.lon; } }
+    else if (node.type === 'rental') { const code = rentalAirportCode(node.stopIndex), ap = airportByCode(code); if (ap) { name = 'Pick up rental — ' + code; lat = ap.lat; lon = ap.lon; } }
     else if (node.type === 'rentalReturn') { const code = rentalAirportCode(node.stopIndex), ap = airportByCode(code); if (ap) { name = 'Return rental — ' + code; lat = ap.lat; lon = ap.lon; } }
     return (lat != null && lon != null) ? { name, lat, lon } : null;
   }
@@ -1793,17 +1795,23 @@
     const mi = m / 1609.344;
     return mi < 0.1 ? Math.round(m * 3.28084) + ' <small>FT</small>' : mi.toFixed(1) + ' <small>MI</small>';
   }
-  const DRIVE_MAX_MPH = 120, DRIVE_MAX_KPH = 200, DRIVE_H = 288, DRIVE_CENTER = 75;
+  const DRIVE_H = 150, DRIVE_CENTER = 75;
   document.getElementById('drivePill').addEventListener('click', () => { driveMph = !driveMph; renderDrive(driveLastFix); });
+  function driveWalk() { return !!(driveDest && driveDest.walk); }
+  /* Tape scale: window = units visible top to bottom, tick / lab = spacing, dec = decimals shown. Layover (walking) uses a fine scale. */
+  function driveScale() {
+    const w = driveWalk();
+    return driveMph ? (w ? { max: 60, win: 5, tick: 1, lab: 5, dec: 1 } : { max: 120, win: 40, tick: 5, lab: 10, dec: 0 })
+                    : (w ? { max: 100, win: 5, tick: 1, lab: 5, dec: 1 } : { max: 200, win: 40, tick: 5, lab: 10, dec: 0 });
+  }
   function buildDriveTape() {
-    const unit = driveMph ? 'mph' : 'kph'; if (driveBuiltUnit === unit) return; driveBuiltUnit = unit;
-    const max = driveMph ? DRIVE_MAX_MPH : DRIVE_MAX_KPH, lab = driveMph ? 10 : 20, minor = driveMph ? 5 : 10, k = DRIVE_H / max;
-    let html = '';
-    for (let v = max; v >= 0; v -= minor) {
-      const y = Math.round((max - v) * k);
-      if (v % lab === 0) html += '<div class="tk" style="top:' + y + 'px"></div><div class="tl" style="top:' + y + 'px">' + v + '</div>'; else html += '<div class="tk5" style="top:' + y + 'px"></div>';
+    const sc = driveScale(), key = (driveMph ? 'mph' : 'kph') + (driveWalk() ? 'w' : ''); if (driveBuiltUnit === key) return; driveBuiltUnit = key;
+    const k = DRIVE_H / sc.win; let html = '';
+    for (let v = sc.max; v >= 0; v -= sc.tick) {
+      const y = Math.round((sc.max - v) * k * 100) / 100;
+      if (v % sc.lab === 0) html += '<div class="tk" style="top:' + y + 'px"></div><div class="tl" style="top:' + y + 'px">' + v + '</div>'; else html += '<div class="tk5" style="top:' + y + 'px"></div>';
     }
-    const strip = document.getElementById('driveStrip'); strip.innerHTML = html; strip.style.height = DRIVE_H + 'px';
+    const strip = document.getElementById('driveStrip'); strip.innerHTML = html; strip.style.height = Math.round(sc.max * k) + 'px';
   }
   let driveLastFix = null;
   function driveStatusNow() {
@@ -1822,16 +1830,17 @@
     document.getElementById('drivePlane').style.setProperty('--course', course);
     driveScreen.dataset.course = driveCourse == null ? '' : Math.round(driveCourse);
     const spd = document.getElementById('driveSpeed');
-    const ms = (driveSpeed == null || driveSpeed < 0.5) ? 0 : driveSpeed;
+    const ms = (driveSpeed == null || driveSpeed < (driveWalk() ? 0.1 : 0.5)) ? 0 : driveSpeed;
     buildDriveTape();
-    const sp = driveMph ? ms * 2.23694 : ms * 3.6, spMax = driveMph ? DRIVE_MAX_MPH : DRIVE_MAX_KPH;
-    spd.textContent = Math.round(sp);
+    const sc = driveScale(), sp = driveMph ? ms * 2.23694 : ms * 3.6, spMax = sc.max;
+    spd.textContent = sp.toFixed(sc.dec);
     document.getElementById('driveUnitLab').textContent = driveMph ? 'MPH' : 'KPH';
     document.getElementById('drivePill').textContent = driveMph ? 'KPH' : 'MPH';
-    document.getElementById('driveAlt').textContent = driveMph ? Math.round(ms * 3.6) + ' km/h' : Math.round(ms * 2.23694) + ' mph';
-    document.getElementById('driveStrip').style.transform = 'translateY(' + (DRIVE_CENTER - (spMax - Math.max(0, Math.min(spMax, sp))) * DRIVE_H / spMax) + 'px)';
-    driveScreen.dataset.speed = Math.round(sp);
+    document.getElementById('driveAlt').textContent = (driveMph ? (ms * 3.6).toFixed(sc.dec) + ' km/h' : (ms * 2.23694).toFixed(sc.dec) + ' mph');
+    document.getElementById('driveStrip').style.transform = 'translateY(' + (DRIVE_CENTER - (spMax - Math.max(0, Math.min(spMax, sp))) * DRIVE_H / sc.win) + 'px)';
+    driveScreen.dataset.speed = sp.toFixed(sc.dec);
     if (!fix) { document.getElementById('driveDist').innerHTML = '—'; return; }
+    if (driveWalk()) { document.getElementById('drivePlane').style.setProperty('--rel', 0); document.getElementById('driveDist').innerHTML = '—'; driveScreen.dataset.rel = '0'; driveScreen.dataset.dist = ''; return; }
     const dist = distanceM(fix.lat, fix.lon, driveDest.lat, driveDest.lon), brg = bearingDeg(fix.lat, fix.lon, driveDest.lat, driveDest.lon);
     const rel = (brg - course + 360) % 360;
     document.getElementById('drivePlane').style.setProperty('--rel', rel);
@@ -1846,10 +1855,10 @@
     if (drivePrev) {
       const d = distanceM(drivePrev.lat, drivePrev.lon, fix.lat, fix.lon), dt = (now - drivePrev.t) / 1000;
       if (spd == null && dt > 0.2) spd = d / dt;
-      if ((spd || 0) > MOVING_MS && d >= 3) driveCourse = (typeof c.heading === 'number' && isFinite(c.heading)) ? c.heading : bearingDeg(drivePrev.lat, drivePrev.lon, fix.lat, fix.lon);
+      if ((spd || 0) > (driveWalk() ? 0.447 : MOVING_MS) && d >= (driveWalk() ? 1 : 3)) driveCourse = (typeof c.heading === 'number' && isFinite(c.heading)) ? c.heading : bearingDeg(drivePrev.lat, drivePrev.lon, fix.lat, fix.lon);
     }
     if (spd != null) driveSpeed = (driveSpeed == null || spd < 0.3) ? spd : 0.6 * driveSpeed + 0.4 * spd; /* smoothed while moving; a standstill reads 0 at once */
-    if (!drivePrev || distanceM(drivePrev.lat, drivePrev.lon, fix.lat, fix.lon) >= 3) drivePrev = fix; else drivePrev = { lat: drivePrev.lat, lon: drivePrev.lon, t: now };
+    if (!drivePrev || distanceM(drivePrev.lat, drivePrev.lon, fix.lat, fix.lon) >= (driveWalk() ? 1 : 3)) drivePrev = fix; else drivePrev = { lat: drivePrev.lat, lon: drivePrev.lon, t: now };
     renderDrive(fix);
   }
   function onDriveErr(e) {
@@ -1869,7 +1878,10 @@
     pingDrive(); drivePing = setInterval(pingDrive, 1000); driveStatusTimer = setInterval(renderDriveStatus, 1000);
   }
   function closeDrive() { if (drivePing) { clearInterval(drivePing); clearInterval(driveStatusTimer); } drivePing = driveStatusTimer = null; driveScreen.style.display = 'none'; }
-  compassBtn.addEventListener('click', () => { if (dashCompass) openDrive(dashCompass); });
+  rttBtn.addEventListener('click', () => {
+    if (rttMode === 'air') { airOn = !(airOn && airOnKey === dashSelected); airOnKey = dashSelected; renderDash(); }
+    else if (dashCompass) openDrive(dashCompass);
+  });
   document.getElementById('driveBack').addEventListener('click', closeDrive);
 
   /* ============ IMPORT A BOOKING (.ics, PDF, or pasted text) ============ */
