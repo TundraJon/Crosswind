@@ -488,16 +488,17 @@ Jon found no buttons on a Hotel step with no address. Replaces the "hidden when 
 - **Verification:** `verify4` (scratch, not committed; headless Chromium, zero JS errors; seeded trips): hotel with no address (both buttons greyed with "Add an address", tapping Ground RTT does nothing), hotel with an address but no coordinates (Ground RTT greyed "Address not located yet", Copy Address on), fully located hotel (both on, card opens, "Step Details"), Objective with and without an address, Layover (on, no Copy Address), Flight (Airborne RTT on), Uber out, Rental, Rental Return (on), Uber Home with no Setup address (both greyed, "Add home address in Setup") and with an address typed in Setup but not located (Ground RTT greyed, Copy on); screenshot of the greyed dock looked at.
 - **Note:** Uber out shows "Works offline" even with no airport typed on the first flight when the trip starts at home, because the Setup Home Airport is used as the departure airport.
 
+### Build 71: Ground RTT full screen (completed)
+Tap the Ground RTT card to go full screen; an X in the top right closes it.
+- [x] `script.js`: `openGroundFull()` / `closeGroundFull()`. A tap anywhere on `#cardGround` except the unit pill adds `.ground-full` and asks the browser for true full screen (`requestFullscreen()`); if the browser refuses or has no API, the `.ground-full` class alone fills the app window. `#groundFullX` closes it; Escape and leaving browser full screen (`fullscreenchange`) close it; `stopDrive()` closes it when the card closes. The card is the same element, so GPS timers and state do not restart. The tape's real height is read from the page (`driveTapeH()`, replaces the fixed `DRIVE_H` / `DRIVE_CENTER`) and the strip is rebuilt when the height changes.
+- [x] `index.html` / `styles.css`: `#groundFullX` button; `.ground-full` rules (fixed, fills the screen, taller tape `calc(100dvh - 150px)`, larger dial, heading box, distance, and place name; the GPS dot moves left of the X).
+- [x] Cache-bust bumped: `script.js?v=32→33`, `styles.css?v=28→29`. Version: v1.21→v1.22.
+- **Verification:** `verify5` (scratch, not committed; headless Chromium 780x390, simulated GPS, zero JS errors): pill tap does not open it; dial tap opens true browser full screen (`document.fullscreenElement` set) and the card fills the window; X sits within 20 px of the top right corner; tape grows from 150 to 240 px, still 40 units, pointer on the tape centre and on the speed's tick, tip on the short tick, heading box 135; GPS pings keep coming at about 1 per second while open; X closes it and the inline card returns at 150 px with Ground RTT still on; with `requestFullscreen` forced to reject, and with it removed, the card still fills the window and X / Escape close it; screenshot looked at. A check of mine failed on a wrong string slice, fixed in the test, not the app.
+- **Not checked:** a real phone (Chrome on Android decides whether to allow true full screen; the phone's Back gesture should close it through `fullscreenchange`); the card closing when you leave the Dashboard while full.
+
 ## Build Queue
 
-### Queue 1: Ground RTT full screen (tap the card, X to close)
-Not yet authorized to build. Ground RTT only; the Airborne RTT is not changed.
-- Tap anywhere on the Ground RTT card (`#cardGround`) except the MPH / KPH pill: it goes full screen. Same card, same ids and GPS timers, so nothing restarts. The pill still only switches units.
-- Full screen means true browser full screen (`requestFullscreen()` on the card) with a fallback: if the browser refuses or has no API, the card fills the app window instead (`position: fixed; inset: 0`, class `.ground-full`, applied in both cases).
-- An X button in the top right corner (`#groundFullX`) closes it: `exitFullscreen()` if needed, class removed, back on the inline card with Ground RTT still on. Leaving full screen any other way (Esc, the phone's Back gesture) closes it too (`fullscreenchange`).
-- Bigger layout in full screen: the tape is taller (height follows the screen, so `DRIVE_H` and the centre are read from the tape's real height instead of the fixed 150 px, and the strip is rebuilt when the height changes; still 40 units, 5 on a layover), a larger dial and heading box, larger distance and place name. The GPS dot and message line stay visible.
-- Full screen also closes when the card closes (step change, leaving the Dashboard, the RTT button).
-- Verify: tap opens (true full screen where Chromium allows it, and with the API forced to reject: the fixed fallback), X closes and the inline card returns, pill tap does not open it, tape still 40 units and the pointer still on the tick at the larger height, speed and heading keep updating while open, no extra GPS pings, screenshot looked at. Cache-bust and version bump.
+_Empty — nothing queued right now._
 
 ## Build Planner
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.21) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.22) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -11,7 +11,7 @@
 <link rel="preload" href="fonts/chakra-petch-400-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/chakra-petch-600-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/michroma-400-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=28">
+<link rel="stylesheet" href="styles.css?v=29">
 </head>
 <body>
 
@@ -248,6 +248,7 @@
       <div class="drive-msg" id="airMsg" style="display:none;"></div>
     </div>
     <div class="quick-card" id="cardGround" style="display:none;">
+      <button class="gf-x" id="groundFullX" aria-label="Close full screen">✕</button>
       <div class="air-status" id="driveStatus"><i class="air-dot red"></i><span>NO GPS</span></div>
       <div class="air-grid ground-grid">
         <div class="drive-speedbox">
@@ -394,7 +395,7 @@
 <script src="airports.js?v=1"></script>
 <script src="hotel-brands.js?v=2"></script>
 <script src="booking-parser.js?v=1"></script>
-<script src="script.js?v=32"></script>
+<script src="script.js?v=33"></script>
 
 </body>
 </html>

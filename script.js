@@ -1814,7 +1814,8 @@
     const mi = m / 1609.344;
     return mi < 0.1 ? Math.round(m * 3.28084) + ' <small>FT</small>' : mi.toFixed(1) + ' <small>MI</small>';
   }
-  const DRIVE_H = 150, DRIVE_CENTER = 75;
+  const DRIVE_H_FALLBACK = 150; /* the tape's real height is read from the page (taller in full screen) */
+  function driveTapeH() { return document.getElementById('driveTape').clientHeight || DRIVE_H_FALLBACK; }
   document.getElementById('drivePill').addEventListener('click', () => { driveMph = !driveMph; renderDrive(driveLastFix); });
   function driveWalk() { return !!(driveDest && driveDest.walk); }
   /* Tape scale: window = units visible top to bottom, tick / lab = spacing, dec = decimals shown. Layover (walking) uses a fine scale. */
@@ -1824,8 +1825,8 @@
                     : (w ? { max: 100, win: 5, tick: 1, lab: 5, dec: 1 } : { max: 200, win: 40, tick: 5, lab: 10, dec: 0 });
   }
   function buildDriveTape() {
-    const sc = driveScale(), key = (driveMph ? 'mph' : 'kph') + (driveWalk() ? 'w' : ''); if (driveBuiltUnit === key) return; driveBuiltUnit = key;
-    const k = DRIVE_H / sc.win; let html = '';
+    const sc = driveScale(), H = driveTapeH(), key = (driveMph ? 'mph' : 'kph') + (driveWalk() ? 'w' : '') + H; if (driveBuiltUnit === key) return; driveBuiltUnit = key;
+    const k = H / sc.win; let html = '';
     for (let v = sc.max; v >= 0; v -= sc.tick) {
       const y = Math.round((sc.max - v) * k * 100) / 100;
       if (v % sc.lab === 0) html += '<div class="tk" style="top:' + y + 'px"></div><div class="tl" style="top:' + y + 'px">' + v + '</div>'; else html += '<div class="tk5" style="top:' + y + 'px"></div>';
@@ -1859,7 +1860,7 @@
     document.getElementById('driveUnitLab').textContent = driveMph ? 'MPH' : 'KPH';
     document.getElementById('drivePill').textContent = driveMph ? 'KPH' : 'MPH';
     document.getElementById('driveAlt').textContent = (driveMph ? (ms * 3.6).toFixed(sc.dec) + ' km/h' : (ms * 2.23694).toFixed(sc.dec) + ' mph');
-    document.getElementById('driveStrip').style.transform = 'translateY(' + (DRIVE_CENTER - (spMax - Math.max(0, Math.min(spMax, sp))) * DRIVE_H / sc.win) + 'px)';
+    document.getElementById('driveStrip').style.transform = 'translateY(' + (driveTapeH() / 2 - (spMax - Math.max(0, Math.min(spMax, sp))) * driveTapeH() / sc.win) + 'px)';
     cardGround.dataset.speed = sp.toFixed(sc.dec);
     if (!fix) { document.getElementById('driveDist').innerHTML = '—'; return; }
     if (driveWalk()) { setDriveRel(0); document.getElementById('driveDist').innerHTML = '—'; cardGround.dataset.rel = '0'; cardGround.dataset.dist = ''; return; }
@@ -1902,7 +1903,29 @@
     const pingDrive = () => navigator.geolocation.getCurrentPosition(onDrivePos, onDriveErr, { enableHighAccuracy: true, maximumAge: 0, timeout: 3000 });
     pingDrive(); drivePing = setInterval(pingDrive, 1000); driveStatusTimer = setInterval(renderDriveStatus, 1000);
   }
-  function stopDrive() { if (drivePing) { clearInterval(drivePing); clearInterval(driveStatusTimer); } drivePing = driveStatusTimer = null; }
+  /* Full screen: tap the card (not the unit pill). True browser full screen when allowed, otherwise the card fills the app window. */
+  let groundTrueFs = false;
+  function groundRerender() { requestAnimationFrame(() => { if (drivePing || driveLastFix) renderDrive(driveLastFix); }); }
+  function openGroundFull() {
+    cardGround.classList.add('ground-full');
+    try { const p = cardGround.requestFullscreen && cardGround.requestFullscreen(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+    groundRerender();
+  }
+  function closeGroundFull() {
+    if (!cardGround.classList.contains('ground-full')) return;
+    cardGround.classList.remove('ground-full'); groundTrueFs = false;
+    try { if (document.fullscreenElement) { const p = document.exitFullscreen(); if (p && p.catch) p.catch(() => {}); } } catch (e) {}
+    groundRerender();
+  }
+  cardGround.addEventListener('click', e => { if (e.target.closest('#drivePill') || e.target.closest('#groundFullX')) return; if (!cardGround.classList.contains('ground-full')) openGroundFull(); });
+  document.getElementById('groundFullX').addEventListener('click', e => { e.stopPropagation(); closeGroundFull(); });
+  document.addEventListener('fullscreenchange', () => {
+    if (document.fullscreenElement === cardGround) groundTrueFs = true;
+    else if (groundTrueFs) { groundTrueFs = false; cardGround.classList.remove('ground-full'); groundRerender(); }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGroundFull(); });
+  window.addEventListener('resize', () => { if (cardGround.classList.contains('ground-full')) groundRerender(); });
+  function stopDrive() { closeGroundFull(); if (drivePing) { clearInterval(drivePing); clearInterval(driveStatusTimer); } drivePing = driveStatusTimer = null; }
   rttBtn.addEventListener('click', () => {
     if (!rttMode || rttBtn.disabled) return;
     rttOn = !(rttOn && rttKey === dashSelected); rttKey = dashSelected; renderDash();
