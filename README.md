@@ -420,12 +420,20 @@ Jon can import a booking into a new trip, with a preview to confirm first. Built
 ## Build Queue
 
 ### Queue 1: Fix stale Build Planner text (docs only)
-Not yet authorized to build. Found while reading the Planner after Builds 58 and 59 shipped. README text only, no code, no cache-bust or version bump.
-- Inventory header and "Trip Wizard (after Build 34)": update to the current build. The "Disabled and labelled coming soon" line still lists the Layover calculation, but Build 59 built it. Remove it from that line.
-- Step 4, flight tracker bullet: drop "layover math, tap to show how it was calculated" (Build 59). Keep the tracker part.
-- Step 4, parser notes: the "Needed to start the parser: one real flight confirmation" line is stale. Build 58 (`booking-parser.js`, Import Itinerary) already parses .ics, PDF text, and pasted text for Southwest, Delta, American, and hotels. Rewrite so the parser notes say what Build 58 covers, and that only the per-step "Text Clipboard Parser" buttons (still disabled in `script.js`, `parserButtonHTML()`) and the generic fallback for unknown layouts remain.
-- Step 4, "Text Clipboard Parser per step type" bullet: reword to the same remaining work.
-- Check the rest of the Planner against Builds 35 to 59 for other stale lines and list any found here before changing them.
+Not yet authorized to build. Found by auditing the Planner against the Build Log and the code at Build 60. README text only, no code, no cache-bust or version bump. Planner only: the Log is not edited (the history is already there).
+**Remove (done):**
+- Layover math: from the Inventory "coming soon" line and the Step 4 flight-tracker bullet (Builds 59, 60). Keep the tracker part.
+- Booking parser: the "Needed to start the parser: one real flight confirmation" line. Build 58 (`booking-parser.js`, Import Itinerary) parses .ics, PDF text, and pasted text for Southwest, Delta, American, and hotels.
+- Setup "missing": the cached lat/long for the home address (Build 54: `geocodeAddress`, `addrLat` / `addrLon`).
+- Step 4: haversine distance and the driving compass (Build 54).
+- "Driving screen: reuse the airborne speed tape": the "build it after the airborne panel" condition is met (Build 57). Keep the item itself (see below).
+**Trim (partly built):**
+- Units: speed and distance units now show on the driving screen. Only Temperature has no use yet. Reword the Setup "missing" line and the Step 4 units bullet.
+- Compass and telemetry: live from GPS only (Builds 54, 57), not the magnetometer. Reword the Step 4 bullet; keep "test smoothing at altitude on a real phone".
+- Driving speed tape: the driving screen still shows a plain Ground Speed number. Keep the open questions. Not yet checked: the 1-second ping and the GPS dot on the driving screen.
+- Wind-Shear Audio: a placeholder screen exists (`#screenMedia`, buttons do nothing). Say so; playback and ID3 reading stay open.
+**Fix:** the Inventory header and "Trip Wizard (after Build 34)" to the current build.
+**Keep as is (still open):** nearest-airports button and USPS/CASS check (disabled), WhatsApp Report (disabled), flight tracker Gate box (disabled), per-step parser buttons (disabled, `parserButtonHTML()`), generic parser fallback, offline service worker, SQLite, weather and delay risk, Airplane Mode link, state-aware dashboard, Capacitor and Play Store build, reordering stops (flights done in Build 42; stops not checked).
 
 ## Build Planner
 
