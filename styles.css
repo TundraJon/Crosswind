@@ -269,7 +269,7 @@
     #cardGround.ground-full .air-mid { grid-area: dial; width: 100%; align-items: center; }
     #cardGround.ground-full .drive-speedbox { grid-area: tape; }
     #cardGround.ground-full .telem-col.right { grid-area: info; text-align: right; align-self: center; }
-    #cardGround.ground-full .air-rose { max-width: min(85vw, calc(62vh - 170px)); }
+    #cardGround.ground-full .air-rose { max-width: min(calc(100vw - 36px), calc(100vh - 198px - min(34vh, 300px))); }
     #cardGround.ground-full .drive-speedbox .drive-tape { height: min(34vh, 300px); min-height: 0; }
     #cardGround.ground-full .telem-col .t-val { font-size: 2.6rem; }
     #cardGround.ground-full .ground-dest { font-size: 1rem; }

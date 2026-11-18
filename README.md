@@ -514,13 +514,16 @@ Jon's portrait screenshot showed a tiny dial and a huge tape. Reproduced at 390x
 - **Verification:** `verify9` (scratch, not committed; headless Chromium, simulated GPS, zero JS errors; true browser full screen at 390x844, class-only fallback for the resize tests because Chromium will not resize a true full-screen window): 390x844 dial 332 px, tape 287 px, tip on the short tick (0 px) and pointer within 0.2 px of the speed, place and Distance right-justified with the same 18 px right gap, X within 14 px of the top right, nothing clipped, no sideways scroll; 360x740 dial 289 px, tape 252 px, nothing clipped; 360x640 dial 227 px, tape 218 px, nothing clipped; rotated to landscape (tape 240 px, dial 242 px, pointer on tick) and back to portrait correctly; X closes to the inline card (tape 150 px); screenshots looked at. Found and fixed during verification: the first version (tape 40% of the screen, dial 60%) cut off the unit footer at 360x740; the dial and tape now share the height by screen size.
 - **Not checked:** a real phone (real full screen and the browser bars; whether Chrome's rotation fires the resize that rebuilds the tape).
 
+### Build 75: Bigger Ground RTT dial in portrait full screen (completed)
+Jon found a large gap between the dial and the place / Distance block and chose to grow the dial from the screen size.
+- [x] `styles.css`: portrait `.ground-full .air-rose` `max-width` is now `min(calc(100vw - 36px), calc(100vh - 198px - min(34vh, 300px)))` (was `min(85vw, calc(62vh - 170px))`).
+- [x] Cache-bust bumped: `styles.css?v=31→32`. Version: v1.24→v1.25.
+- **Verification:** `verify11` (scratch, not committed; headless Chromium, simulated GPS, zero JS errors; class-only full screen so the window can be resized): the dial equals the formula (390x844: 354 px, was 332; 412x915: 376 px; 360x740: 290 px; 360x640: 224 px); nothing clipped, no sideways scroll, pointer and tip on the tick at every size; landscape unchanged (dial 242 px, tape 240 px); screenshot looked at.
+- **Correction to the Queue note:** it said the gap would shrink by about 22 px. It did not. The dial-to-name gap measured the same, 137 px at 390x844 (143 at 412x915, 119 at 360x740, 102 at 360x640), because the whole stack moves down when the dial grows and the place / Distance block stays centred beside the tape. Only aligning that block to the top of the tape row closes the gap; not built (Jon declined adding it to this build).
+
 ## Build Queue
 
-### Queue 1: Bigger Ground RTT dial in portrait full screen, sized from the screen
-Not yet authorized to build. Jon found a large gap between the dial and the place / Distance block (137 px at 390x844). He chose to grow the dial, sized from the screen.
-- Replace the portrait dial limit `min(85vw, calc(62vh - 170px))` with the largest dial that fits both ways: `min(calc(100vw - 36px), calc(100vh - 198px - min(34vh, 300px)))` (screen width minus the card padding; screen height minus the fixed parts and the tape). The tape rule stays `min(34vh, 300px)`.
-- Expected sizes: 390x844 about 354 px (was 332), 360x740 about 290 px (unchanged, height-limited), 360x640 about 224 px. On a phone this tall the width is the limit, so the gap shrinks only by about 22 px (137 → about 115 px at 390x844); the rest would need the place / Distance block aligned to the top of the tape row (not part of this entry).
-- Verify at 390x844, 412x915, 360x740, and 360x640: dial equals the formula, nothing clipped, no sideways scroll, pointer still on the tick, landscape unchanged; measure the dial-to-name gap and report it; screenshots looked at. Cache-bust and version bump.
+_Empty — nothing queued right now._
 
 ## Build Planner
 
