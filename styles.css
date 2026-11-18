@@ -263,6 +263,17 @@
   #cardGround.ground-full .ground-dest { font-size: 0.85rem; }
   #cardGround.ground-full .telem-col .t-val { font-size: 2.2rem; }
   #cardGround.ground-full .drive-msg { position: absolute; left: 0; right: 0; bottom: 8px; }
+  @media (orientation: portrait) {
+    #cardGround.ground-full { align-items: flex-start; padding-top: 70px; }
+    #cardGround.ground-full .air-grid { grid-template-columns: 56px 1fr; grid-template-areas: "dial dial" "tape info"; row-gap: 14px; column-gap: 22px; align-items: start; }
+    #cardGround.ground-full .air-mid { grid-area: dial; width: 100%; align-items: center; }
+    #cardGround.ground-full .drive-speedbox { grid-area: tape; }
+    #cardGround.ground-full .telem-col.right { grid-area: info; text-align: right; align-self: center; }
+    #cardGround.ground-full .air-rose { max-width: min(85vw, calc(62vh - 170px)); }
+    #cardGround.ground-full .drive-speedbox .drive-tape { height: min(34vh, 300px); min-height: 0; }
+    #cardGround.ground-full .telem-col .t-val { font-size: 2.6rem; }
+    #cardGround.ground-full .ground-dest { font-size: 1rem; }
+  }
   .air-grid.ground-grid { grid-template-columns: 56px 1fr 104px; }
   #cardGround .air-rose { max-width: 190px; }
   .ground-dest { font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

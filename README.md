@@ -507,14 +507,16 @@ Tap the Ground RTT card to go full screen; an X in the top right closes it.
 - **Verification:** `verify6`: label shows "MPH", font 19.2 px (twice the old 9.6 px), 40 px tall; tap switches to KPH and back, inline and in full screen, without opening or closing full screen; tap elsewhere still opens full screen; screenshots looked at.
 - **Not checked:** a real phone; portrait full screen (Jon reported the dial shrinking and the tape being huge; see the Build Queue).
 
+### Build 74: Ground RTT full screen in portrait (completed)
+Jon's portrait screenshot showed a tiny dial and a huge tape. Reproduced at 390x844: dial 76 px, tape 696 px. Cause: full screen used a fixed 56 px | 1fr | 190 px grid and a tape height of `100dvh - 150px`.
+- [x] `styles.css`: a `@media (orientation: portrait)` block on `.ground-full` (landscape unchanged). Grid areas: the heading box and dial on top (`max-width: min(85vw, calc(62vh - 170px))`, 332 px at 390x844), below it the tape on the left (56 px wide, `height: min(34vh, 300px)`) and the place name and Distance to its right, right-justified (Distance 2.6rem, name 1rem). GPS dot and X stay top right. The tape height is read from the page (Build 71), so it rebuilds when the phone turns.
+- [x] Cache-bust bumped: `styles.css?v=30→31`. Version: v1.23→v1.24.
+- **Verification:** `verify9` (scratch, not committed; headless Chromium, simulated GPS, zero JS errors; true browser full screen at 390x844, class-only fallback for the resize tests because Chromium will not resize a true full-screen window): 390x844 dial 332 px, tape 287 px, tip on the short tick (0 px) and pointer within 0.2 px of the speed, place and Distance right-justified with the same 18 px right gap, X within 14 px of the top right, nothing clipped, no sideways scroll; 360x740 dial 289 px, tape 252 px, nothing clipped; 360x640 dial 227 px, tape 218 px, nothing clipped; rotated to landscape (tape 240 px, dial 242 px, pointer on tick) and back to portrait correctly; X closes to the inline card (tape 150 px); screenshots looked at. Found and fixed during verification: the first version (tape 40% of the screen, dial 60%) cut off the unit footer at 360x740; the dial and tape now share the height by screen size.
+- **Not checked:** a real phone (real full screen and the browser bars; whether Chrome's rotation fires the resize that rebuilds the tape).
+
 ## Build Queue
 
-### Queue 1: Ground RTT full screen in portrait
-Not yet authorized to build. Reproduced at 390x844: in full screen the dial is 76 px wide and the tape is 696 px tall (inline portrait is fine: dial 134 px, tape 152 px). Cause: the full-screen grid is fixed at 56 px | 1fr | 190 px, which leaves 76 px in the middle on a phone held upright, and the tape height is `100dvh - 150px`, which is huge when the screen is tall.
-- Portrait only (`@media (orientation: portrait)` on `.ground-full`); landscape stays as built.
-- Layout (mock-up approved by Jon): top, the heading box and a large dial (up to 85% of the screen width, 332 px at 390 px wide); below it, one row with the tape on the left (56 px wide, height 40% of the screen but at most 300 px) and the place name, Distance, and its value to the right of it, all right-justified (`text-align: right`). Distance value 2.6rem, place name 1rem. GPS dot and X stay top right.
-- The tape height is read from the page already (`driveTapeH()`), so the strip rebuilds when the height changes; make sure turning the phone (resize / orientation change) re-renders it.
-- Verify at 390x844 and 360x740 in portrait: dial at least 250 px wide, tape at most 300 px tall with 40 units and the pointer on the tick, nothing clipped, X reachable; rotate to landscape and back: both layouts correct; screenshots looked at.
+_Empty — nothing queued right now._
 
 ## Build Planner
 
