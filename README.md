@@ -560,6 +560,11 @@ Not yet authorized to build. Full screen only (portrait and landscape); the stan
 - Left as they are: the unit label (MPH / KPH) and the small other-unit footer under the tape.
 - Verify in full screen at 390x844 and 780x390, mph and kph: tape 100 px, label font 25.6 px and pointer font 30.4 px (twice the old sizes), no label clipped, the pointer tip on the short tick and the pointer centre on the speed's tick at several speeds (including 45 mph and 110 km/h), the dial still at least 200 px in landscape and the portrait layout still centred and unclipped; the standard card unchanged (tape 56 px, old font sizes); screenshots looked at. Cache-bust and version bump.
 
+### Queue 2: Ground RTT full screen in landscape: bigger dial
+Not yet authorized to build. Jon's phone screenshot (landscape, full screen): the dial uses about 56% of the screen height and there is room to spare above and below it. Cause: the landscape full-screen dial is capped at `min(62vh, 360px)` (`#cardGround.ground-full .air-rose`).
+- Landscape only (the portrait rule is separate and unchanged): the cap becomes `calc(100dvh - 70px)` (screen height minus the card padding and the heading box, leaving about 16 px of space), with no 360 px limit. About 342 px at 412 px high (was 255 px) and 320 px at 390 px high (was 242 px). The dial still stays inside its column (`1fr`), so it shrinks only if the tape and the place / Distance column leave less width than that; with Queue 1's 100 px tape the middle column stays well over 342 px at 780 px wide and up.
+- Verify at 780x390, 844x390, 915x412, and 740x360: dial equals the formula (or fills its column if narrower), the heading box and dial stay inside the screen with the heading box clear of the top, nothing overlaps the GPS dot, X, tape, or Distance, pointer and tip on the tick; portrait unchanged; screenshots looked at. Cache-bust and version bump.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
