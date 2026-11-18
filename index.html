@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.30) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.31) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -11,13 +11,18 @@
 <link rel="preload" href="fonts/chakra-petch-400-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/chakra-petch-600-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/michroma-400-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=36">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#10161f">
+<link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css?v=37">
 </head>
 <body>
 
 <header>
   <div class="logo-mark">🌬️🧭💨</div>
   <div class="logo-word">CROSSWIND</div>
+  <div class="offline-badge" id="offlineBadge" style="display:none;">Offline</div>
 </header>
 
 <nav id="devNav">
@@ -100,6 +105,14 @@
       </div>
       <div class="fld-note" id="backupNote" style="display:none;"></div>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none;">
+    </div>
+    <div class="card">
+      <div class="card-title">Offline</div>
+      <div class="fld-note" id="offlineStatus" style="margin-bottom:8px;">Checking…</div>
+      <div class="btn-row" style="margin-top:0;">
+        <button class="btn grow" id="clearCacheBtn" disabled>Clear cache</button>
+      </div>
+      <div class="fld-note" id="offlineNote" style="display:none;"></div>
     </div>
   </div>
   <div class="btn-row">
@@ -395,7 +408,7 @@
 <script src="airports.js?v=1"></script>
 <script src="hotel-brands.js?v=2"></script>
 <script src="booking-parser.js?v=1"></script>
-<script src="script.js?v=36"></script>
+<script src="script.js?v=37"></script>
 
 </body>
 </html>

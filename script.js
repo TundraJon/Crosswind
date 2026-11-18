@@ -11,6 +11,7 @@
     window.scrollTo(0, 0);
     if (id === 'screenWizard') refreshWizardSpacer();
     if (id !== 'screenDash') { stopAir(); stopDrive(); rttOn = false; }
+    if (id === 'screenSetup') updateOfflineStatus();
     if (id === 'screenDash') renderDash();
   }
   navBtns.forEach(b => b.addEventListener('click', () => showScreen(b.dataset.screen)));
@@ -2543,6 +2544,42 @@
     closeImportConfirm();
     showBackupNote('✓ Backup restored');
   });
+
+  /* ============ OFFLINE MODE: sw.js saves the app on the phone; the badge and the Setup card show its state ============ */
+  const OFFLINE_CACHE = 'crosswind-app';
+  const offlineBadge = document.getElementById('offlineBadge'), offlineStatus = document.getElementById('offlineStatus'), clearCacheBtn = document.getElementById('clearCacheBtn'), offlineNote = document.getElementById('offlineNote');
+  function offlineAvailable() { return 'serviceWorker' in navigator && !!window.caches && (location.protocol === 'https:' || location.hostname === 'localhost') && !window.Capacitor; }
+  async function updateOfflineStatus() {
+    offlineBadge.style.display = navigator.onLine ? 'none' : '';
+    if (!offlineAvailable()) { offlineStatus.textContent = 'Offline mode is not available here (it needs the app opened from its https address).'; clearCacheBtn.disabled = true; return; }
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (!reg || !reg.active) { offlineStatus.textContent = 'Not ready yet: open the app once while online and wait a moment.'; clearCacheBtn.disabled = true; return; }
+      const cache = await caches.open(OFFLINE_CACHE), keys = await cache.keys(); let bytes = 0;
+      for (const k of keys) { const r = await cache.match(k); if (r) bytes += (await r.clone().blob()).size; }
+      let ver = ''; const page = await cache.match(new URL('index.html', document.baseURI).href);
+      if (page) { const m = (await page.text()).match(/\(v(\d+\.\d+)\)/); if (m) ver = ', version v' + m[1]; }
+      offlineStatus.textContent = keys.length ? 'Ready offline: ' + keys.length + ' files cached, ' + (bytes / 1048576).toFixed(1) + ' MB' + ver : 'Not ready yet: the offline copy is still downloading.';
+      clearCacheBtn.disabled = !navigator.onLine || !keys.length;
+      offlineNote.style.display = navigator.onLine ? 'none' : 'block'; if (!navigator.onLine) offlineNote.textContent = 'Clear cache needs an internet connection.';
+    } catch (e) { offlineStatus.textContent = 'Could not read the offline copy.'; }
+  }
+  clearCacheBtn.addEventListener('click', async () => {
+    if (!confirm('This removes the offline copy and downloads it again. Your trips and settings are not touched.')) return;
+    clearCacheBtn.disabled = true; offlineNote.style.display = 'block'; offlineNote.textContent = 'Downloading the offline copy again…';
+    try {
+      await caches.delete(OFFLINE_CACHE);
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (!reg || !reg.active) throw new Error('no worker');
+      const done = new Promise((res, rej) => { const on = ev => { if (ev.data === 'refilled') { navigator.serviceWorker.removeEventListener('message', on); res(); } else if (ev.data === 'refill-failed') { navigator.serviceWorker.removeEventListener('message', on); rej(new Error('failed')); } }; navigator.serviceWorker.addEventListener('message', on); setTimeout(() => rej(new Error('timeout')), 30000); });
+      reg.active.postMessage('refill'); await done;
+      offlineNote.textContent = '✓ Offline copy downloaded again';
+    } catch (e) { offlineNote.textContent = 'Could not download the offline copy. Try again while online.'; }
+    updateOfflineStatus();
+  });
+  window.addEventListener('online', updateOfflineStatus); window.addEventListener('offline', updateOfflineStatus);
+  if (offlineAvailable()) window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then(() => setTimeout(updateOfflineStatus, 800), () => {}); });
+  updateOfflineStatus();
 
   applyProfile(loadProfile());
   loadTrips();
