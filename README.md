@@ -632,12 +632,17 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Missing: reordering stops (flights can be moved, Build 42).
 
 ### Airborne RTT right column: make it real (Flight Log, ETA, Distance to Target)
-Idea from Jon's question; mostly decided, one question open. Today the right column of the Airborne card is fixed text ("+2h 15m", "ETA MCI: 08:30 PM (LCL)", "980 MI"). It can all work offline from the GPS and `airports.js` (code, city, state, latitude, longitude, size; no time zones).
-- Distance to Target (decided): straight-line distance (`distanceM()`) from the GPS position to the viewed flight's To airport, in the Setup distance unit; "—" with a reason when the To airport is not set, is not in the table (non-US airports are not in it), or there is no GPS.
-- ETA (decided, Jon): time remaining only (no clock time, so no time zones needed): Distance to Target divided by the filtered ground speed, shown like "1h 20m"; "—" when the speed is too low to give an answer.
-- Flight Log (decided, Jon): the time spent above 100 mph (87 knots) of ground speed, added up while the speed is above it, paused below it; shown like "2h 15m".
-- Open: whether the Flight Log total is saved with the flight in the trip (survives closing the app, and can show elsewhere) or only lasts while the app is open; whether there is a way to reset it. Limit to state to Jon: the GPS only runs while the Airborne RTT is open, so the log only counts time with that card open.
-- Also to settle: whether it belongs in the Airborne full screen too (it would, since that shows the same column).
+In design with Jon. Today the right column of the Airborne card is fixed text ("+2h 15m", "ETA MCI: 08:30 PM (LCL)", "980 MI"). Jon's point: GPS in a plane mostly works from a window seat with the app open, so the Flight Log and ETA come from the itinerary, not the GPS ("correct 80% of the time, close enough").
+- Flight Log (Jon): counts up from the first scheduled departure and stops at the final scheduled landing; the stopped value is the length of the whole trip from first departure to final landing (all flights and the layovers between). Before departure it shows nothing yet; after landing it shows the final total. Time zone independent: durations only, no clock times shown.
+- ETA (Jon): time remaining only, like "1h 20m": the final scheduled landing minus now. No clock time.
+- Distance to Target (decided): straight-line distance from the GPS position to the viewed flight's To airport, in the Setup unit; needs a GPS fix, so when the reading is old it shows how old ("updated 12 min ago") rather than a stale number; "—" with a reason when there is no fix, no To airport, or the airport is not in the table.
+- Open, for Jon: the schedule times in the itinerary are local to each airport, so a flight that crosses time zones (Orlando to Los Angeles: 3 hours apart on the clock) comes out too short by the zone gap unless corrected. Options: leave it uncorrected, or a rough US zone by airport state (`airports.js` has the state) so durations come out right for most US flights (DST and a few split states are the exceptions). Also: whether it belongs in the Airborne full screen too (it would, since that shows the same column).
+
+### Travel Log: door to door (idea from Jon)
+New idea, not designed. A log that counts from leaving the house to arriving in the hotel room, and the same in reverse (leaving the room to arriving home).
+- Not from GPS (Jon: unreliable in the air and on the phone's schedule). Likely taps: "Left home", "In my room", "Left room", "Home", each stamping the time, editable afterwards; saved with the trip. Could pre-fill from the itinerary: the Uber out pickup time for "Left home".
+- Shows the two durations and the total per trip. Where it lives (a card on the Dashboard, a button like the Horizon calendar, or on the Trip card) is open.
+- Open questions: taps or automatic from itinerary times; where it shows; whether it keeps a history across trips (averages, a "door to door" record).
 
 ### Other screens not yet designed
 - Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal). A placeholder screen exists (`#screenMedia`); its buttons do nothing.
