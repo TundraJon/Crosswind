@@ -445,10 +445,19 @@ Not yet authorized to build. Driving screen only; the airborne tape is not chang
 - Verify with simulated GPS at 0, 35, 70, 120 mph and above, both units, that exactly 40 units are in view, plus a screenshot looked at. Cache-bust and version bump as usual.
 
 ### Queue 2: Compass button on Uber out and Rental pickup
-Not yet authorized to build. The Compass button (`#compassBtn`, `dashCompassTarget()` in `script.js`) works today on Hotel, Objective, Home, Uber Home, and Rental Return. Add the two missing steps, with these defaults (change if you disagree):
+Not yet authorized to build. The Ground RTT button (today called Compass: `#compassBtn`, `dashCompassTarget()` in `script.js`) works today on Hotel, Objective, Home, Uber Home, and Rental Return. Add the two missing steps, with these defaults (change if you disagree):
 - Uber (start of trip, node type `uberOut`): points to the departure airport of the first flight (`airports.js` coordinates; name "Airport — CODE"). Uber has no address field, only times.
 - Rental (pickup, node type `rental`): points to the airport where the stop's last flight lands (`rentalAirportCode()`, the same airport the Rental Return step already uses). Name "Pick up rental — CODE".
 - Hidden when no airport is known, like Rental Return. Verify with a saved trip: button shows on both steps and the drive screen opens with the right name; hidden with no flights.
+
+### Queue 3: Replace the Dev toggle with one RTT button (Airborne RTT / Ground RTT)
+Not yet authorized to build. Names: the full-screen driving screen is **Ground RTT** (real-time telemetry); the flight panel is **Airborne RTT**. The "Compass" button is renamed.
+- Remove `#stateToggle` ("Dev: Toggle Ground / Airborne"), the `airborne` variable, and its click handler.
+- One button in the Dashboard dock, in the position the Compass button has now (`#compassBtn`, rename to `#rttBtn`), label set by the selected step: **Airborne RTT** on Flight and Return Flight steps, **Ground RTT** on Uber, Rental, Hotel, Objective, Rental Return, and Uber Home (and Home). Hidden when the step has no target (no coordinates), and on Layover until the Planner item "Ground RTT on a layover" is built.
+- Airborne RTT: tapping shows `#cardAir` in place of the flight card and starts GPS (`startAir()`); the button then reads "Flight Details" and tapping it goes back and stops GPS. It starts off every time: changing step, or leaving the Dashboard, turns it off. GPS stays off until the button is tapped.
+- Ground RTT: opens the full-screen driving screen as today.
+- Dock shows when Copy Address or the RTT button applies, as now.
+- Verify: no toggle on screen; button label per step type; Airborne RTT on, off, and reset on step change; Ground RTT still opens; GPS pings only while a panel is open. Cache-bust and version bump.
 
 ## Build Planner
 
@@ -466,6 +475,9 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; Import Itinerary from .ics, PDF, or pasted text (Build 58); layover calculation with short and bad-order warnings (Builds 59, 60); rearrange flights (Build 42); forms for every step type with real step dates, confirmation numbers, and gentle validation; Add Another Flight / Stop; "Select…" dropdowns fed by Setup; smart times on Uber fields.
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, and the flight "Auto-Filled via Flight Tracker API" box (Gate only).
 - Missing: reordering stops (flights can be moved, Build 42).
+
+### Ground RTT on a layover
+Idea from Jon, not designed. On a Layover step the Ground RTT button could switch on ground speed for walking between gates and terminals. Open: a layover has no target, so what shows (heading compass without a target arrow? Distance shown as "—"?); whether the speed tape needs a walking scale (the 40-unit window of mph is coarse at 2 to 4 mph); whether it needs the gate or terminal later. Queue 3 hides the button on Layover until this is designed.
 
 ### Other screens not yet designed
 - Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal). A placeholder screen exists (`#screenMedia`); its buttons do nothing.
