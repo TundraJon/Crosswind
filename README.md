@@ -419,7 +419,13 @@ Jon can import a booking into a new trip, with a preview to confirm first. Built
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Fix stale Build Planner text (docs only)
+Not yet authorized to build. Found while reading the Planner after Builds 58 and 59 shipped. README text only, no code, no cache-bust or version bump.
+- Inventory header and "Trip Wizard (after Build 34)": update to the current build. The "Disabled and labelled coming soon" line still lists the Layover calculation, but Build 59 built it. Remove it from that line.
+- Step 4, flight tracker bullet: drop "layover math, tap to show how it was calculated" (Build 59). Keep the tracker part.
+- Step 4, parser notes: the "Needed to start the parser: one real flight confirmation" line is stale. Build 58 (`booking-parser.js`, Import Itinerary) already parses .ics, PDF text, and pasted text for Southwest, Delta, American, and hotels. Rewrite so the parser notes say what Build 58 covers, and that only the per-step "Text Clipboard Parser" buttons (still disabled in `script.js`, `parserButtonHTML()`) and the generic fallback for unknown layouts remain.
+- Step 4, "Text Clipboard Parser per step type" bullet: reword to the same remaining work.
+- Check the rest of the Planner against Builds 35 to 59 for other stale lines and list any found here before changing them.
 
 ## Build Planner
 
