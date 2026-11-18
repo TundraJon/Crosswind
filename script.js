@@ -798,6 +798,20 @@
     const e = effAirports()['f:' + si + ':' + (fl.length - 1)];
     return e ? e.to : '';
   }
+  /* Layover: the next flight's departure minus the previous flight's arrival (both local to the layover airport) */
+  function layoverInfo(isReturn, si, i) {
+    const list = isReturn ? wizardState.returnFlights : wizardState.stops[si].flights, a = list[i], b = list[i + 1];
+    const eff = effDates(), ap = effAirports(), ka = isReturn ? 'rf:' + i + ':0' : 'f:' + si + ':' + i, kb = isReturn ? 'rf:' + (i + 1) + ':0' : 'f:' + si + ':' + (i + 1);
+    const airport = (ap[ka] && ap[ka].to) || (ap[kb] && ap[kb].from) || '';
+    const arrT = parseSmartTime(a.arr, new Date()), depT = parseSmartTime(b.dep, new Date()), da = eff[ka], db = eff[kb];
+    if (!arrT || !depT || !da || !db) return { state: 'missing', airport };
+    const arrAt = new Date(da.getFullYear(), da.getMonth(), da.getDate() + (a.arrDay ? 1 : 0), arrT.getHours(), arrT.getMinutes());
+    const depAt = new Date(db.getFullYear(), db.getMonth(), db.getDate(), depT.getHours(), depT.getMinutes());
+    const mins = Math.round((depAt - arrAt) / 60000);
+    if (mins < 0) return { state: 'bad', airport };
+    return { state: 'ok', mins, airport, short: mins < 45 };
+  }
+  function fmtLayover(m) { const h = Math.floor(m / 60), r = m % 60; return h ? h + 'h' + (r ? ' ' + r + 'm' : '') : r + 'm'; }
   function refreshStepDates() {
     const trip = activeTrip();
     if (!trip) return;
@@ -965,6 +979,11 @@
     wizardState.selected = keyFor(j);
     renderNodeTrack(true); renderStepForm(); commitTrips();
   }
+  function layoverStripHTML(info) {
+    if (info.state === 'ok') return '<div class="layover-strip' + (info.short ? ' short' : '') + '">🧳 Layover' + (info.airport ? ' at <b>' + esc(info.airport) + '</b>' : '') + ': <b>' + fmtLayover(info.mins) + '</b>' + (info.short ? ' — <b class="amb">Short layover</b>' : '') + '</div>';
+    if (info.state === 'bad') return '<div class="layover-strip short">🧳 <b class="amb">Check the times:</b> the next flight leaves before this one lands</div>';
+    return '<div class="layover-strip">🧳 Add both flights\' times to see the layover</div>';
+  }
   function flightFormHTML(f, dateKey) {
     const airlineOpts = selectOptionsHTML(sortedByType('airline').map(a => a.name), f.airline, 'No airlines yet — add in Setup');
     return '<div class="fld-grid">' +
@@ -1019,13 +1038,8 @@
 
     else if (node.type === 'layover') {
       const i = node.betweenIndex;
-      const list = node.isReturn ? wizardState.returnFlights : wizardState.stops[node.stopIndex].flights;
-      const pre = node.isReturn ? 'Return: ' : '';
-      const label1 = pre + flightNodeMeta(list, i).base;
-      const label2 = pre + flightNodeMeta(list, i + 1).base;
       html = '<div class="step-head">' + esc(node.label.toUpperCase()) + '</div>' +
-        '<div class="layover-strip">🧳 Calculated: <b>' + label1 + ' Landing</b> → <b>' + label2 + ' Boarding</b></div>' +
-        '<div class="fld-note" style="margin-top:8px;">Example once flight times are auto-filled: SEA Landing 6:40 PM → MCI Boarding 8:22 PM = <b style="color:var(--amber);">1h 42m layover</b>. Real calculation activates once the Flight Tracker API auto-fill is wired in (Step 4).</div>';
+        layoverStripHTML(layoverInfo(!!node.isReturn, node.stopIndex, i));
     }
 
     else if (node.type === 'rental') {
@@ -1354,7 +1368,8 @@
         line('TSA PRECHECK: <span class="wt">' + dv(document.getElementById('ktnInput').value) + '</span>');
     }
     else if (node.type === 'layover') {
-      html += line('LANDING → NEXT BOARDING: <b>—</b>');
+      const lo = layoverInfo(!!node.isReturn, node.stopIndex, node.betweenIndex);
+      html += line(lo.state === 'ok' ? 'LAYOVER' + (lo.airport ? ' AT <b>' + esc(lo.airport) + '</b>' : '') + ': <b>' + fmtLayover(lo.mins) + '</b>' + (lo.short ? ' <b style="color:var(--amber)">(SHORT)</b>' : '') : lo.state === 'bad' ? '<b style="color:var(--amber)">CHECK THE TIMES</b>' : 'LAYOVER: <b>—</b>');
     }
     else if (node.type === 'rental') {
       const r = wizardState.stops[node.stopIndex].rental;

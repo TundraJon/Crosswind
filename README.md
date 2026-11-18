@@ -406,21 +406,15 @@ Jon can import a booking into a new trip, with a preview to confirm first. Built
 - **Verification:** `parsetest` over 13 fixtures in the scratch folder (never committed) and `verify37`, 49 checks, zero JS errors, over HTTP: the real PDF imports to the expected trip (four flights with codes, times, seats, confirmation, the overnight arrival as +1, National car with times, Residence Inn matched to Marriott Bonvoy / Residence Inn, dates, reference, name "Cincinnati Dec 6–11"); nothing sensitive stored; the new fields in the Wizard and Dashboard; the same PDF again (no change; a changed seat listed and restored; no duplicate); three .ics files together; Southwest, Delta (GRR / ATL / MCO from city names), American, Marriott, Best Western (missing address reported), and motel pastes; an empty import, unrecognised text, a corrupted PDF, a scanned (text-less) PDF, and a generated text PDF; a typed airport for an unidentified one; reload. Regression on what this touches: airports and flight form (`verify34`), confirmation carry-forward (`verify14`), step completion (`verify28`), flight moves (`verify29`), typed-text escaping (`verify23`), backup and import (`verify7`, `verify8b`): pass.
 - **Not built / limits:** the generic fallback for layouts with no known pattern (these report "not recognised" and import nothing); editing every field inside the preview (only the name, dates, and unidentified airports are editable there; the rest is edited in the Wizard); non-US airports are not in `airports.js` so only given codes resolve. **Not tested:** the phone's file picker, real email attachments, and large PDFs on a phone.
 
+### Build 59: Calculate the layover (completed)
+- [x] `script.js`: `layoverInfo(isReturn, stop, i)` works out the next flight's departure minus the previous flight's arrival from the flights' dates (`effDates`), `dep`, `arr`, and the "+1 day" box; both times are local to the layover airport, so no zone maths. Result states: ok (minutes, airport from the previous flight's To else the next flight's From), short (under 45 minutes), missing (any time or date absent), bad (departure before arrival). `fmtLayover()` shows "1h 5m", "3h", "25m".
+- [x] The Layover step (`layoverStripHTML`) shows "🧳 Layover at BNA: 1h 5m", amber with "Short layover" under 45 minutes, "Add both flights' times to see the layover" when missing, and "Check the times: the next flight leaves before this one lands"; the fixed 1h 42m example text and the "Calculated: ... Landing → ... Boarding" line are removed. The Dashboard Layover card shows "LAYOVER AT BNA: 1h 5m" (with "(SHORT)", "CHECK THE TIMES", or a dash). `styles.css`: `.layover-strip.short`, `.amb`.
+- [x] Cache-bust bumped: `script.js?v=26→27`, `styles.css?v=23→24`. Version: v1.15→v1.16.
+- **Verification:** `verify38`, 24 checks, zero JS errors: a normal layover with the airport from To; a short 25-minute one in amber with the airport from the next From; an overnight one across dates (7h 30m); a missing time; a departure before the arrival; arrival 11:30 PM with the next flight 1:00 AM on the next date (1h 30m); the "+1 day" box moving the arrival to the next date (1h 20m); a return layover (3h); the old example text gone; the Dashboard card for each state; after moving a flight and after editing a time the layover recalculates. Regression on what it touches: step completion (`verify28`) and flight moves (`verify29`) pass.
+
 ## Build Queue
 
 _Empty — nothing queued right now._
-
-### Calculate the layover
-Not yet authorized to build. Settled with Jon.
-
-- The Layover step shows the real layover: the next flight's departure time minus the previous flight's arrival time, as "Layover at BNA: 1h 42m". Both times are local to the layover airport, so no time zone maths. It uses the flights' dates and the "+1 day" box on arrival, so an overnight layover (an evening arrival and a morning departure) is correct, and a layover is never negative: a departure earlier than the arrival shows "Check the times".
-- Applies to outbound layovers (between a stop's flights) and return layovers (between return flights). Layover airport is the previous flight's To (or the next flight's From), blank if neither is set.
-- A layover under 45 minutes is shown in amber with "Short layover". Missing times, dates, or airports show a plain "Add both flights' times to see the layover" and the old fixed example text ("1h 42m") is removed.
-- The Dashboard's Layover card shows the same result in place of its "—" placeholder. Layover remains a step with nothing to fill in (it keeps filling only when both neighbours are complete).
-
-**Reuse:** the flights' `dep`, `arr`, `arrDay`, `date`, `from`, `to` (Builds 53 and 58), `parseSmartTime()`, `effDates()` for the flight dates, the existing `.layover-strip` style.
-
-**Verification plan:** a normal layover (1h 42m), an overnight one, a short one (amber), a missing time, a departure before the arrival, the airport shown from To or From, outbound and return, flights moved or removed (the layover follows), the Dashboard card; earlier layover and step-row checks re-run.
 
 ## Build Planner
 
