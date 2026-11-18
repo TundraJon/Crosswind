@@ -463,7 +463,7 @@ Not yet authorized to build. Names: the full-screen driving screen is **Ground R
 Not yet authorized to build. Build after Queue 1 (tape restyle) and Queue 3 (RTT button). For walking between gates and terminals. Decided by Jon: the arrow points straight up, Distance shows "—", the tape has a 5 mph window, max 60 mph, 1 mph ticks, and the KPH scale below. Defaults I added, change if you disagree:
 - The Layover step gets the Ground RTT button, with no target. The driving screen opens with the title "Layover" in place of a place name.
 - Arrow fixed straight up (no bearing). The ring and N marker still turn with the GPS course, so you can see which way you face.
-- Tape: 5 units visible top to bottom, scale 0 to 60 mph, a tick and a label at every 1 mph. In KPH mode (set by Jon): 5 km/h visible, scale 0 to 100 km/h, a tick at every 1 km/h, a label at every 5 km/h.
+- Tape: 5 units visible top to bottom, scale 0 to 60 mph, a tick at every 1 mph, a label at every 5 mph. In KPH mode (set by Jon): 5 km/h visible, scale 0 to 100 km/h, a tick at every 1 km/h, a label at every 5 km/h.
 - Pointer box and the other-unit footer show one decimal here (for example 2.8 mph, "4.5 km/h"), since whole numbers are too coarse at walking speed.
 - GPS course counts as "moving" above 1 mph here (the other Ground RTT uses 5 mph, which is faster than walking, so the ring would never turn).
 - Known limit: GPS indoors in a terminal can be weak and jumpy. It cannot be fixed in code; say so in the Log after a real-phone check.
