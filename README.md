@@ -483,7 +483,17 @@ Queue 3. No more full-screen Ground RTT.
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Ground RTT button always visible, greyed out with a reason
+Not yet authorized to build. Jon found no Ground RTT or Copy Address on a Hotel step: the dock is hidden when there is no address or no map coordinates (`dashCompassTarget()` returns null, `dashAddressFor()` is empty). Replaces the earlier "hidden when no target" rule (Builds 64 and 65).
+- Ground RTT button is shown on every ground step (Uber out, Rental, Hotel, Objective, Rental Return, Uber Home, Home, Layover). With no target it is disabled (greyed, not tappable), and the small line under it shows the reason instead of "Works offline":
+  - Hotel / Objective, no address typed: "Add an address".
+  - Hotel / Objective, address typed but no coordinates: "Address not located yet".
+  - Home / Uber Home, no Setup home address: "Add home address in Setup"; typed but not located: "Address not located yet".
+  - Uber out, no departure airport on the first flight: "Add the first flight's From airport".
+  - Rental / Rental Return, no arrival airport: "Add the flight's To airport".
+- Layover always has a target, so it is never greyed.
+- Default I chose, change if you disagree: Copy Address gets the same treatment on Hotel, Objective, Home, and Uber Home (shown, greyed, "Add an address" when empty).
+- The dock then shows on all those steps. Verify with a hotel that has no address, one with an address but no coordinates, and one fully located: button state and reason text each time; the located case still opens the card. Cache-bust and version bump.
 
 ## Build Planner
 
