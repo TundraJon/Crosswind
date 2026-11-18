@@ -1332,6 +1332,8 @@
   const cardAir = document.getElementById('cardAir');
   const cardGround = document.getElementById('cardGround');
   let dashSelected = 'uber-out';
+  const GROUND_RTT_TYPES = ['uberOut', 'rental', 'hotel', 'destination', 'rentalReturn', 'uberHome', 'home', 'layover'];
+  const COPY_ADDR_TYPES = ['hotel', 'destination', 'home', 'uberHome'];
   let dashAddr = '';
   function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function dv(t) { const s = (t == null ? '' : String(t)).trim(); return s ? esc(s) : '—'; }
@@ -1448,17 +1450,21 @@
     const isFlight = node.type === 'flight' || node.type === 'returnFlight';
     dashAddr = (dashAddressFor(node) || '').trim();
     dashCompass = isFlight ? null : dashCompassTarget(node);
-    rttMode = isFlight ? 'air' : (dashCompass ? 'ground' : '');
-    const on = rttOn && rttKey === node.key, showAir = on && rttMode === 'air', showGround = on && rttMode === 'ground';
+    rttMode = isFlight ? 'air' : (GROUND_RTT_TYPES.indexOf(node.type) >= 0 ? 'ground' : '');
+    const on = rttOn && rttKey === node.key, showAir = on && rttMode === 'air', showGround = on && rttMode === 'ground' && !!dashCompass;
     dashCard.style.display = (showAir || showGround) ? 'none' : 'block';
     cardAir.style.display = showAir ? 'block' : 'none';
     cardGround.style.display = showGround ? 'block' : 'none';
     if (showAir) startAir(); else stopAir();
     if (showGround) startDrive(dashCompass); else stopDrive();
-    copyAddrBtn.style.display = dashAddr ? '' : 'none';
+    const copyShown = COPY_ADDR_TYPES.indexOf(node.type) >= 0;
+    copyAddrBtn.style.display = copyShown ? '' : 'none';
+    copyAddrBtn.disabled = !dashAddr;
+    copyAddrBtn.innerHTML = '[ Copy Address ]<small>' + (dashAddr ? 'Paste into your GPS app' : (node.type === 'home' || node.type === 'uberHome' ? 'Add home address in Setup' : 'Add an address')) + '</small>';
     rttBtn.style.display = rttMode ? '' : 'none';
-    rttBtn.innerHTML = rttMode === 'air' ? (showAir ? '📋 Flight Details<small>Back to the flight card</small>' : '✈ Airborne RTT<small>Live GPS speed and heading</small>') : (showGround ? '📋 Step Details<small>Back to the step card</small>' : '🧭 Ground RTT<small>Works offline</small>');
-    dashDock.style.display = (dashAddr || rttMode) ? 'flex' : 'none';
+    rttBtn.disabled = rttMode === 'ground' && !dashCompass;
+    rttBtn.innerHTML = rttMode === 'air' ? (showAir ? '📋 Flight Details<small>Back to the flight card</small>' : '✈ Airborne RTT<small>Live GPS speed and heading</small>') : (showGround ? '📋 Step Details<small>Back to the step card</small>' : '🧭 Ground RTT<small>' + (dashCompass ? 'Works offline' : dashRttReason(node)) + '</small>');
+    dashDock.style.display = (copyShown || rttMode) ? 'flex' : 'none';
   }
   const copyAddrBtn = document.getElementById('copyAddrBtn');
   copyAddrBtn.addEventListener('click', async () => {
@@ -1779,6 +1785,14 @@
   /* ---- Where the Compass button on the Dashboard points ---- */
   const rttBtn = document.getElementById('rttBtn');
   let dashCompass = null, rttMode = '';
+  /* Why the Ground RTT button is greyed out on this step */
+  function dashRttReason(node) {
+    if (node.type === 'hotel' || node.type === 'destination') { const o = node.type === 'hotel' ? wizardState.stops[node.stopIndex].hotel : wizardState.stops[node.stopIndex].destination; return o.address.trim() ? 'Address not located yet' : 'Add an address'; }
+    if (node.type === 'home' || node.type === 'uberHome') return addrInput.value.trim() ? 'Address not located yet' : 'Add home address in Setup';
+    if (node.type === 'uberOut') { const e = effAirports()['f:0:0']; return e && e.from ? 'Airport not found' : 'Add the first flight\'s From airport'; }
+    if (node.type === 'rental' || node.type === 'rentalReturn') return rentalAirportCode(node.stopIndex) ? 'Airport not found' : 'Add the flight\'s To airport';
+    return 'Nothing to point at';
+  }
   function dashCompassTarget(node) {
     let name = '', lat = null, lon = null;
     if (node.type === 'hotel') { const h = wizardState.stops[node.stopIndex].hotel; name = h.name.trim() || 'Hotel'; lat = h.lat; lon = h.lon; }
@@ -1890,7 +1904,7 @@
   }
   function stopDrive() { if (drivePing) { clearInterval(drivePing); clearInterval(driveStatusTimer); } drivePing = driveStatusTimer = null; }
   rttBtn.addEventListener('click', () => {
-    if (!rttMode) return;
+    if (!rttMode || rttBtn.disabled) return;
     rttOn = !(rttOn && rttKey === dashSelected); rttKey = dashSelected; renderDash();
   });
 
