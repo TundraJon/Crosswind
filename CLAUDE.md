@@ -2,6 +2,8 @@
 
 > **Never build or edit code without explicit instruction.**
 
+@.claude/output-styles/ELI5.md
+
 This governs everything below.
 
 - Finding a bug, spotting an inconsistency, or thinking of an improvement is never permission to fix it. Write it down (Build Queue / Build Planner in `README.md`) and leave it alone until authorized.
