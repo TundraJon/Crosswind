@@ -427,7 +427,23 @@ README text only. An audit of the Planner against the Build Log and the code at 
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Driving screen GPS status dot
+Not yet authorized to build. Reuse the airborne dot: `.air-status` / `.air-dot` in `styles.css`, and `airStatusNow()` logic (green lock up to 3.5 s since the last fix, yellow up to 9 s, red otherwise or when denied).
+- `index.html`: a status box in the top corner of the driving card, same look as `#airStatus` (dot plus text GPS LOCK / GPS STALE / NO GPS), new id `driveStatus`.
+- `script.js`: remember the time of the last fix in `onDrivePos()`; update the dot once a second while the driving screen is open (clear the timer in `closeDrive()`); red when `onDriveErr` code 1.
+- Cache-bust: bump `script.js`, `styles.css` (only if CSS changes), `index.html` version comment. Verify with simulated GPS: green, then yellow, then red as fixes stop; denied is red.
+
+### Queue 2: Driving screen GPS ping every 1 second
+Not yet authorized to build. Replace `watchPosition` in `openDrive()` with `getCurrentPosition` on a 1-second timer, the same way `pingAir()` does it every 3 seconds (`enableHighAccuracy: true`, `maximumAge: 0`, `timeout: 3000`). Clear the timer in `closeDrive()`. `onDrivePos` and `onDriveErr` stay as they are. Verify with simulated GPS: one fix request per second while open, none after Back.
+
+### Queue 3: Driving screen speed tape
+Not yet authorized to build. Reuse the airborne tape (`buildAir()` strip, `.tape` CSS, pointer box, alt-unit footer). Defaults chosen by me, change them if you disagree:
+- The tape replaces the plain Ground Speed number (as on the airborne panel). Distance stays.
+- Scale 0 to 120 mph (0 to 200 km/h in KPH), label every 10, small tick every 5 (every 20 and 10 in km/h). Own height constant and strip, not the knots one.
+- Pointer box shows the speed; footer shows the other unit. The MPH / KPH pill keeps working and rebuilds the strip.
+- Speed uses the same smoothed `driveSpeed`; a standstill reads 0.
+- Verify at 0, 35, 70, 120 mph and above the top of the scale (strip stops at the end), both units, 390px wide.
+- Do this after Queue 1 and 2, so the screen layout is final.
 
 ## Build Planner
 
@@ -445,12 +461,6 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; Import Itinerary from .ics, PDF, or pasted text (Build 58); layover calculation with short and bad-order warnings (Builds 59, 60); rearrange flights (Build 42); forms for every step type with real step dates, confirmation numbers, and gentle validation; Add Another Flight / Stop; "Select…" dropdowns fed by Setup; smart times on Uber fields.
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, and the flight "Auto-Filled via Flight Tracker API" box (Gate only).
 - Missing: reordering stops (flights can be moved, Build 42).
-
-### Driving screen: reuse the airborne speed tape
-Idea from Jon, partly decided, not yet queued. The vertical speed tape built for the airborne panel (Build 57) (scrolling scale, pointer box, small alternate-unit footer) might replace the plain Ground Speed number still on the driving compass screen (Build 54), adapted to mph or km/h with a finer scale.
-- Decided: the driving screen pings GPS every 1 second (airborne is every 3 seconds), and it also gets the GPS status dot (green lock, yellow when lost for 3 to 9 seconds, red otherwise), in a corner of the driving card like the airborne one.
-- Checked after Build 61: neither is built. The driving screen uses `watchPosition` in `openDrive()` (updates whenever the phone reports a position, `maximumAge` 1000 ms, no 1-second timer), and it has no GPS status dot (only the airborne panel has `#airStatus`). It shows a text message when GPS is missing or denied.
-- Still open: the scale range and tick spacing for driving speeds (every 5 or 10 mph?); whether the tape replaces the Ground Speed number or sits beside it.
 
 ### Other screens not yet designed
 - Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal). A placeholder screen exists (`#screenMedia`); its buttons do nothing.
