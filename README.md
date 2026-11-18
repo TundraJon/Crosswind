@@ -528,14 +528,16 @@ Jon marked the empty space between the dial and the place / Distance text (34 px
 - **Verification:** `verify13` (scratch, not committed; headless Chromium, simulated GPS, zero JS errors), measured before and after the change at 390x844, 360x740, 412x915, and 780x390 with a short ("Inn"), medium ("Dr Mullins Family Practice"), and very long place name: a short name widens the dial (390: 134 → 160 px, 360: 104 → 130, 412: 156 → 182) and the dial-to-text gap goes 34 → 8 px; a medium name wraps to 2 lines and a very long name to 3 lines with the end cut off (column stays at its 104 px cap, dial unchanged from before); Distance top is at the same position for every name; nothing clipped, no sideways scroll, pointer on the tick; landscape: dial stays at its 190 px cap (gap 201 → 188 px for a short name); screenshot looked at.
 - **Note:** the dial size now depends on the place name length (a name of 14 or more characters uses the full 104 px column, so the dial is the same size as before). At 360 px wide the dial is small (104 px, 130 px with a short name).
 
+### Build 77: Ground RTT full screen: centred dial, place name wraps to 3 lines (completed)
+Jon's screenshot with a long place name showed the dial pushed off the right edge. Reproduced at 390x844 with "Dr Mullins OB GYN Test space needed to see how this wraps": the name stayed on one line (550 px) and stretched the grid, so the dial centre sat 137 px right of the screen centre.
+- [x] `styles.css`: the full-screen grid's flexible column is `minmax(0, 1fr)` in portrait (`56px minmax(0, 1fr)`) and landscape (`56px minmax(0, 1fr) 190px`), so a long name can no longer widen it; the 3-line wrap rule (`white-space: normal`, `overflow-wrap: anywhere`, 3-line clamp) now applies to the place name in full screen as well (the `:not(.ground-full)` scope from Build 76 is removed).
+- [x] Cache-bust bumped: `styles.css?v=33→34`. Version: v1.26→v1.27.
+- **Verification:** `verify15` (scratch, not committed; headless Chromium, simulated GPS, zero JS errors; class-only full screen so the window can be resized): a short, a medium, a very long, and Jon's exact name at 390x844, 360x740, 412x915, and 780x390 (16 combinations, 0 failures): in portrait the dial centre is 0 px from the screen centre every time (dial 354, 290, 376 px), the name uses 1 to 3 lines and the long one is cut with an ellipsis after 3, no sideways scroll, nothing clipped, pointer and tip on the tick; landscape dial 242 px with the name wrapping in the right column; screenshots looked at.
+- **Not checked:** a real phone.
+
 ## Build Queue
 
-### Queue 1: Ground RTT full screen: centred dial, place name wraps to 3 lines
-Not yet authorized to build. Reproduced at 390x844 with the place name "Dr Mullins OB GYN Test space needed to see how this wraps": in full screen the name stays on one line (`white-space: nowrap`, 550 px wide), which stretches the grid column past the screen; the dial's centre sits at x=332 on a 390 px screen (137 px right of centre) and runs off the right edge. The inline card is fine (3 lines, dial in place). Build 76 only wrapped the name on the inline card; full screen was left alone.
-- Full screen (portrait and landscape): the place name wraps up to 3 lines with the same rules as the inline card (`white-space: normal`, `overflow-wrap: anywhere`, 3-line clamp), still right-justified.
-- Stop a long name from widening the grid: the flexible column becomes `minmax(0, 1fr)` (portrait `56px minmax(0, 1fr)`, landscape `56px minmax(0, 1fr) 190px`).
-- Portrait: the dial stays centred on the screen whatever the name length (centre within 2 px of the screen centre).
-- Verify at 390x844, 360x740, 412x915, and 780x390 with a short, a medium, and a very long name (and the exact name above): dial centre within 2 px of the screen centre in portrait, name 1 / 2 / 3 lines with an ellipsis after 3, no sideways scroll, nothing clipped, pointer on the tick; screenshots looked at. Cache-bust and version bump.
+_Empty — nothing queued right now._
 
 ## Build Planner
 

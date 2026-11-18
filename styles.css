@@ -256,7 +256,7 @@
   #cardGround.ground-full { position: fixed; inset: 0; z-index: 60; margin: 0; border-radius: 0; border: 0; background: var(--bg-page); padding: 18px 18px 12px; overflow: hidden; display: flex !important; align-items: center; }
   #cardGround.ground-full .gf-x { display: block; }
   #cardGround.ground-full .air-status { top: 20px; right: 62px; font-size: 0.7rem; }
-  #cardGround.ground-full .air-grid { width: 100%; align-items: center; grid-template-columns: 56px 1fr 190px; gap: 16px; }
+  #cardGround.ground-full .air-grid { width: 100%; align-items: center; grid-template-columns: 56px minmax(0, 1fr) 190px; gap: 16px; }
   #cardGround.ground-full .drive-speedbox .drive-tape { height: calc(100vh - 150px); height: calc(100dvh - 150px); min-height: 150px; }
   #cardGround.ground-full .air-rose { max-width: min(62vh, 360px); }
   #cardGround.ground-full .hdg-box { font-size: 1.3rem; min-width: 64px; }
@@ -265,7 +265,7 @@
   #cardGround.ground-full .drive-msg { position: absolute; left: 0; right: 0; bottom: 8px; }
   @media (orientation: portrait) {
     #cardGround.ground-full { align-items: flex-start; padding-top: 70px; }
-    #cardGround.ground-full .air-grid { grid-template-columns: 56px 1fr; grid-template-areas: "dial dial" "tape info"; row-gap: 14px; column-gap: 22px; align-items: start; }
+    #cardGround.ground-full .air-grid { grid-template-columns: 56px minmax(0, 1fr); grid-template-areas: "dial dial" "tape info"; row-gap: 14px; column-gap: 22px; align-items: start; }
     #cardGround.ground-full .air-mid { grid-area: dial; width: 100%; align-items: center; }
     #cardGround.ground-full .drive-speedbox { grid-area: tape; }
     #cardGround.ground-full .telem-col.right { grid-area: info; text-align: right; align-self: center; }
@@ -277,7 +277,7 @@
   .air-grid.ground-grid { grid-template-columns: 56px 1fr fit-content(104px); }
   #cardGround .air-rose { max-width: 190px; }
   .ground-dest { font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #cardGround:not(.ground-full) .ground-dest { white-space: normal; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; }
+  #cardGround .ground-dest { white-space: normal; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; }
   #cardGround .telem-col .t-val { font-size: 1.3rem; }
   .drive-speedbox .drive-tape { box-sizing: content-box; height: 150px; border-right: 2px solid var(--text); }
   .drive-tape .tape-strip .tk { left: auto; right: 0; width: 20px; }
