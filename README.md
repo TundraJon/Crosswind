@@ -537,7 +537,12 @@ Jon's screenshot with a long place name showed the dial pushed off the right edg
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Show the "…" when the Ground RTT place name is cut after 3 lines
+Not yet authorized to build. Jon's screenshot: a hotel name with one more word showed 3 lines and no "…". Reproduced in Chromium 157 with "Dr Mullins OB GYN Test space needed on the hotel": the CSS 3-line clamp cuts the text but draws no ellipsis. Cause: the place name is right-justified, and Chrome draws the clamp's "…" past the right edge of the last line, where it is clipped; with left-aligned text the same clamp shows "NEEDED ON THE…". Builds 76 and 77 only checked that the text was cut (`scrollHeight`), not that the "…" was drawn.
+- Stay right-justified. Do the cut in `script.js` instead of relying on the CSS ellipsis: `fitDriveDest()` puts the full name in `#driveDest`; if it is taller than 3 lines (`scrollHeight` above the clamped `clientHeight`), it drops the last word and adds "…" until it fits (one very long word: drop characters). `.ground-dest` keeps a `max-height` of 3 lines and `overflow: hidden` (explicit `line-height` so the height is exact); the `-webkit-line-clamp` rules are removed.
+- Run it whenever the name is set (`startDrive()`), when full screen opens or closes, and on resize or rotation (the width changes the wrapping), always from the full name, never from an already shortened one.
+- Standard card and full screen, portrait and landscape.
+- Verify at 390x844, 360x740, 412x915, and 780x390, inline and full screen, with a short name (no "…"), a name that fits in exactly 3 lines (no "…"), "Dr Mullins OB GYN Test space needed on the hotel" (3 lines ending in "…"), and a very long name with one huge word: last visible line ends with "…" and sits inside the column, the dial and Distance do not move, rotating re-fits, and a screenshot of each looked at (check the "…" by eye, not only by DOM). Cache-bust and version bump.
 
 ## Build Planner
 
