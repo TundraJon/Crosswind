@@ -597,7 +597,14 @@ It had been a fixed "—" since Build 3. Jon chose one GPS reading rather than c
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Airborne RTT speed tape copies the Ground RTT tape look
+Not yet authorized to build. Scope (Jon): the speed tape only. The Airborne dial, heading box, right column, GPS dot, and message line do not change, and there is no full screen mode for the Airborne RTT.
+- The tape uses the Ground RTT tape styles: `.drive-speedbox` with `.drive-tape` (56 px wide, 150 px tall inside its border, a vertical line on the right edge, ticks pointing left from it, a label to the left of each 10 and a short tick at each 5) and the cyan pointer box `.dt-ptr` on the left whose notch ends on the short tick; `#airPtr` becomes the pointer box. The old left-ticks / right-pointer tape styles stop being used by it.
+- Visible range 40 knots top to bottom (Jon: 1a), centred on the current speed: `AIR_K` and `AIR_CENTER` (fixed 2.4 px per knot and 100 px) are replaced by values read from the tape's real height (height / 40, centre = height / 2), as the Ground RTT does with `driveTapeH()`. Scale 0 to 900 knots, labels every 10, ticks every 5, as now.
+- Header above the tape: the unit in the Ground RTT label style (1.2rem bold cyan, not tappable). It reads KTS so it fits the 56 px column (Jon chose "knots only"; the label says KTS, not KNOTS, for width).
+- Footer: both other units stay, on two lines (km/h and mph), in the Ground RTT footer text size (0.7rem, white) so they fit 56 px.
+- The grid column for the tape goes from 86 px to 56 px (`.air-grid`), and the freed width goes to the dial, as on the Ground RTT card.
+- Verify with simulated GPS at 0, 150, 455, and 900 knots (and above 900): the tape is 56 px wide and 150 px tall, 40 knots in view, the pointer centre on the speed's tick and its tip on the short tick, 3-digit numbers fit the box, labels not clipped, the footer fits 56 px, the dial is wider than before, the dial and the heading box still work; the Ground RTT is unchanged; screenshots at 390 and 780 wide looked at. Cache-bust and version bump.
 
 ## Build Planner
 
