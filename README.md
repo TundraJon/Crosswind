@@ -449,7 +449,8 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 ### Driving screen: reuse the airborne speed tape
 Idea from Jon, partly decided, not yet queued. The vertical speed tape built for the airborne panel (Build 57) (scrolling scale, pointer box, small alternate-unit footer) might replace the plain Ground Speed number still on the driving compass screen (Build 54), adapted to mph or km/h with a finer scale.
 - Decided: the driving screen pings GPS every 1 second (airborne is every 3 seconds), and it also gets the GPS status dot (green lock, yellow when lost for 3 to 9 seconds, red otherwise), in a corner of the driving card like the airborne one.
-- Still open: whether the 1-second ping and GPS dot are on the driving screen (not yet checked); the scale range and tick spacing for driving speeds (every 5 or 10 mph?); whether the tape replaces the Ground Speed number or sits beside it.
+- Checked after Build 61: neither is built. The driving screen uses `watchPosition` in `openDrive()` (updates whenever the phone reports a position, `maximumAge` 1000 ms, no 1-second timer), and it has no GPS status dot (only the airborne panel has `#airStatus`). It shows a text message when GPS is missing or denied.
+- Still open: the scale range and tick spacing for driving speeds (every 5 or 10 mph?); whether the tape replaces the Ground Speed number or sits beside it.
 
 ### Other screens not yet designed
 - Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal). A placeholder screen exists (`#screenMedia`); its buttons do nothing.
