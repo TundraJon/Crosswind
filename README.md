@@ -416,6 +416,13 @@ Jon can import a booking into a new trip, with a preview to confirm first. Built
 
 _Empty — nothing queued right now._
 
+### Short layover in red
+Not yet authorized to build. Requested by Jon: a layover under 45 minutes should stand out against the blue and amber text.
+
+- Short layover (under 45 minutes) turns red (`var(--red)`) instead of amber: the Layover step's strip border and "Short layover" text, and the Dashboard card's "(SHORT)". The "Check the times" warning (departure before arrival) is not changed unless Jon says so.
+
+**Verification plan:** a 25-minute layover shows the red border and text on the Layover step and the Dashboard card; a normal layover and the "Check the times" state keep their colours; screenshot.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
