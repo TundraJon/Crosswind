@@ -461,7 +461,21 @@ Queue 4.
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Fix the Ground RTT speed tape (window and pointer)
+Not yet authorized to build. Found by Jon on a phone: the tape shows about 50 units, not 40, and the pointer tip is not on the tick. Cause: `.tape { height: 200px }` (later in `styles.css`) overrides `.drive-tape { height: 150px }`, so the tape is 200 px tall (about 53 units at 3.75 px per unit) and the pointer sits at 100 px while the strip is centred at 75 px (`DRIVE_CENTER`). Build 63's check measured the strip offset but never the tape height or the pointer position, so it missed this.
+- Make the 150 px height win (a more specific selector), so exactly 40 units show and the pointer centre equals `DRIVE_CENTER`.
+- Pointer tip: the arrow tip reaches the left end of the short (5) tick at the current speed's level, as in Jon's screenshot, with the box covering the label area at that level. Pointer vertical centre equals the y of the current speed on the strip.
+- Verify by measuring in the browser: tape height 150, 40 units between the top and bottom edges at several speeds, pointer centre within 1 px of the speed's tick at 0, 45, 70, and 120 mph, tip x at the short tick's left end; screenshot looked at.
+
+### Queue 2: Ground RTT compass like the Airborne RTT dial
+Not yet authorized to build. Reuse the airborne rose: the flat SVG dial from `buildAir()` (tick every 5 degrees, longer every 10, a label every 30 degrees with N / E / S / W and the others as degrees divided by 10), turned by minus the heading, with the heading box above it (`.hdg-box`, three digits, "---" when there is no course). Replaces the tilted 3D ring. The target arrow stays on top of the dial (turned by the bearing relative to the course); no aircraft reticle, to keep the arrow clear. On a layover the arrow points straight up, as in Build 66. Verify: dial ticks and labels match the airborne one, heading box reads the course (for example 135), arrow follows the bearing; screenshot looked at.
+
+### Queue 3: Ground RTT replaces the step card (no full screen)
+Not yet authorized to build. Ground RTT becomes an inline card `#cardGround` that replaces the Uber / Rental / Hotel / Objective / Rental Return / Uber Home / Layover card, exactly as the Airborne RTT card replaces the flight card. The full-screen `#driveScreen` and its Back button are removed.
+- Card layout copies the airborne card: tape | compass | right column. Right column: the place name (or "Layover") above Distance. GPS status dot top right; the GPS message line below.
+- The dock button says Ground RTT, then "Step Details" while the card is open; one tap each way. Copy Address stays in the dock. Uses the same on / off state as the Airborne RTT (one `airOn` style flag, reset on step change and on leaving the Dashboard), so only one RTT card can be open.
+- GPS (the 1-second ping, the status dot, the walking mode on a layover, units and the pill) all keep working unchanged; `openDrive()` / `closeDrive()` become start and stop of the inline card.
+- Verify: card swap on each step type, button text, the step card returns, pings only while open, no full-screen overlay left; screenshot looked at.
 
 ## Build Planner
 
