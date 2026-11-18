@@ -575,7 +575,7 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 
 **Setup, what is still missing**
 - Real address verification (USPS / CASS) and the nearest-airports suggestion: Step 4, behind the disabled buttons. The airport table (Build 17) and the home address lat/long (Build 54) now exist, so what is left is the suggestion list and the address check.
-- Profile details (name, demographics): skipped on purpose, nothing uses them yet. **Saved Addresses** (recurring hotels and client sites that could autofill the Wizard): held for the Wizard spec.
+- Profile details (name, demographics): skipped on purpose, nothing uses them yet. Saved Addresses is dropped (Jon: only home and the home airport are saved, and Setup already holds both; every hotel and destination is different).
 - Temperature unit is saved but nothing shows a temperature yet (weather). Speed and Distance units are used on the driving screen (Builds 54, 57).
 
 **Trip Wizard (after Build 60)**
