@@ -492,7 +492,7 @@ Not yet authorized to build. Jon found no Ground RTT or Copy Address on a Hotel 
   - Uber out, no departure airport on the first flight: "Add the first flight's From airport".
   - Rental / Rental Return, no arrival airport: "Add the flight's To airport".
 - Layover always has a target, so it is never greyed.
-- Default I chose, change if you disagree: Copy Address gets the same treatment on Hotel, Objective, Home, and Uber Home (shown, greyed, "Add an address" when empty).
+- Confirmed by Jon: Copy Address gets the same treatment on Hotel, Objective, Home, and Uber Home (shown, greyed, "Add an address" when empty).
 - The dock then shows on all those steps. Verify with a hotel that has no address, one with an address but no coordinates, and one fully located: button state and reason text each time; the located case still opens the card. Cache-bust and version bump.
 
 ## Build Planner
