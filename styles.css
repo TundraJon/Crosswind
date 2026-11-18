@@ -256,16 +256,18 @@
   #cardGround.ground-full { position: fixed; inset: 0; z-index: 60; margin: 0; border-radius: 0; border: 0; background: var(--bg-page); padding: 18px 18px 12px; overflow: hidden; display: flex !important; align-items: center; }
   #cardGround.ground-full .gf-x { display: block; }
   #cardGround.ground-full .air-status { top: 20px; right: 62px; font-size: 0.7rem; }
-  #cardGround.ground-full .air-grid { width: 100%; align-items: center; grid-template-columns: 56px minmax(0, 1fr) 190px; gap: 16px; }
+  #cardGround.ground-full .air-grid { width: 100%; align-items: center; grid-template-columns: 100px minmax(0, 1fr) 190px; gap: 16px; }
   #cardGround.ground-full .drive-speedbox .drive-tape { height: calc(100vh - 150px); height: calc(100dvh - 150px); min-height: 150px; }
-  #cardGround.ground-full .air-rose { max-width: min(62vh, 360px); }
+  #cardGround.ground-full .air-rose { max-width: calc(100vh - 70px); max-width: calc(100dvh - 70px); }
+  #cardGround.ground-full .drive-tape .tape-strip .tl { font-size: 1.6rem; }
+  #cardGround.ground-full .dt-ptr { width: calc(100% - 10px); height: 40px; line-height: 40px; font-size: 1.9rem; }
   #cardGround.ground-full .hdg-box { font-size: 1.3rem; min-width: 64px; }
   #cardGround.ground-full .ground-dest { font-size: 0.85rem; }
   #cardGround.ground-full .telem-col .t-val { font-size: 2.2rem; }
   #cardGround.ground-full .drive-msg { position: absolute; left: 0; right: 0; bottom: 8px; }
   @media (orientation: portrait) {
     #cardGround.ground-full { align-items: flex-start; padding-top: 70px; }
-    #cardGround.ground-full .air-grid { grid-template-columns: 56px minmax(0, 1fr); grid-template-areas: "dial dial" "tape info"; row-gap: 14px; column-gap: 22px; align-items: start; }
+    #cardGround.ground-full .air-grid { grid-template-columns: 100px minmax(0, 1fr); grid-template-areas: "dial dial" "tape info"; row-gap: 14px; column-gap: 22px; align-items: start; }
     #cardGround.ground-full .air-mid { grid-area: dial; width: 100%; align-items: center; }
     #cardGround.ground-full .drive-speedbox { grid-area: tape; }
     #cardGround.ground-full .telem-col.right { grid-area: info; text-align: right; align-self: center; }
