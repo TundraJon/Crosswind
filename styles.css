@@ -289,5 +289,5 @@
   .reticle line, .reticle path { stroke: var(--cyan); stroke-width: 2; fill: none; }
   .chk-line { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; color: var(--text-dim); margin-top: 4px; }
   .chk-line input { width: auto; }
-  .layover-strip.short { border-color: var(--amber); }
-  .layover-strip .amb { color: var(--amber); }
+  .layover-strip.short { border-color: var(--red); }
+  .layover-strip .amb { color: var(--red); }

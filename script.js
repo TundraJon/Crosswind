@@ -1369,7 +1369,7 @@
     }
     else if (node.type === 'layover') {
       const lo = layoverInfo(!!node.isReturn, node.stopIndex, node.betweenIndex);
-      html += line(lo.state === 'ok' ? 'LAYOVER' + (lo.airport ? ' AT <b>' + esc(lo.airport) + '</b>' : '') + ': <b>' + fmtLayover(lo.mins) + '</b>' + (lo.short ? ' <b style="color:var(--amber)">(SHORT)</b>' : '') : lo.state === 'bad' ? '<b style="color:var(--amber)">CHECK THE TIMES</b>' : 'LAYOVER: <b>—</b>');
+      html += line(lo.state === 'ok' ? 'LAYOVER' + (lo.airport ? ' AT <b>' + esc(lo.airport) + '</b>' : '') + ': <b>' + fmtLayover(lo.mins) + '</b>' + (lo.short ? ' <b style="color:var(--red)">(SHORT)</b>' : '') : lo.state === 'bad' ? '<b style="color:var(--red)">CHECK THE TIMES</b>' : 'LAYOVER: <b>—</b>');
     }
     else if (node.type === 'rental') {
       const r = wizardState.stops[node.stopIndex].rental;

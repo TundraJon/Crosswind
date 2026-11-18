@@ -412,16 +412,14 @@ Jon can import a booking into a new trip, with a preview to confirm first. Built
 - [x] Cache-bust bumped: `script.js?v=26→27`, `styles.css?v=23→24`. Version: v1.15→v1.16.
 - **Verification:** `verify38`, 24 checks, zero JS errors: a normal layover with the airport from To; a short 25-minute one in amber with the airport from the next From; an overnight one across dates (7h 30m); a missing time; a departure before the arrival; arrival 11:30 PM with the next flight 1:00 AM on the next date (1h 30m); the "+1 day" box moving the arrival to the next date (1h 20m); a return layover (3h); the old example text gone; the Dashboard card for each state; after moving a flight and after editing a time the layover recalculates. Regression on what it touches: step completion (`verify28`) and flight moves (`verify29`) pass.
 
+### Build 60: Short layover and bad-order warnings in red (completed)
+- [x] `styles.css`: `.layover-strip.short` border and `.amb` text use `var(--red)` (were amber). `script.js`: the Dashboard card's "(SHORT)" and "CHECK THE TIMES" use `var(--red)`. Both the short layover (under 45 minutes) and the "Check the times" warning are red, on the Layover step and the Dashboard; normal and missing-time states are unchanged.
+- [x] Cache-bust bumped: `script.js?v=27→28`, `styles.css?v=24→25`. Version: v1.16→v1.17.
+- **Verification:** `verify39`, 11 checks, zero JS errors: computed colours of a 25-minute layover and a departure-before-arrival, on the Layover step (border and text) and the Dashboard card, are red; a normal layover and a missing-time layover are not red; screenshot looked at.
+
 ## Build Queue
 
 _Empty — nothing queued right now._
-
-### Short layover in red
-Not yet authorized to build. Requested by Jon: a layover under 45 minutes should stand out against the blue and amber text.
-
-- Short layover (under 45 minutes) turns red (`var(--red)`) instead of amber: the Layover step's strip border and "Short layover" text, and the Dashboard card's "(SHORT)". The "Check the times" warning (departure before arrival) is not changed unless Jon says so.
-
-**Verification plan:** a 25-minute layover shows the red border and text on the Layover step and the Dashboard card; a normal layover and the "Check the times" state keep their colours; screenshot.
 
 ## Build Planner
 
