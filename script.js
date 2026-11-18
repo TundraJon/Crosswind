@@ -1786,21 +1786,51 @@
   /* ---- The driving screen: arrow to the destination, relative to the direction of travel (GPS course only), ground speed, distance ---- */
   const driveScreen = document.getElementById('driveScreen');
   const MOVING_MS = 2.2352; /* 5 mph */
-  let driveWatch = null, driveDest = null, drivePrev = null, driveSpeed = null, driveCourse = null, driveMph = true;
+  let drivePing = null, driveStatusTimer = null, driveFixAt = null, driveDenied = false, driveBuiltUnit = '', driveDest = null, drivePrev = null, driveSpeed = null, driveCourse = null, driveMph = true;
   function fmtDriveDist(m) {
     const km = currentUnits().dist === 'km';
     if (km) return m < 100 ? Math.round(m) + ' <small>M</small>' : (m / 1000).toFixed(1) + ' <small>KM</small>';
     const mi = m / 1609.344;
     return mi < 0.1 ? Math.round(m * 3.28084) + ' <small>FT</small>' : mi.toFixed(1) + ' <small>MI</small>';
   }
+  const DRIVE_MAX_MPH = 120, DRIVE_MAX_KPH = 200, DRIVE_H = 288, DRIVE_CENTER = 75;
+  document.getElementById('drivePill').addEventListener('click', () => { driveMph = !driveMph; renderDrive(driveLastFix); });
+  function buildDriveTape() {
+    const unit = driveMph ? 'mph' : 'kph'; if (driveBuiltUnit === unit) return; driveBuiltUnit = unit;
+    const max = driveMph ? DRIVE_MAX_MPH : DRIVE_MAX_KPH, lab = driveMph ? 10 : 20, minor = driveMph ? 5 : 10, k = DRIVE_H / max;
+    let html = '';
+    for (let v = max; v >= 0; v -= minor) {
+      const y = Math.round((max - v) * k);
+      if (v % lab === 0) html += '<div class="tk" style="top:' + y + 'px"></div><div class="tl" style="top:' + y + 'px">' + v + '</div>'; else html += '<div class="tk5" style="top:' + y + 'px"></div>';
+    }
+    const strip = document.getElementById('driveStrip'); strip.innerHTML = html; strip.style.height = DRIVE_H + 'px';
+  }
+  let driveLastFix = null;
+  function driveStatusNow() {
+    if (driveDenied || driveFixAt == null) return 'red';
+    const age = (Date.now() - driveFixAt) / 1000;
+    return age <= 3.5 ? 'green' : age <= 9 ? 'yellow' : 'red';
+  }
+  function renderDriveStatus() {
+    const st = driveStatusNow(), box = document.getElementById('driveStatus');
+    box.querySelector('i').className = 'air-dot ' + st; box.querySelector('span').textContent = st === 'green' ? 'GPS LOCK' : st === 'yellow' ? 'GPS STALE' : 'NO GPS';
+    driveScreen.dataset.status = st;
+  }
   function renderDrive(fix) {
+    driveLastFix = fix;
     const course = driveCourse == null ? 0 : driveCourse;
     document.getElementById('drivePlane').style.setProperty('--course', course);
     driveScreen.dataset.course = driveCourse == null ? '' : Math.round(driveCourse);
     const spd = document.getElementById('driveSpeed');
     const ms = (driveSpeed == null || driveSpeed < 0.5) ? 0 : driveSpeed;
-    spd.innerHTML = (driveMph ? Math.round(ms * 2.23694) : Math.round(ms * 3.6)) + ' <small>' + (driveMph ? 'MPH' : 'KPH') + '</small><span class="unit-pill" id="drivePill" title="Tap to switch units">' + (driveMph ? 'KPH' : 'MPH') + '</span>';
-    document.getElementById('drivePill').addEventListener('click', () => { driveMph = !driveMph; renderDrive(fix); });
+    buildDriveTape();
+    const sp = driveMph ? ms * 2.23694 : ms * 3.6, spMax = driveMph ? DRIVE_MAX_MPH : DRIVE_MAX_KPH;
+    spd.textContent = Math.round(sp);
+    document.getElementById('driveUnitLab').textContent = driveMph ? 'MPH' : 'KPH';
+    document.getElementById('drivePill').textContent = driveMph ? 'KPH' : 'MPH';
+    document.getElementById('driveAlt').textContent = driveMph ? Math.round(ms * 3.6) + ' km/h' : Math.round(ms * 2.23694) + ' mph';
+    document.getElementById('driveStrip').style.transform = 'translateY(' + (DRIVE_CENTER - (spMax - Math.max(0, Math.min(spMax, sp))) * DRIVE_H / spMax) + 'px)';
+    driveScreen.dataset.speed = Math.round(sp);
     if (!fix) { document.getElementById('driveDist').innerHTML = '—'; return; }
     const dist = distanceM(fix.lat, fix.lon, driveDest.lat, driveDest.lon), brg = bearingDeg(fix.lat, fix.lon, driveDest.lat, driveDest.lon);
     const rel = (brg - course + 360) % 360;
@@ -1811,7 +1841,7 @@
   function driveMessage(t) { const m = document.getElementById('driveMsg'); m.textContent = t || ''; m.style.display = t ? 'block' : 'none'; }
   function onDrivePos(pos) {
     const c = pos.coords, now = pos.timestamp || Date.now(), fix = { lat: c.latitude, lon: c.longitude, t: now };
-    driveMessage('');
+    driveMessage(''); driveFixAt = Date.now(); driveDenied = false; renderDriveStatus();
     let spd = (typeof c.speed === 'number' && isFinite(c.speed)) ? c.speed : null;
     if (drivePrev) {
       const d = distanceM(drivePrev.lat, drivePrev.lon, fix.lat, fix.lon), dt = (now - drivePrev.t) / 1000;
@@ -1823,20 +1853,22 @@
     renderDrive(fix);
   }
   function onDriveErr(e) {
-    if (e && e.code === 1) driveMessage('Location is turned off for this site. Allow it in the browser settings to use the compass.');
+    if (e && e.code === 1) { driveDenied = true; renderDriveStatus(); driveMessage('Location is turned off for this site. Allow it in the browser settings to use the compass.'); }
     else if (e && e.code === 2) driveMessage('No GPS position yet. Try again with a clear view of the sky.');
     else driveMessage('Waiting for GPS…');
   }
   function openDrive(target) {
-    driveDest = target; drivePrev = null; driveSpeed = null; driveCourse = null; driveMph = currentUnits().speed !== 'kph';
+    driveDest = target; drivePrev = null; driveFixAt = null; driveDenied = false; driveSpeed = null; driveCourse = null; driveMph = currentUnits().speed !== 'kph';
     document.getElementById('driveDest').textContent = target.name;
     driveScreen.style.display = 'flex'; driveScreen.dataset.rel = ''; driveScreen.dataset.dist = '';
     renderDrive(null);
     if (!navigator.geolocation) { driveMessage('This device has no GPS.'); return; }
     driveMessage('Waiting for GPS…');
-    driveWatch = navigator.geolocation.watchPosition(onDrivePos, onDriveErr, { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 });
+    renderDriveStatus();
+    const pingDrive = () => navigator.geolocation.getCurrentPosition(onDrivePos, onDriveErr, { enableHighAccuracy: true, maximumAge: 0, timeout: 3000 });
+    pingDrive(); drivePing = setInterval(pingDrive, 1000); driveStatusTimer = setInterval(renderDriveStatus, 1000);
   }
-  function closeDrive() { if (driveWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(driveWatch); driveWatch = null; driveScreen.style.display = 'none'; }
+  function closeDrive() { if (drivePing) { clearInterval(drivePing); clearInterval(driveStatusTimer); } drivePing = driveStatusTimer = null; driveScreen.style.display = 'none'; }
   compassBtn.addEventListener('click', () => { if (dashCompass) openDrive(dashCompass); });
   document.getElementById('driveBack').addEventListener('click', closeDrive);
 

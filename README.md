@@ -425,25 +425,17 @@ README text only. An audit of the Planner against the Build Log and the code at 
 - [x] Left as still open: nearest-airports and USPS/CASS, WhatsApp Report, flight tracker Gate box, offline service worker, SQLite, weather, Airplane Mode link, state-aware dashboard, Capacitor and Play Store, reordering stops.
 - **Verification:** a script checked that each removed or replaced phrase appears 0 times and each new line appears once; `git diff --stat` shows `README.md` only. Not checked: the driving screen's 1-second ping and GPS dot (still listed as unchecked in the Planner).
 
+### Build 62: Driving screen: speed tape, 1-second GPS ping, GPS status dot (completed)
+The driving compass screen now matches the airborne panel's GPS behaviour. Queue entries 1 to 3, built together.
+- [x] `index.html` / `styles.css`: the Ground Speed number is replaced by a vertical speed tape (`#driveStrip`, `.drive-tape`, 150 px high) in the Setup speed unit, with header MPH or KPH and the existing unit pill (`#drivePill`) beside it, the pointer box (kept the id `#driveSpeed`), and a one-line footer with the other unit only (`#driveAlt`: "N km/h" in mph mode, "N mph" in kph mode). Distance stays on the right. The GPS status dot box `#driveStatus` sits in the card's top right and reuses `.air-status` / `.air-dot`.
+- [x] `script.js`: `buildDriveTape()` (0 to 120 mph, label every 10, tick every 5; 0 to 200 km/h, label every 20, tick every 10; rebuilt when the unit changes), `renderDrive()` moves the strip and fills the pointer and footer, the strip stops at the top of the scale while the pointer keeps the real speed; the pill listener is now attached once. `driveStatusNow()` / `renderDriveStatus()` (green up to 3.5 s since the last fix, yellow up to 9 s, red after that or when location is denied; refreshed once a second). `openDrive()` now calls `getCurrentPosition` every 1 second (`enableHighAccuracy`, `maximumAge: 0`, `timeout: 3000`) instead of `watchPosition`; `closeDrive()` clears both timers. Reused the airborne tape CSS and dot logic.
+- [x] Cache-bust bumped: `script.js?v=28→29`, `styles.css?v=25→26`. Version: v1.17→v1.18.
+- **Verification:** scratch script `verify` (not committed), simulated GPS, headless Chromium, 780x390, zero JS errors: one request at open then about 1 per second (3 in 3 s), none after Back; dot green on a fix, yellow after about 5 s without one, red after about 11 s, red with the "turned off" message when denied, green again on recovery; tape top label 120 and 13 labels in mph, 200 and 11 labels in kph; pill switches the unit, header, labels, and footer; speed 0 reads 0 with the strip at the bottom; about 70 mph reads within 2 of 70 (speed is smoothed) with the footer km/h matching and the strip offset matching 2.4 px per mph; above 120 mph the strip stays at the top and the pointer shows the real speed; screenshot looked at (compass, tape, distance, dot all visible, nothing overlapping). A test copy of `script.js` exposed `openDrive` so the screen could open without a saved trip with coordinates.
+- **Not checked:** a real phone with real GPS; narrow portrait width (the app asks for landscape); the earlier driving-compass regression script (`verify35`) was not re-run, only distance and arrow were looked at in the screenshot.
+
 ## Build Queue
 
-### Queue 1: Driving screen GPS status dot
-Not yet authorized to build. Reuse the airborne dot: `.air-status` / `.air-dot` in `styles.css`, and `airStatusNow()` logic (green lock up to 3.5 s since the last fix, yellow up to 9 s, red otherwise or when denied).
-- `index.html`: a status box in the top corner of the driving card, same look as `#airStatus` (dot plus text GPS LOCK / GPS STALE / NO GPS), new id `driveStatus`.
-- `script.js`: remember the time of the last fix in `onDrivePos()`; update the dot once a second while the driving screen is open (clear the timer in `closeDrive()`); red when `onDriveErr` code 1.
-- Cache-bust: bump `script.js`, `styles.css` (only if CSS changes), `index.html` version comment. Verify with simulated GPS: green, then yellow, then red as fixes stop; denied is red.
-
-### Queue 2: Driving screen GPS ping every 1 second
-Not yet authorized to build. Replace `watchPosition` in `openDrive()` with `getCurrentPosition` on a 1-second timer, the same way `pingAir()` does it every 3 seconds (`enableHighAccuracy: true`, `maximumAge: 0`, `timeout: 3000`). Clear the timer in `closeDrive()`. `onDrivePos` and `onDriveErr` stay as they are. Verify with simulated GPS: one fix request per second while open, none after Back.
-
-### Queue 3: Driving screen speed tape
-Not yet authorized to build. Reuse the airborne tape (`buildAir()` strip, `.tape` CSS, pointer box, alt-unit footer). Defaults chosen by me, change them if you disagree:
-- The tape replaces the plain Ground Speed number (as on the airborne panel). Distance stays.
-- Scale 0 to 120 mph (0 to 200 km/h in KPH), label every 10, small tick every 5 (every 20 and 10 in km/h). Own height constant and strip, not the knots one.
-- Tape unit follows the Setup speed unit (`currentUnits().speed`); header says MPH or KPH. Pointer box shows the speed. The footer is one line with the other unit only: "N km/h" when the tape is mph, "N mph" when it is kph (the airborne panel shows two lines because its tape is knots). The existing MPH / KPH pill keeps working and rebuilds the strip.
-- Speed uses the same smoothed `driveSpeed`; a standstill reads 0.
-- Verify at 0, 35, 70, 120 mph and above the top of the scale (strip stops at the end), both units, 390px wide.
-- Do this after Queue 1 and 2, so the screen layout is final.
+_Empty — nothing queued right now._
 
 ## Build Planner
 
