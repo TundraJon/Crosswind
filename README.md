@@ -498,7 +498,19 @@ Tap the Ground RTT card to go full screen; an X in the top right closes it.
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Narrower Ground RTT speed tape, extra space to the dial
+Not yet authorized to build. Applies inline and in full screen.
+- Tape column 112 px → 56 px (`.ground-grid` and the full-screen grid). Pointer box width follows the tape (tape inner width minus 10 px, so the tip still meets the short tick); ticks stay 10 and 20 px; labels keep 26 px from the right edge; the box may cover the label at its level, as now.
+- The freed width goes to the dial: its column stays `1fr` and the dial's max size grows. Defaults, change if you disagree: inline `max-width` 150 px → 190 px (the card grows about 40 px taller); full screen unchanged in rule, the dial just gets the extra width.
+- Footer under the tape (other unit, "80 km/h" or "4.2 km/h" on a layover) shrinks to fit 56 px (about 0.72rem).
+- Verify by measuring: tape width 56 px; tip on the short tick and pointer on the speed tick at several speeds, inline and full screen; dial wider than before; footer text not clipped, including the layover one-decimal case; screenshots looked at.
+
+### Queue 2: Large single unit label on the tape, tap to switch
+Not yet authorized to build. Ground RTT only.
+- The header above the tape shows only the current unit (MPH or KPH) at about twice the present size (0.6rem → 1.2rem, bold, cyan). The small second-unit pill is removed.
+- Tapping the unit switches to the other unit (same behaviour as the pill today: `driveMph` toggles, the tape rebuilds, the footer flips). The tap does not open full screen (the exclusion moves from `#drivePill` to the new unit label; its id `drivePill` is kept for the click handler and tests).
+- Tap target at least 40 px tall so it works with a thumb.
+- Verify: label size, tap switches both ways inline and in full screen, a tap on it never opens full screen, a tap elsewhere on the card still does, label fits the 56 px column from Queue 1 (build Queue 1 first). Screenshots looked at.
 
 ## Build Planner
 
