@@ -523,7 +523,12 @@ Jon found a large gap between the dial and the place / Distance block and chose 
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Standard Ground RTT card, give the space beside the place / Distance to the dial
+Not yet authorized to build. Jon's screenshot (inline card on a phone held upright) marks the empty space between the dial and the place / Distance text; measured at 390x844: dial right edge to text 34 px. Cause: the right column is a fixed 104 px (`.air-grid.ground-grid { grid-template-columns: 56px 1fr 104px }`) while its text ("12.4 MI", "DR MULLINS") is about 78 px wide and right-justified, so about 26 px of that column is empty.
+- Make the right column as wide as its content, up to 104 px: `grid-template-columns: 56px 1fr fit-content(104px)`. The dial column (`1fr`) gets the freed width, so the dial grows by about 26 px at 390 px wide (134 → about 160); dial max stays 190 px.
+- A long place name keeps its ellipsis inside 104 px and cannot squeeze the dial.
+- Standard (inline) card only. Full screen is not changed. Landscape: the dial is already at its 190 px cap, so nothing changes there.
+- Verify at 390x844, 360x740, 412x915, and 780x390: dial widths before and after, gap from dial to text at most about 10 px in portrait, a very long place name still ellipsised and the dial at least 120 px, nothing clipped, pointer on the tick, screenshots looked at. Cache-bust and version bump.
 
 ## Build Planner
 
