@@ -496,21 +496,20 @@ Tap the Ground RTT card to go full screen; an X in the top right closes it.
 - **Verification:** `verify5` (scratch, not committed; headless Chromium 780x390, simulated GPS, zero JS errors): pill tap does not open it; dial tap opens true browser full screen (`document.fullscreenElement` set) and the card fills the window; X sits within 20 px of the top right corner; tape grows from 150 to 240 px, still 40 units, pointer on the tape centre and on the speed's tick, tip on the short tick, heading box 135; GPS pings keep coming at about 1 per second while open; X closes it and the inline card returns at 150 px with Ground RTT still on; with `requestFullscreen` forced to reject, and with it removed, the card still fills the window and X / Escape close it; screenshot looked at. A check of mine failed on a wrong string slice, fixed in the test, not the app.
 - **Not checked:** a real phone (Chrome on Android decides whether to allow true full screen; the phone's Back gesture should close it through `fullscreenchange`); the card closing when you leave the Dashboard while full.
 
+### Build 72: Narrower Ground RTT speed tape, extra space to the dial (completed)
+- [x] `styles.css`: tape column 112 px → 56 px inline and in full screen; pointer box 99 px → 43 px so the tip still meets the short tick; footer text 0.95rem → 0.7rem so "80 km/h" and the layover "5.6 km/h" fit; `#cardGround .air-rose { max-width: 190px }` (was 150 px) so the dial takes the freed width (full screen: the existing larger rule, now with 56 px more room).
+- [x] Cache-bust bumped (Builds 72 and 73 together): `script.js?v=33→34`, `styles.css?v=29→30`. Version: v1.22→v1.23.
+- **Verification:** `verify6` (scratch, not committed; headless Chromium 780x390, simulated GPS, zero JS errors): tape 56 px wide inline and full; pointer 43 px with the tip on the short tick (0 px off) inline and full; dial 190 px inline (card 253 px tall) and 242 px in full screen; footer text 42 to 45 px wide in a 56 px column (mph, km/h, layover decimals); screenshots looked at.
+
+### Build 73: Large single unit label on the Ground RTT tape (completed)
+- [x] `index.html` / `styles.css` / `script.js`: the header above the tape is one button `#drivePill` (class `.unit-btn`, 1.2rem bold cyan, 40 px tall, full column width) showing only the current unit; the small second-unit pill and `#driveUnitLab` are removed. Tapping it switches MPH / KPH exactly as the pill did, and never opens full screen (the existing exclusion on `#drivePill`).
+- [x] Cache-bust and version: see Build 72.
+- **Verification:** `verify6`: label shows "MPH", font 19.2 px (twice the old 9.6 px), 40 px tall; tap switches to KPH and back, inline and in full screen, without opening or closing full screen; tap elsewhere still opens full screen; screenshots looked at.
+- **Not checked:** a real phone; portrait full screen (Jon reported the dial shrinking and the tape being huge; see the Build Queue).
+
 ## Build Queue
 
-### Queue 1: Narrower Ground RTT speed tape, extra space to the dial
-Not yet authorized to build. Applies inline and in full screen.
-- Tape column 112 px → 56 px (`.ground-grid` and the full-screen grid). Pointer box width follows the tape (tape inner width minus 10 px, so the tip still meets the short tick); ticks stay 10 and 20 px; labels keep 26 px from the right edge; the box may cover the label at its level, as now.
-- The freed width goes to the dial: its column stays `1fr` and the dial's max size grows. Defaults, change if you disagree: inline `max-width` 150 px → 190 px (the card grows about 40 px taller); full screen unchanged in rule, the dial just gets the extra width.
-- Footer under the tape (other unit, "80 km/h" or "4.2 km/h" on a layover) shrinks to fit 56 px (about 0.72rem).
-- Verify by measuring: tape width 56 px; tip on the short tick and pointer on the speed tick at several speeds, inline and full screen; dial wider than before; footer text not clipped, including the layover one-decimal case; screenshots looked at.
-
-### Queue 2: Large single unit label on the tape, tap to switch
-Not yet authorized to build. Ground RTT only.
-- The header above the tape shows only the current unit (MPH or KPH) at about twice the present size (0.6rem → 1.2rem, bold, cyan). The small second-unit pill is removed.
-- Tapping the unit switches to the other unit (same behaviour as the pill today: `driveMph` toggles, the tape rebuilds, the footer flips). The tap does not open full screen (the exclusion moves from `#drivePill` to the new unit label; its id `drivePill` is kept for the click handler and tests).
-- Tap target at least 40 px tall so it works with a thumb.
-- Verify: label size, tap switches both ways inline and in full screen, a tap on it never opens full screen, a tap elsewhere on the card still does, label fits the 56 px column from Queue 1 (build Queue 1 first). Screenshots looked at.
+_Empty — nothing queued right now._
 
 ## Build Planner
 

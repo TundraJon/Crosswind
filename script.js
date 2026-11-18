@@ -1857,8 +1857,7 @@
     buildDriveTape();
     const sc = driveScale(), sp = driveMph ? ms * 2.23694 : ms * 3.6, spMax = sc.max;
     spd.textContent = sp.toFixed(sc.dec);
-    document.getElementById('driveUnitLab').textContent = driveMph ? 'MPH' : 'KPH';
-    document.getElementById('drivePill').textContent = driveMph ? 'KPH' : 'MPH';
+    document.getElementById('drivePill').textContent = driveMph ? 'MPH' : 'KPH';
     document.getElementById('driveAlt').textContent = (driveMph ? (ms * 3.6).toFixed(sc.dec) + ' km/h' : (ms * 2.23694).toFixed(sc.dec) + ' mph');
     document.getElementById('driveStrip').style.transform = 'translateY(' + (driveTapeH() / 2 - (spMax - Math.max(0, Math.min(spMax, sp))) * driveTapeH() / sc.win) + 'px)';
     cardGround.dataset.speed = sp.toFixed(sc.dec);

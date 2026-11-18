@@ -249,29 +249,30 @@
 
   /* Driving screen */
   .drive-speedbox { align-self: start; }
-  .drive-speedbox .tape-head .unit-pill { font-size: 0.55rem; color: var(--text-dim); border: 1px solid var(--line); border-radius: 10px; padding: 1px 5px; margin-left: 4px; cursor: pointer; letter-spacing: 0.06em; }
-  .drive-speedbox .tape-head .unit-pill:hover { color: var(--cyan); border-color: var(--cyan-dim); }
+  .drive-speedbox .tape-head { margin-bottom: 2px; letter-spacing: 0.04em; }
+  .unit-btn { width: 100%; min-height: 40px; background: transparent; border: 0; color: var(--cyan); font-family: inherit; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; padding: 0; }
   #cardGround { position: relative; padding-top: 22px; cursor: pointer; }
   .gf-x { display: none; position: absolute; top: 10px; right: 14px; z-index: 3; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg-card); color: var(--text); font-size: 1.1rem; line-height: 1; cursor: pointer; }
   #cardGround.ground-full { position: fixed; inset: 0; z-index: 60; margin: 0; border-radius: 0; border: 0; background: var(--bg-page); padding: 18px 18px 12px; overflow: hidden; display: flex !important; align-items: center; }
   #cardGround.ground-full .gf-x { display: block; }
   #cardGround.ground-full .air-status { top: 20px; right: 62px; font-size: 0.7rem; }
-  #cardGround.ground-full .air-grid { width: 100%; align-items: center; grid-template-columns: 112px 1fr 190px; gap: 16px; }
+  #cardGround.ground-full .air-grid { width: 100%; align-items: center; grid-template-columns: 56px 1fr 190px; gap: 16px; }
   #cardGround.ground-full .drive-speedbox .drive-tape { height: calc(100vh - 150px); height: calc(100dvh - 150px); min-height: 150px; }
   #cardGround.ground-full .air-rose { max-width: min(62vh, 360px); }
   #cardGround.ground-full .hdg-box { font-size: 1.3rem; min-width: 64px; }
   #cardGround.ground-full .ground-dest { font-size: 0.85rem; }
   #cardGround.ground-full .telem-col .t-val { font-size: 2.2rem; }
   #cardGround.ground-full .drive-msg { position: absolute; left: 0; right: 0; bottom: 8px; }
-  .air-grid.ground-grid { grid-template-columns: 112px 1fr 104px; }
+  .air-grid.ground-grid { grid-template-columns: 56px 1fr 104px; }
+  #cardGround .air-rose { max-width: 190px; }
   .ground-dest { font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #cardGround .telem-col .t-val { font-size: 1.3rem; }
   .drive-speedbox .drive-tape { box-sizing: content-box; height: 150px; border-right: 2px solid var(--text); }
   .drive-tape .tape-strip .tk { left: auto; right: 0; width: 20px; }
   .drive-tape .tape-strip .tk5 { left: auto; right: 0; width: 10px; }
   .drive-tape .tape-strip .tl { left: auto; right: 26px; font-size: 0.8rem; }
-  .dt-ptr { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 99px; height: 30px; line-height: 30px; padding: 0 10px 0 0; box-sizing: border-box; text-align: center; font-weight: 700; font-size: 0.95rem; background: var(--cyan); color: #04151c; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); }
-  .drive-speedbox .tape-alt { font-size: 0.95rem; color: var(--text); }
+  .dt-ptr { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 43px; height: 30px; line-height: 30px; padding: 0 10px 0 0; box-sizing: border-box; text-align: center; font-weight: 700; font-size: 0.95rem; background: var(--cyan); color: #04151c; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); }
+  .drive-speedbox .tape-alt { font-size: 0.7rem; color: var(--text); white-space: nowrap; }
   .drive-msg { color: var(--amber); text-align: center; font-size: 0.8rem; padding: 6px; }
   .time-pick { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; border: 0; padding: 0; }
   /* Airborne panel: airspeed tape (left), heading compass (centre), status dot (top right) */
