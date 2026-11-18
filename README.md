@@ -410,6 +410,18 @@ Jon can import a booking into a new trip, with a preview to confirm first. Built
 
 _Empty — nothing queued right now._
 
+### Calculate the layover
+Not yet authorized to build. Settled with Jon.
+
+- The Layover step shows the real layover: the next flight's departure time minus the previous flight's arrival time, as "Layover at BNA: 1h 42m". Both times are local to the layover airport, so no time zone maths. It uses the flights' dates and the "+1 day" box on arrival, so an overnight layover (an evening arrival and a morning departure) is correct, and a layover is never negative: a departure earlier than the arrival shows "Check the times".
+- Applies to outbound layovers (between a stop's flights) and return layovers (between return flights). Layover airport is the previous flight's To (or the next flight's From), blank if neither is set.
+- A layover under 45 minutes is shown in amber with "Short layover". Missing times, dates, or airports show a plain "Add both flights' times to see the layover" and the old fixed example text ("1h 42m") is removed.
+- The Dashboard's Layover card shows the same result in place of its "—" placeholder. Layover remains a step with nothing to fill in (it keeps filling only when both neighbours are complete).
+
+**Reuse:** the flights' `dep`, `arr`, `arrDay`, `date`, `from`, `to` (Builds 53 and 58), `parseSmartTime()`, `effDates()` for the flight dates, the existing `.layover-strip` style.
+
+**Verification plan:** a normal layover (1h 42m), an overnight one, a short one (amber), a missing time, a departure before the arrival, the airport shown from To or From, outbound and return, flights moved or removed (the layover follows), the Dashboard card; earlier layover and step-row checks re-run.
+
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
