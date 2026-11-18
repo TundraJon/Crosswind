@@ -274,9 +274,10 @@
     #cardGround.ground-full .telem-col .t-val { font-size: 2.6rem; }
     #cardGround.ground-full .ground-dest { font-size: 1rem; }
   }
-  .air-grid.ground-grid { grid-template-columns: 56px 1fr 104px; }
+  .air-grid.ground-grid { grid-template-columns: 56px 1fr fit-content(104px); }
   #cardGround .air-rose { max-width: 190px; }
   .ground-dest { font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #cardGround:not(.ground-full) .ground-dest { white-space: normal; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; }
   #cardGround .telem-col .t-val { font-size: 1.3rem; }
   .drive-speedbox .drive-tape { box-sizing: content-box; height: 150px; border-right: 2px solid var(--text); }
   .drive-tape .tape-strip .tk { left: auto; right: 0; width: 20px; }
