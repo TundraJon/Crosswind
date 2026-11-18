@@ -580,6 +580,13 @@ Jon's phone screenshot showed the dial using about 56% of the screen height.
 - **Verification:** `off.js`: the manifest loads and parses; every icon loads at its stated size; the page links the manifest, theme colour, and apple icon; the worker is active (installing needs it); the manifest, icons, and favicon are in the offline cache. Regression: `gps.js` (GPS filter, all checks) and `verify19` (Ground RTT full screen, 46 checks) pass with zero JS errors.
 - **Not checked:** Chrome's "Install app" prompt and the installed look need a real phone.
 
+### Build 85: Header logo is Jon's new art (completed)
+Jon asked to replace the 🌬️🧭💨 emoji above CROSSWIND with the new icon.
+- [x] `index.html`: `.logo-mark` holds `<img src="icons/icon-192.png" alt="Crosswind" width="56" height="56">` instead of the three emoji. `styles.css`: `.logo-mark img` is a centred 56 px block (the 192 px file stays sharp up to a 3x screen). `sw.js`: the page-file reader now also picks up `<img src>`, so the logo is cached at install (22 files now, was 21); `sw.js` still needs no version bump for ordinary builds.
+- [x] Cache-bust bumped: `styles.css?v=37→38`. Version: v1.31→v1.32.
+- **Verification:** `off2.js` (scratch, not committed; headless Chromium, zero JS errors): the logo is the new art at 56 x 56 px, loaded at its full 192 px, with no emoji text left; the install cached it (22 files); offline it still shows (served from the cache); Setup reads "Ready offline: 22 files cached, 1.8 MB, version v1.32"; the earlier offline, Clear cache, new-build pruning, slow-network, and manifest checks still pass; screenshot of the header looked at.
+- **Not checked:** a real phone.
+
 ## Build Queue
 
 _Empty — nothing queued right now._

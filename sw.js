@@ -6,10 +6,10 @@ const PAGE = 'index.html';
 const PDF_LIBS = ['lib/pdf.min.js', 'lib/pdf.worker.min.js'];
 const abs = p => new URL(p, self.registration.scope).href;
 
-/* every same-origin file named by the page's <script src> and <link href>, plus the fonts its stylesheets name */
+/* every same-origin file named by the page's <script src>, <link href>, and <img src>, plus the fonts its stylesheets name */
 async function neededFiles(html) {
   const files = new Set();
-  const re = /<(?:script|link)\b[^>]*?\b(?:src|href)=["']([^"']+)["']/gi; let m;
+  const re = /<(?:script|link|img)\b[^>]*?\b(?:src|href)=["']([^"']+)["']/gi; let m;
   while ((m = re.exec(html))) { const u = new URL(m[1], abs(PAGE)); if (u.origin === self.location.origin) files.add(u.href); }
   for (const u of [...files]) {
     if (!/\.css(\?|$)/.test(u)) continue;
@@ -38,7 +38,7 @@ self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
 /* drop old ?v=N copies of a file once the page names a newer one (fonts, icons, and the PDF libraries are kept) */
 async function pruneOld(html) {
   const cache = await caches.open(CACHE), named = new Set();
-  const re = /<(?:script|link)\b[^>]*?\b(?:src|href)=["']([^"']+)["']/gi; let m;
+  const re = /<(?:script|link|img)\b[^>]*?\b(?:src|href)=["']([^"']+)["']/gi; let m;
   while ((m = re.exec(html))) named.add(new URL(m[1], abs(PAGE)).href);
   for (const k of await cache.keys()) if (new URL(k.url).search && !named.has(k.url)) await cache.delete(k);
 }
