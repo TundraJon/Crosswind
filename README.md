@@ -490,7 +490,14 @@ Jon found no buttons on a Hotel step with no address. Replaces the "hidden when 
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Ground RTT full screen (tap the card, X to close)
+Not yet authorized to build. Ground RTT only; the Airborne RTT is not changed.
+- Tap anywhere on the Ground RTT card (`#cardGround`) except the MPH / KPH pill: it goes full screen. Same card, same ids and GPS timers, so nothing restarts. The pill still only switches units.
+- Full screen means true browser full screen (`requestFullscreen()` on the card) with a fallback: if the browser refuses or has no API, the card fills the app window instead (`position: fixed; inset: 0`, class `.ground-full`, applied in both cases).
+- An X button in the top right corner (`#groundFullX`) closes it: `exitFullscreen()` if needed, class removed, back on the inline card with Ground RTT still on. Leaving full screen any other way (Esc, the phone's Back gesture) closes it too (`fullscreenchange`).
+- Bigger layout in full screen: the tape is taller (height follows the screen, so `DRIVE_H` and the centre are read from the tape's real height instead of the fixed 150 px, and the strip is rebuilt when the height changes; still 40 units, 5 on a layover), a larger dial and heading box, larger distance and place name. The GPS dot and message line stay visible.
+- Full screen also closes when the card closes (step change, leaving the Dashboard, the RTT button).
+- Verify: tap opens (true full screen where Chromium allows it, and with the API forced to reject: the fixed fallback), X closes and the inline card returns, pill tap does not open it, tape still 40 units and the pointer still on the tick at the larger height, speed and heading keep updating while open, no extra GPS pings, screenshot looked at. Cache-bust and version bump.
 
 ## Build Planner
 
