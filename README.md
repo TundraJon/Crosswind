@@ -440,7 +440,7 @@ Not yet authorized to build. Replace `watchPosition` in `openDrive()` with `getC
 Not yet authorized to build. Reuse the airborne tape (`buildAir()` strip, `.tape` CSS, pointer box, alt-unit footer). Defaults chosen by me, change them if you disagree:
 - The tape replaces the plain Ground Speed number (as on the airborne panel). Distance stays.
 - Scale 0 to 120 mph (0 to 200 km/h in KPH), label every 10, small tick every 5 (every 20 and 10 in km/h). Own height constant and strip, not the knots one.
-- Pointer box shows the speed; footer shows the other unit. The MPH / KPH pill keeps working and rebuilds the strip.
+- Tape unit follows the Setup speed unit (`currentUnits().speed`); header says MPH or KPH. Pointer box shows the speed. The footer is one line with the other unit only: "N km/h" when the tape is mph, "N mph" when it is kph (the airborne panel shows two lines because its tape is knots). The existing MPH / KPH pill keeps working and rebuilds the strip.
 - Speed uses the same smoothed `driveSpeed`; a standstill reads 0.
 - Verify at 0, 35, 70, 120 mph and above the top of the scale (strip stops at the end), both units, 390px wide.
 - Do this after Queue 1 and 2, so the screen layout is final.
