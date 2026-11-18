@@ -544,17 +544,17 @@ Jon's screenshot: a hotel name with one more word showed 3 lines and no "…". C
 
 ## Build Queue
 
-### Queue 1: Ground RTT: filter GPS noise (movement must be confirmed by 2+ samples)
+### Queue 1: Ground RTT and Airborne RTT: filter GPS noise (movement must be confirmed by 2+ samples)
 Not yet authorized to build. Jon: sitting still shows random movement (his earlier screenshot read 2 mph, 3 km/h, and a heading of 273 while parked). Today `onDrivePos()` takes the device speed (or distance over time) from a single fix and updates the speed and the course from it; a speed above the "moving" limit (5 mph driving, 1 mph on a layover) is enough to turn the dial, and readings below 1.1 mph (0.2 mph on a layover) are only hidden at display time.
-- Ground RTT only (standard card, full screen, and the layover walking mode). The Airborne RTT is not changed.
-- A new `gpsMotion` filter in `script.js` keeps the last fixes. Movement counts only when the last 2 samples (Jon: 2 or more) all agree:
+- Ground RTT at every speed (standard card, full screen, and the layover walking mode). Airborne RTT below 10 mph only (Jon: a plane sitting on the tarmac in flight mode shows the same jitter); at 10 mph or more the Airborne RTT takes each fix at once as today, so there is no 2-sample delay in flight. The Airborne RTT pings every 3 seconds (`pingAir()` / `onAirPos()`), so a confirmation takes about 3 seconds there.
+- One shared `gpsMotion` filter in `script.js` (used by `onDrivePos()` and `onAirPos()`) keeps the last fixes. Movement counts only when the last 2 samples (Jon: 2 or more) all agree:
   - speed above a floor (defaults, change if you disagree: 2 mph driving, 0.7 mph on a layover),
   - heading within plus or minus 30 degrees of each other (heading from the device, else the bearing between fixes),
   - speed within plus or minus max(1 mph, 25%) of each other,
   - the straight-line distance covered across those samples is at least half of what the speed says (speed x time), which rejects GPS jitter in place.
 - Not confirmed = stationary: the speed reads 0 and the course is held (the dial does not turn). Starting to move needs 2 agreeing samples (about 2 seconds at the 1-second ping); once moving, it stays moving until 2 samples in a row fail, so one bad fix does not zero the tape.
 - Once confirmed, the existing speed smoothing and course update run as today. The Distance and bearing use the same filtered position while stationary (the last confirmed position), so the arrow and Distance stop wobbling at a standstill.
-- Verify with simulated GPS and a count of changes: parked with random position jitter (plus or minus 8 m), random speed up to 3 mph and random headings for 120 samples: speed stays 0, course never changes, Distance does not change; steady 30 mph on one heading: moving after 2 samples, speed correct; one wild sample in the middle of a steady run: ignored; a 90-degree turn: accepted after 2 samples in the new direction; layover walking at 2.7 mph with 5 m jitter: reads walking speed, no random speed when still; stopping from 30 mph: reads 0 after 2 samples. Screenshot looked at. Cache-bust and version bump.
+- Verify with simulated GPS and a count of changes: parked with random position jitter (plus or minus 8 m), random speed up to 3 mph and random headings for 120 samples: speed stays 0, course never changes, Distance does not change; steady 30 mph on one heading: moving after 2 samples, speed correct; one wild sample in the middle of a steady run: ignored; a 90-degree turn: accepted after 2 samples in the new direction; Airborne RTT: parked on a tarmac with jitter for 120 samples reads 0 knots and the heading does not change, taxiing at 15 mph is accepted at once (no delay), and accelerating through 10 mph to 150 knots has no jump or lag; layover walking at 2.7 mph with 5 m jitter: reads walking speed, no random speed when still; stopping from 30 mph: reads 0 after 2 samples. Screenshot looked at. Cache-bust and version bump.
 
 ## Build Planner
 
