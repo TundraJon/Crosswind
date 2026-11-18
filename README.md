@@ -552,7 +552,13 @@ Jon: sitting still shows random movement (a parked phone read 2 mph and a headin
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Ground RTT full screen: speed tape 25% wider, numbers twice as large
+Not yet authorized to build. Full screen only (portrait and landscape); the standard card is not changed.
+- Tape 56 px → 70 px wide (`56px` → `70px` in the full-screen grids).
+- Numbers twice as large: the tick labels 0.8rem → 1.6rem, and the speed in the pointer box 0.95rem → 1.9rem.
+- They do not fit as they are (a 3-digit label at 1.6rem is about 46 px, and the tape inside is 67 px with 26 px reserved for the ticks), so, defaults I chose, change if you disagree: in full screen the tick lengths shrink (major 20 → 14 px, minor 10 → 8 px) and the labels sit 16 px from the right edge instead of 26 px. The pointer box width becomes `calc(100% - 8px)` so its tip still meets the short tick; its number drops to 1.5rem when the speed has 3 digits.
+- Left as they are: the unit label (MPH / KPH), and the small other-unit footer under the tape.
+- Verify in full screen at 390x844 and 780x390, mph and kph: tape 70 px, label font 25.6 px and pointer font 30.4 px (about 2x the old sizes), no label clipped or cut at the tape edges, the pointer tip on the short tick and the pointer centre on the speed's tick at several speeds, 2-digit and 3-digit speeds both fit in the box; the standard card unchanged (tape 56 px, old font sizes); screenshots looked at. Cache-bust and version bump.
 
 ## Build Planner
 
