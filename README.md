@@ -435,7 +435,20 @@ The driving compass screen now matches the airborne panel's GPS behaviour. Queue
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Driving screen tape restyle (40-unit window, pointer box)
+Not yet authorized to build. Driving screen only; the airborne tape is not changed. Replaces the Build 62 tape look, keeps its logic (unit from Setup, pill, one-line other-unit footer, GPS dot, 1-second ping).
+- Card order left to right: speed tape, compass, distance.
+- The tape shows 40 units top to bottom (current speed plus and minus 20): 40 mph, or 40 km/h in KPH. Tape height 150 px, so 3.75 px per unit. Pointer stays at the vertical centre.
+- Look from Jon's example: unit label on top (MPH or KPH, pill stays beside it); a vertical line at the right edge with tick marks pointing left from it; a label to the left of each 10 and a shorter tick at each 5; the current speed in a box on the left with a notch pointing right at the tick line at its level. The box reads the real speed even above the scale.
+- Scale stays 0 to 120 mph and 0 to 200 km/h. The strip may show blank space below 0 and above the top, as the airborne tape does.
+- Footer under the tape: one line, the other unit only ("N km/h" in mph mode), larger text than now.
+- Verify with simulated GPS at 0, 35, 70, 120 mph and above, both units, that exactly 40 units are in view, plus a screenshot looked at. Cache-bust and version bump as usual.
+
+### Queue 2: Compass button on Uber out and Rental pickup
+Not yet authorized to build. The Compass button (`#compassBtn`, `dashCompassTarget()` in `script.js`) works today on Hotel, Objective, Home, Uber Home, and Rental Return. Add the two missing steps, with these defaults (change if you disagree):
+- Uber (start of trip, node type `uberOut`): points to the departure airport of the first flight (`airports.js` coordinates; name "Airport — CODE"). Uber has no address field, only times.
+- Rental (pickup, node type `rental`): points to the airport where the stop's last flight lands (`rentalAirportCode()`, the same airport the Rental Return step already uses). Name "Pick up rental — CODE".
+- Hidden when no airport is known, like Rental Return. Verify with a saved trip: button shows on both steps and the drive screen opens with the right name; hidden with no flights.
 
 ## Build Planner
 
