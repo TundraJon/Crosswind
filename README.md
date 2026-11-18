@@ -631,6 +631,13 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
 - Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, and the flight "Auto-Filled via Flight Tracker API" box (Gate only).
 - Missing: reordering stops (flights can be moved, Build 42).
 
+### Airborne RTT right column: make it real (Flight Log, ETA, Distance to Target)
+Idea from Jon's question, not designed. Today the right column of the Airborne card is fixed text ("+2h 15m", "ETA MCI: 08:30 PM (LCL)", "980 MI"). All three could work offline from the GPS and `airports.js` (code, city, state, latitude, longitude, size; no time zones).
+- Distance to Target: straight-line distance (`distanceM()`) from the GPS position to the viewed flight's To airport; the Setup distance unit; "—" with a reason when the To airport is not set, not in the table (non-US airports are not in it), or there is no GPS.
+- ETA: Distance to Target divided by the ground speed (filtered speed, so no jumps on the tarmac), shown as time remaining and as a clock time.
+- Flight Log: unclear what it should be; it could be time in the air so far, or time remaining.
+- Open questions for Jon: the ETA clock time needs the destination's time zone, which the table does not have (options: add a time zone per airport, or show only "time remaining"); what Flight Log should mean; what "in the air" means for the timer (speed above a limit for a while, or a tap); how to treat a headwind or a long taxi (ground speed, not airspeed); whether it also belongs in the Airborne full screen.
+
 ### Other screens not yet designed
 - Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal). A placeholder screen exists (`#screenMedia`); its buttons do nothing.
 - Aviation weather / delay risk (METAR/TAF), never discussed.
