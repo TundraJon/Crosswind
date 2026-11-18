@@ -417,48 +417,42 @@ Jon can import a booking into a new trip, with a preview to confirm first. Built
 - [x] Cache-bust bumped: `script.js?v=27→28`, `styles.css?v=24→25`. Version: v1.16→v1.17.
 - **Verification:** `verify39`, 11 checks, zero JS errors: computed colours of a 25-minute layover and a departure-before-arrival, on the Layover step (border and text) and the Dashboard card, are red; a normal layover and a missing-time layover are not red; screenshot looked at.
 
+### Build 61: Bring the Build Planner up to date (completed)
+README text only. An audit of the Planner against the Build Log and the code at Build 60 found items already built, partly built, or out of date. No code, no cache-bust, no version bump.
+- [x] Removed as done: layover math (Builds 59, 60), the "needed to start the parser" note (Build 58), home address lat/long (Build 54), haversine distance and the driving compass (Build 54), the "build after the airborne panel" condition (Build 57).
+- [x] Trimmed as partly built: units (speed and distance used on the driving screen, only Temperature unused), compass and telemetry (GPS only, no magnetometer), the driving speed tape (still a plain Ground Speed number), Wind-Shear Audio (placeholder screen only), the parser (whole-booking import built, per-step buttons and generic fallback open).
+- [x] Inventory and Trip Wizard headers moved from "after Build 34" to "after Build 60", and the Real list now names Import Itinerary, layover calculation, and rearrange flights.
+- [x] Left as still open: nearest-airports and USPS/CASS, WhatsApp Report, flight tracker Gate box, offline service worker, SQLite, weather, Airplane Mode link, state-aware dashboard, Capacitor and Play Store, reordering stops.
+- **Verification:** a script checked that each removed or replaced phrase appears 0 times and each new line appears once; `git diff --stat` shows `README.md` only. Not checked: the driving screen's 1-second ping and GPS dot (still listed as unchecked in the Planner).
+
 ## Build Queue
 
-### Queue 1: Fix stale Build Planner text (docs only)
-Not yet authorized to build. Found by auditing the Planner against the Build Log and the code at Build 60. README text only, no code, no cache-bust or version bump. Planner only: the Log is not edited (the history is already there).
-**Remove (done):**
-- Layover math: from the Inventory "coming soon" line and the Step 4 flight-tracker bullet (Builds 59, 60). Keep the tracker part.
-- Booking parser: the "Needed to start the parser: one real flight confirmation" line. Build 58 (`booking-parser.js`, Import Itinerary) parses .ics, PDF text, and pasted text for Southwest, Delta, American, and hotels.
-- Setup "missing": the cached lat/long for the home address (Build 54: `geocodeAddress`, `addrLat` / `addrLon`).
-- Step 4: haversine distance and the driving compass (Build 54).
-- "Driving screen: reuse the airborne speed tape": the "build it after the airborne panel" condition is met (Build 57). Keep the item itself (see below).
-**Trim (partly built):**
-- Units: speed and distance units now show on the driving screen. Only Temperature has no use yet. Reword the Setup "missing" line and the Step 4 units bullet.
-- Compass and telemetry: live from GPS only (Builds 54, 57), not the magnetometer. Reword the Step 4 bullet; keep "test smoothing at altitude on a real phone".
-- Driving speed tape: the driving screen still shows a plain Ground Speed number. Keep the open questions. Not yet checked: the 1-second ping and the GPS dot on the driving screen.
-- Wind-Shear Audio: a placeholder screen exists (`#screenMedia`, buttons do nothing). Say so; playback and ID3 reading stay open.
-**Fix:** the Inventory header and "Trip Wizard (after Build 34)" to the current build.
-**Keep as is (still open):** nearest-airports button and USPS/CASS check (disabled), WhatsApp Report (disabled), flight tracker Gate box (disabled), per-step parser buttons (disabled, `parserButtonHTML()`), generic parser fallback, offline service worker, SQLite, weather and delay risk, Airplane Mode link, state-aware dashboard, Capacitor and Play Store build, reordering stops (flights done in Build 42; stops not checked).
+_Empty — nothing queued right now._
 
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
 
-### Inventory: what Setup and the Trip Wizard really do today (updated after Build 34)
-Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished but does nothing real; "Missing" = not built or not designed yet. Setup saves for real (Build 15), trips save (Build 16), and the Wizard's dates and fields are real (Build 18). Since then: remove a flight or stop (Build 21), hotel brand picker and every major chain in the Chain list (Builds 22 and 26), phone formatting (Build 23), a Home step at both ends (Build 29), and steady page height in the Wizard (Builds 30 to 34).
+### Inventory: what Setup and the Trip Wizard really do today (updated after Build 60)
+Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished but does nothing real; "Missing" = not built or not designed yet. Setup saves for real (Build 15), trips save (Build 16), and the Wizard's dates and fields are real (Build 18). Builds 35 to 60 added more (see the Build Log: rearrange flights, Import Itinerary, layover calculation, driving and airborne screens). Earlier: remove a flight or stop (Build 21), hotel brand picker and every major chain in the Chain list (Builds 22 and 26), phone formatting (Build 23), a Home step at both ends (Build 29), and steady page height in the Wizard (Builds 30 to 34).
 
 **Setup, what is still missing**
-- Real address verification (USPS / CASS), cached lat/long for the home address, and the nearest-airports suggestion: Step 4, behind the disabled buttons. The airport table with coordinates now exists (Build 17), so only the address geocoding needs a network.
+- Real address verification (USPS / CASS) and the nearest-airports suggestion: Step 4, behind the disabled buttons. The airport table (Build 17) and the home address lat/long (Build 54) now exist, so what is left is the suggestion list and the address check.
 - Profile details (name, demographics): skipped on purpose, nothing uses them yet. **Saved Addresses** (recurring hotels and client sites that could autofill the Wizard): held for the Wizard spec.
-- Temperature and Distance units are saved but nothing shows a temperature or distance yet (weather, Distance to Home: Step 4).
+- Temperature unit is saved but nothing shows a temperature yet (weather). Speed and Distance units are used on the driving screen (Builds 54, 57).
 
-**Trip Wizard (after Build 34)**
-- Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; forms for every step type with real step dates, confirmation numbers, and gentle validation; Add Another Flight / Stop; "Select…" dropdowns fed by Setup; smart times on Uber fields.
-- Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, the flight "Auto-Filled via Flight Tracker API" box, and the Layover calculation (explanation text only).
-- Missing: reordering stops.
+**Trip Wizard (after Build 60)**
+- Real: saved trips with real dates, computed status and progress, active project, create / edit / delete, Past trips, Starts / Ends at home switches, per-trip itinerary that saves, restore checklist; Import Itinerary from .ics, PDF, or pasted text (Build 58); layover calculation with short and bad-order warnings (Builds 59, 60); rearrange flights (Build 42); forms for every step type with real step dates, confirmation numbers, and gentle validation; Add Another Flight / Stop; "Select…" dropdowns fed by Setup; smart times on Uber fields.
+- Disabled and labelled "coming soon" (waiting on Step 4 services): Text Clipboard Parser, Suggest Address, WhatsApp Report, and the flight "Auto-Filled via Flight Tracker API" box (Gate only).
+- Missing: reordering stops (flights can be moved, Build 42).
 
 ### Driving screen: reuse the airborne speed tape
-Idea from Jon, partly decided, not yet queued. The vertical speed tape being built for the airborne panel (scrolling scale, pointer box, small alternate-unit footer) might replace the plain Ground Speed number on the driving compass screen, adapted to mph or km/h with a finer scale.
+Idea from Jon, partly decided, not yet queued. The vertical speed tape built for the airborne panel (Build 57) (scrolling scale, pointer box, small alternate-unit footer) might replace the plain Ground Speed number still on the driving compass screen (Build 54), adapted to mph or km/h with a finer scale.
 - Decided: the driving screen pings GPS every 1 second (airborne is every 3 seconds), and it also gets the GPS status dot (green lock, yellow when lost for 3 to 9 seconds, red otherwise), in a corner of the driving card like the airborne one.
-- Still open: build it after the airborne panel is done and looks right on a phone; the scale range and tick spacing for driving speeds (every 5 or 10 mph?); whether the tape replaces the Ground Speed number or sits beside it.
+- Still open: whether the 1-second ping and GPS dot are on the driving screen (not yet checked); the scale range and tick spacing for driving speeds (every 5 or 10 mph?); whether the tape replaces the Ground Speed number or sits beside it.
 
 ### Other screens not yet designed
-- Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal).
+- Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal). A placeholder screen exists (`#screenMedia`); its buttons do nothing.
 - Aviation weather / delay risk (METAR/TAF), never discussed.
 - Airplane Mode / wireless settings deep-link, never revisited after flashlight was cut.
 
@@ -466,16 +460,15 @@ Idea from Jon, partly decided, not yet queued. The vertical speed tape being bui
 After the fonts are hosted in the repo, the app still needs a connection for its first load. A service worker that caches `index.html`, `styles.css`, `script.js`, the data files, and the fonts would let it open in airplane mode (a "Progressive Web App"; also lets it be added to the Android home screen). Not designed. Open questions: how updates reach the phone (the cache-busting numbers and a "new version available" prompt), what to do when the cache is stale, and whether the Capacitor / Play Store build (Step 4) makes this unnecessary.
 
 ### Step 4: real logic (needs data, API, or hardware)
-- Flight tracker auto-fill (Aviationstack or AirLabs, provider not chosen); layover math, tap to show how it was calculated. Notes from a discussion with Jon (parked for when this is built):
+- Flight tracker auto-fill (Aviationstack or AirLabs, provider not chosen). Notes from a discussion with Jon (parked for when this is built):
   - A confirmation number plus last name only works inside an airline's own booking system; flight-data services do not accept it (they take flight number plus date, or route plus date). Reaching the reservation from outside would mean scraping each airline's site, which is brittle, breaks their rules, and sends the confirmation number and name to a third party.
-  - Two ways to avoid typing the flight number: (1) the Text Clipboard Parser, pasting the Concur or airline email text (flight number, times, route, confirmation are all in it; works offline, no account); (2) a route lookup from airline + date + from-airport + to-airport (the airport table in `airports.js` helps), listing candidate flights to pick from, then filling the number, gate, and times (needs internet and an API key).
-  - Recommendation: parser first, route lookup later for gates and live times. The app is a static site, so an API key cannot be hidden; each user would enter their own key in Setup (or a small backend proxy is needed). Provider free-tier limits are unchecked.
-  - Needed to start the parser: one real flight confirmation or Concur segment from Jon (name and confirmation number blanked out), so it is designed against real text.
+  - Two ways to avoid typing the flight number: (1) pasting the Concur or airline email text: built as Import Itinerary (Build 58); (2) a route lookup from airline + date + from-airport + to-airport (the airport table in `airports.js` helps), listing candidate flights to pick from, then filling the number, gate, and times (needs internet and an API key). Only (2) is open.
+  - Recommendation: route lookup for gates and live times. The app is a static site, so an API key cannot be hidden; each user would enter their own key in Setup (or a small backend proxy is needed). Provider free-tier limits are unchecked.
 - Nearest-airports suggestion (a short list of nearby airports from the geocoded home address, using the coordinates already in `airports.js`) and USPS/CASS address validation, reused for Hotel/Destination addresses.
-- Text Clipboard Parser per step type, one segment at a time from a Concur itinerary (full-itinerary auto-build was explicitly dropped).
+- Per-step Text Clipboard Parser buttons (disabled, `parserButtonHTML()` in `script.js`), one segment at a time; could reuse `booking-parser.js` (Build 58). Also open: the generic fallback for booking layouts the parser does not recognise.
 - WhatsApp Report (content and layout not designed; Markdown to clipboard).
 - SQLite persistence (profile, loyalty, Touchless, units, step defaults, projects, per-project wizard data). Today only `crosswindLastRequest` and `crosswindFavorites` use localStorage.
-- Haversine distance from home; compass and cockpit telemetry from magnetometer + GPS (needs smoothing at altitude, real Android device).
+- Compass and cockpit telemetry are live from GPS (Builds 54, 57; haversine distance done). Still open: smoothing at altitude and a real Android device check. The magnetometer is not used.
 - State-aware dashboard engine; Wind-Shear Audio playback.
-- Wire the Temperature and Distance units where they are shown (weather, Distance to Home).
+- Wire the Temperature unit where it is shown (weather). Speed and Distance units are wired (Builds 54, 57).
 - Capacitor scaffold, Android-only build, Play Store; secure storage for addresses, KTN, and loyalty IDs before selling.
