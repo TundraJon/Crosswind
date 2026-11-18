@@ -552,13 +552,13 @@ Jon: sitting still shows random movement (a parked phone read 2 mph and a headin
 
 ## Build Queue
 
-### Queue 1: Ground RTT full screen: speed tape 25% wider, numbers twice as large
-Not yet authorized to build. Full screen only (portrait and landscape); the standard card is not changed.
-- Tape 56 px → 70 px wide (`56px` → `70px` in the full-screen grids).
+### Queue 1: Ground RTT full screen: speed tape 100 px wide, numbers twice as large
+Not yet authorized to build. Full screen only (portrait and landscape); the standard card is not changed. Jon first asked for 25% wider (70 px), then set it to 100 px.
+- Tape 56 px → 100 px wide (`56px` → `100px` in the full-screen grids: landscape `100px minmax(0, 1fr) 190px`, portrait `100px minmax(0, 1fr)`). The dial and the place / Distance column give up the 44 px.
 - Numbers twice as large: the tick labels 0.8rem → 1.6rem, and the speed in the pointer box 0.95rem → 1.9rem.
-- They do not fit as they are (a 3-digit label at 1.6rem is about 46 px, and the tape inside is 67 px with 26 px reserved for the ticks), so, defaults I chose, change if you disagree: in full screen the tick lengths shrink (major 20 → 14 px, minor 10 → 8 px) and the labels sit 16 px from the right edge instead of 26 px. The pointer box width becomes `calc(100% - 8px)` so its tip still meets the short tick; its number drops to 1.5rem when the speed has 3 digits.
-- Left as they are: the unit label (MPH / KPH), and the small other-unit footer under the tape.
-- Verify in full screen at 390x844 and 780x390, mph and kph: tape 70 px, label font 25.6 px and pointer font 30.4 px (about 2x the old sizes), no label clipped or cut at the tape edges, the pointer tip on the short tick and the pointer centre on the speed's tick at several speeds, 2-digit and 3-digit speeds both fit in the box; the standard card unchanged (tape 56 px, old font sizes); screenshots looked at. Cache-bust and version bump.
+- At 100 px everything fits as it is, so the tick lengths (20 / 10 px) and the label spacing (26 px) stay. The pointer box width in full screen is `calc(100% - 10px)` (tape inner width minus the short tick) so its tip still meets the short tick. No 3-digit handling: Jon says ground speed in mph is never 3 digits (note: in km/h a speed of 100 or more is 3 digits; a 3-digit speed at this size is about 57 px and still fits the 87 px box).
+- Left as they are: the unit label (MPH / KPH) and the small other-unit footer under the tape.
+- Verify in full screen at 390x844 and 780x390, mph and kph: tape 100 px, label font 25.6 px and pointer font 30.4 px (twice the old sizes), no label clipped, the pointer tip on the short tick and the pointer centre on the speed's tick at several speeds (including 45 mph and 110 km/h), the dial still at least 200 px in landscape and the portrait layout still centred and unclipped; the standard card unchanged (tape 56 px, old font sizes); screenshots looked at. Cache-bust and version bump.
 
 ## Build Planner
 
