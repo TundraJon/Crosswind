@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.32) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.33) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#10161f">
 <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" href="styles.css?v=38">
+<link rel="stylesheet" href="styles.css?v=39">
 </head>
 <body>
 
@@ -233,7 +233,7 @@
 <!-- ================= SCREEN 3: DASHBOARD ================= -->
 <div class="screen" id="screenDash">
   <div class="panel">
-    <div class="dash-head"><div class="hd-l"><button class="hz-btn" id="horizonBtn" aria-label="Travel Horizon Calendar">📅</button><span id="dashProject">Active: —</span></div><div class="hd-r">🏠 Distance to Home: <b>—</b></div></div>
+    <div class="dash-head"><div class="hd-l"><button class="hz-btn" id="horizonBtn" aria-label="Travel Horizon Calendar">📅</button><span id="dashProject">Active: —</span></div><button class="hd-r" id="homeDistBtn" type="button">🏠 Distance to Home: <b id="homeDistVal">—</b> <span class="tap-hint">(tap)</span></button></div>
     <div class="proj-bar dash-bar" id="dashBar"><i></i></div>
     <div class="node-track" id="dashTrack"></div>
     <div class="quick-card" id="dashCard"></div>
@@ -408,7 +408,7 @@
 <script src="airports.js?v=1"></script>
 <script src="hotel-brands.js?v=2"></script>
 <script src="booking-parser.js?v=1"></script>
-<script src="script.js?v=37"></script>
+<script src="script.js?v=38"></script>
 
 </body>
 </html>

@@ -196,8 +196,9 @@
   .hz-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin-top: 10px; max-height: 84px; overflow-y: auto; }
   .hz-legend .hz-item { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; padding: 4px 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hz-legend .hz-empty { grid-column: 1 / -1; font-size: 0.7rem; color: var(--text-dim); text-align: center; }
-  .dash-head .hd-r { color: var(--text-dim); white-space: nowrap; }
-  .dash-head .hd-r b { color: var(--text); }
+  .dash-head .hd-r { color: var(--text-dim); background: none; border: 0; font: inherit; letter-spacing: inherit; text-transform: inherit; text-align: right; cursor: pointer; min-height: 40px; padding: 0 2px; margin: -8px 0; max-width: 58%; }
+  .dash-head .hd-r b { color: var(--text); text-decoration: underline dotted; text-underline-offset: 3px; }
+  .dash-head .hd-r .tap-hint { color: var(--cyan-dim); white-space: nowrap; }
   .quick-card { border: 1px solid var(--cyan-dim); border-radius: 12px; box-shadow: var(--glow-cyan), inset 0 0 30px rgba(77, 216, 255, 0.04); padding: 14px; text-align: center; margin-bottom: 10px; background: var(--bg-card); }
   .qc-title { font-family: var(--font-display); font-size: 1.05rem; letter-spacing: 0.08em; border-bottom: 2px solid var(--cyan); display: inline-block; padding-bottom: 4px; margin-bottom: 10px; }
   .qc-route { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }

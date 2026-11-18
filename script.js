@@ -12,7 +12,7 @@
     if (id === 'screenWizard') refreshWizardSpacer();
     if (id !== 'screenDash') { stopAir(); stopDrive(); rttOn = false; }
     if (id === 'screenSetup') updateOfflineStatus();
-    if (id === 'screenDash') renderDash();
+    if (id === 'screenDash') { renderDash(); refreshHomeDist(); }
   }
   navBtns.forEach(b => b.addEventListener('click', () => showScreen(b.dataset.screen)));
   document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showScreen(b.dataset.goto)));
@@ -1336,6 +1336,29 @@
   const GROUND_RTT_TYPES = ['uberOut', 'rental', 'hotel', 'destination', 'rentalReturn', 'uberHome', 'home', 'layover'];
   const COPY_ADDR_TYPES = ['hotel', 'destination', 'home', 'uberHome'];
   let dashAddr = '';
+  /* ---- Distance to Home (Dashboard header): one GPS reading when the Dashboard opens, when the step viewed changes, and when the number is tapped ---- */
+  let homeDistM = null, homeDistState = '', homeDistBusy = false;
+  const HOME_DIST_REASON = { nohome: 'no home address', notlocated: 'home not located', denied: 'location off', nogps: 'no GPS signal' };
+  function fmtHomeDist(m) {
+    if (currentUnits().dist === 'km') return m < 100 ? Math.round(m) + ' M' : (m < 100000 ? (m / 1000).toFixed(1) : Math.round(m / 1000).toLocaleString('en-US')) + ' KM';
+    const mi = m / 1609.344;
+    return mi < 0.1 ? Math.round(m * 3.28084) + ' FT' : (mi < 100 ? mi.toFixed(1) : Math.round(mi).toLocaleString('en-US')) + ' MI';
+  }
+  function renderHomeDist() {
+    const el = document.getElementById('homeDistVal'); if (!el) return;
+    el.textContent = homeDistState === 'busy' ? '…' : homeDistState === 'ok' && homeDistM != null ? fmtHomeDist(homeDistM) : (HOME_DIST_REASON[homeDistState] || '—');
+  }
+  function setHomeDist(state) { homeDistState = state; renderHomeDist(); }
+  function refreshHomeDist() {
+    if (homeDistBusy) return;
+    if (!addrInput.value.trim()) { setHomeDist('nohome'); return; }
+    if (homeLat == null || homeLon == null) { setHomeDist('notlocated'); return; }
+    if (!navigator.geolocation) { setHomeDist('nogps'); return; }
+    homeDistBusy = true; setHomeDist('busy');
+    navigator.geolocation.getCurrentPosition(pos => { homeDistBusy = false; homeDistM = distanceM(pos.coords.latitude, pos.coords.longitude, homeLat, homeLon); setHomeDist('ok'); },
+      err => { homeDistBusy = false; setHomeDist(err && err.code === 1 ? 'denied' : 'nogps'); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
+  }
+  document.getElementById('homeDistBtn').addEventListener('click', refreshHomeDist);
   function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function dv(t) { const s = (t == null ? '' : String(t)).trim(); return s ? esc(s) : '—'; }
   function dashFlightFor(node) {
@@ -1441,7 +1464,7 @@
       if (idx < selIdx) cls += ' done passed'; else if (idx === selIdx) cls += ' current';
       div.className = cls; div.dataset.key = n.key;
       div.innerHTML = '<div class="nd">' + esc(n.icon) + '</div><div class="nl">' + esc(n.label) + '</div>';
-      div.addEventListener('click', () => { if (n.key !== dashSelected) rttOn = false; dashSelected = n.key; renderDash(); });
+      div.addEventListener('click', () => { const changed = n.key !== dashSelected; if (changed) rttOn = false; dashSelected = n.key; renderDash(); if (changed) refreshHomeDist(); });
       dashTrack.appendChild(div);
     });
     const cur = dashTrack.querySelector('.node.current');
