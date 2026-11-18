@@ -1807,7 +1807,7 @@
 
   /* ---- The driving screen: arrow to the destination, relative to the direction of travel (GPS course only), ground speed, distance ---- */
   const MOVING_MS = 2.2352; /* 5 mph */
-  let drivePing = null, driveStatusTimer = null, driveFixAt = null, driveDenied = false, driveBuiltUnit = '', driveDest = null, drivePrev = null, driveSpeed = null, driveCourse = null, driveMph = true;
+  let driveDestFull = '', drivePing = null, driveStatusTimer = null, driveFixAt = null, driveDenied = false, driveBuiltUnit = '', driveDest = null, drivePrev = null, driveSpeed = null, driveCourse = null, driveMph = true;
   function fmtDriveDist(m) {
     const km = currentUnits().dist === 'km';
     if (km) return m < 100 ? Math.round(m) + ' <small>M</small>' : (m / 1000).toFixed(1) + ' <small>KM</small>';
@@ -1890,10 +1890,10 @@
   }
   let driveDialBuilt = false;
   function startDrive(target) {
-    if (drivePing) { driveDest = target; document.getElementById('driveDest').textContent = target.name; renderDrive(driveLastFix); return; }
+    if (drivePing) { driveDest = target; driveDestFull = target.name; fitDriveDest(); renderDrive(driveLastFix); return; }
     driveDest = target; drivePrev = null; driveFixAt = null; driveDenied = false; driveSpeed = null; driveCourse = null; driveMph = currentUnits().speed !== 'kph'; driveBuiltUnit = '';
     if (!driveDialBuilt) { document.getElementById('driveDial').innerHTML = dialMarkup(); driveDialBuilt = true; }
-    document.getElementById('driveDest').textContent = target.name;
+    driveDestFull = target.name; fitDriveDest();
     cardGround.dataset.rel = ''; cardGround.dataset.dist = '';
     renderDrive(null);
     if (!navigator.geolocation) { driveMessage('This device has no GPS.'); return; }
@@ -1904,7 +1904,18 @@
   }
   /* Full screen: tap the card (not the unit pill). True browser full screen when allowed, otherwise the card fills the app window. */
   let groundTrueFs = false;
-  function groundRerender() { requestAnimationFrame(() => { if (drivePing || driveLastFix) renderDrive(driveLastFix); }); }
+  /* The place name wraps to at most 3 lines; if it is longer the last words are dropped and "…" is added. Done here because the CSS ellipsis is clipped on right-justified text. */
+  function fitDriveDest() {
+    const el = document.getElementById('driveDest'); if (!el) return;
+    el.textContent = driveDestFull;
+    if (!driveDestFull || !el.clientWidth) return;
+    const over = () => el.scrollHeight > el.clientHeight + 1;
+    if (!over()) return;
+    const words = driveDestFull.split(/\s+/); let n = words.length;
+    while (n > 1) { n--; el.textContent = words.slice(0, n).join(' ') + '…'; if (!over()) return; }
+    let s = words[0]; while (s.length > 1) { s = s.slice(0, -1); el.textContent = s + '…'; if (!over()) return; }
+  }
+  function groundRerender() { requestAnimationFrame(() => { fitDriveDest(); if (drivePing || driveLastFix) renderDrive(driveLastFix); }); }
   function openGroundFull() {
     cardGround.classList.add('ground-full');
     try { const p = cardGround.requestFullscreen && cardGround.requestFullscreen(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
@@ -1923,7 +1934,7 @@
     else if (groundTrueFs) { groundTrueFs = false; cardGround.classList.remove('ground-full'); groundRerender(); }
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGroundFull(); });
-  window.addEventListener('resize', () => { if (cardGround.classList.contains('ground-full')) groundRerender(); });
+  window.addEventListener('resize', () => { if (cardGround.style.display !== 'none') groundRerender(); });
   function stopDrive() { closeGroundFull(); if (drivePing) { clearInterval(drivePing); clearInterval(driveStatusTimer); } drivePing = driveStatusTimer = null; }
   rttBtn.addEventListener('click', () => {
     if (!rttMode || rttBtn.disabled) return;
