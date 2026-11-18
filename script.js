@@ -4,13 +4,13 @@
   /* ============ SCREEN NAV ============ */
   const screens = document.querySelectorAll('.screen');
   const navBtns = document.querySelectorAll('#devNav button');
-  let airOn = false, airOnKey = '';
+  let rttOn = false, rttKey = '';
   function showScreen(id) {
     screens.forEach(s => s.classList.toggle('active', s.id === id));
     navBtns.forEach(b => b.classList.toggle('active', b.dataset.screen === id));
     window.scrollTo(0, 0);
     if (id === 'screenWizard') refreshWizardSpacer();
-    if (id !== 'screenDash') { stopAir(); airOn = false; }
+    if (id !== 'screenDash') { stopAir(); stopDrive(); rttOn = false; }
     if (id === 'screenDash') renderDash();
   }
   navBtns.forEach(b => b.addEventListener('click', () => showScreen(b.dataset.screen)));
@@ -1330,6 +1330,7 @@
   const dashCard = document.getElementById('dashCard');
   const dashDock = document.getElementById('dashDock');
   const cardAir = document.getElementById('cardAir');
+  const cardGround = document.getElementById('cardGround');
   let dashSelected = 'uber-out';
   let dashAddr = '';
   function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -1422,7 +1423,7 @@
       dashTrack.innerHTML = '';
       dashCard.innerHTML = '<div class="qc-line">No active trip — create one in Trip Wizard</div>';
       dashCard.style.display = 'block'; cardAir.style.display = 'none';
-      dashAddr = ''; dashDock.style.display = 'none'; stopAir();
+      dashAddr = ''; dashDock.style.display = 'none'; stopAir(); stopDrive(); cardGround.style.display = 'none';
       return;
     }
     const nodes = buildNodes();
@@ -1437,7 +1438,7 @@
       if (idx < selIdx) cls += ' done passed'; else if (idx === selIdx) cls += ' current';
       div.className = cls; div.dataset.key = n.key;
       div.innerHTML = '<div class="nd">' + esc(n.icon) + '</div><div class="nl">' + esc(n.label) + '</div>';
-      div.addEventListener('click', () => { if (n.key !== dashSelected) airOn = false; dashSelected = n.key; renderDash(); });
+      div.addEventListener('click', () => { if (n.key !== dashSelected) rttOn = false; dashSelected = n.key; renderDash(); });
       dashTrack.appendChild(div);
     });
     const cur = dashTrack.querySelector('.node.current');
@@ -1445,16 +1446,18 @@
     dashCard.innerHTML = dashCardHTML(node);
     wireDashInputs(node);
     const isFlight = node.type === 'flight' || node.type === 'returnFlight';
-    const showAir = airOn && airOnKey === node.key && isFlight;
-    dashCard.style.display = showAir ? 'none' : 'block';
-    cardAir.style.display = showAir ? 'block' : 'none';
-    if (showAir) startAir(); else stopAir();
     dashAddr = (dashAddressFor(node) || '').trim();
     dashCompass = isFlight ? null : dashCompassTarget(node);
     rttMode = isFlight ? 'air' : (dashCompass ? 'ground' : '');
+    const on = rttOn && rttKey === node.key, showAir = on && rttMode === 'air', showGround = on && rttMode === 'ground';
+    dashCard.style.display = (showAir || showGround) ? 'none' : 'block';
+    cardAir.style.display = showAir ? 'block' : 'none';
+    cardGround.style.display = showGround ? 'block' : 'none';
+    if (showAir) startAir(); else stopAir();
+    if (showGround) startDrive(dashCompass); else stopDrive();
     copyAddrBtn.style.display = dashAddr ? '' : 'none';
     rttBtn.style.display = rttMode ? '' : 'none';
-    rttBtn.innerHTML = rttMode === 'air' ? (showAir ? '📋 Flight Details<small>Back to the flight card</small>' : '✈ Airborne RTT<small>Live GPS speed and heading</small>') : '🧭 Ground RTT<small>Works offline</small>';
+    rttBtn.innerHTML = rttMode === 'air' ? (showAir ? '📋 Flight Details<small>Back to the flight card</small>' : '✈ Airborne RTT<small>Live GPS speed and heading</small>') : (showGround ? '📋 Step Details<small>Back to the step card</small>' : '🧭 Ground RTT<small>Works offline</small>');
     dashDock.style.display = (dashAddr || rttMode) ? 'flex' : 'none';
   }
   const copyAddrBtn = document.getElementById('copyAddrBtn');
@@ -1634,6 +1637,15 @@
   /* ============ AIRBORNE PANEL: airspeed tape + heading compass, live from GPS (one ping every 3 seconds) ============ */
   const AIR_K = 2.4, AIR_CENTER = 100, KT_PER_MS = 1.943844;
   let airTimer = null, airStatusTimer = null, airFix = null, airPrev = null, airKnots = null, airHdg = null, airDenied = false, airBuilt = false;
+  function dialMarkup() {
+    let d = '<circle r="90"/>';
+    for (let a = 0; a < 360; a += 5) { const maj = a % 10 === 0; d += '<line class="' + (maj ? 'mj' : '') + '" x1="0" y1="-90" x2="0" y2="' + (maj ? -78 : -84) + '" transform="rotate(' + a + ')"/>'; }
+    for (let a = 0; a < 360; a += 30) {
+      const card = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }[a];
+      d += '<text class="' + (card ? 'card' : '') + '" transform="rotate(' + a + ') translate(0,-62)">' + (card || (a / 10)) + '</text>';
+    }
+    return d;
+  }
   function buildAir() {
     if (airBuilt) return; airBuilt = true;
     const strip = document.getElementById('airStrip'); let html = '';
@@ -1642,13 +1654,7 @@
       if (v % 10 === 0) html += '<div class="tk" style="top:' + y + 'px"></div><div class="tl" style="top:' + y + 'px">' + v + '</div>'; else html += '<div class="tk5" style="top:' + y + 'px"></div>';
     }
     strip.innerHTML = html; strip.style.height = Math.round(900 * AIR_K) + 'px';
-    const dial = document.getElementById('airDial'); let d = '<circle r="90"/>';
-    for (let a = 0; a < 360; a += 5) { const maj = a % 10 === 0; d += '<line class="' + (maj ? 'mj' : '') + '" x1="0" y1="-90" x2="0" y2="' + (maj ? -78 : -84) + '" transform="rotate(' + a + ')"/>'; }
-    for (let a = 0; a < 360; a += 30) {
-      const card = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }[a];
-      d += '<text class="' + (card ? 'card' : '') + '" transform="rotate(' + a + ') translate(0,-62)">' + (card || (a / 10)) + '</text>';
-    }
-    dial.innerHTML = d;
+    document.getElementById('airDial').innerHTML = dialMarkup();
   }
   function airStatusNow() {
     if (airDenied || !airFix) return 'red';
@@ -1786,7 +1792,6 @@
   }
 
   /* ---- The driving screen: arrow to the destination, relative to the direction of travel (GPS course only), ground speed, distance ---- */
-  const driveScreen = document.getElementById('driveScreen');
   const MOVING_MS = 2.2352; /* 5 mph */
   let drivePing = null, driveStatusTimer = null, driveFixAt = null, driveDenied = false, driveBuiltUnit = '', driveDest = null, drivePrev = null, driveSpeed = null, driveCourse = null, driveMph = true;
   function fmtDriveDist(m) {
@@ -1822,13 +1827,16 @@
   function renderDriveStatus() {
     const st = driveStatusNow(), box = document.getElementById('driveStatus');
     box.querySelector('i').className = 'air-dot ' + st; box.querySelector('span').textContent = st === 'green' ? 'GPS LOCK' : st === 'yellow' ? 'GPS STALE' : 'NO GPS';
-    driveScreen.dataset.status = st;
+    cardGround.dataset.status = st;
   }
+  function setDriveRel(r) { document.getElementById('driveArrow').setAttribute('transform', 'rotate(' + r + ')'); }
   function renderDrive(fix) {
     driveLastFix = fix;
     const course = driveCourse == null ? 0 : driveCourse;
-    document.getElementById('drivePlane').style.setProperty('--course', course);
-    driveScreen.dataset.course = driveCourse == null ? '' : Math.round(driveCourse);
+    const hdg = driveCourse, h3 = hdg == null ? 0 : Math.round(hdg) % 360;
+    document.getElementById('driveHdg').textContent = hdg == null ? '---' : String(h3 === 0 ? 360 : h3).padStart(3, '0');
+    document.getElementById('driveDial').setAttribute('transform', 'rotate(' + (hdg == null ? 0 : -hdg) + ')');
+    cardGround.dataset.course = driveCourse == null ? '' : Math.round(driveCourse);
     const spd = document.getElementById('driveSpeed');
     const ms = (driveSpeed == null || driveSpeed < (driveWalk() ? 0.1 : 0.5)) ? 0 : driveSpeed;
     buildDriveTape();
@@ -1838,14 +1846,14 @@
     document.getElementById('drivePill').textContent = driveMph ? 'KPH' : 'MPH';
     document.getElementById('driveAlt').textContent = (driveMph ? (ms * 3.6).toFixed(sc.dec) + ' km/h' : (ms * 2.23694).toFixed(sc.dec) + ' mph');
     document.getElementById('driveStrip').style.transform = 'translateY(' + (DRIVE_CENTER - (spMax - Math.max(0, Math.min(spMax, sp))) * DRIVE_H / sc.win) + 'px)';
-    driveScreen.dataset.speed = sp.toFixed(sc.dec);
+    cardGround.dataset.speed = sp.toFixed(sc.dec);
     if (!fix) { document.getElementById('driveDist').innerHTML = '—'; return; }
-    if (driveWalk()) { document.getElementById('drivePlane').style.setProperty('--rel', 0); document.getElementById('driveDist').innerHTML = '—'; driveScreen.dataset.rel = '0'; driveScreen.dataset.dist = ''; return; }
+    if (driveWalk()) { setDriveRel(0); document.getElementById('driveDist').innerHTML = '—'; cardGround.dataset.rel = '0'; cardGround.dataset.dist = ''; return; }
     const dist = distanceM(fix.lat, fix.lon, driveDest.lat, driveDest.lon), brg = bearingDeg(fix.lat, fix.lon, driveDest.lat, driveDest.lon);
     const rel = (brg - course + 360) % 360;
-    document.getElementById('drivePlane').style.setProperty('--rel', rel);
+    setDriveRel(rel);
     document.getElementById('driveDist').innerHTML = fmtDriveDist(dist);
-    driveScreen.dataset.rel = Math.round(rel); driveScreen.dataset.bearing = Math.round(brg); driveScreen.dataset.dist = Math.round(dist);
+    cardGround.dataset.rel = Math.round(rel); cardGround.dataset.bearing = Math.round(brg); cardGround.dataset.dist = Math.round(dist);
   }
   function driveMessage(t) { const m = document.getElementById('driveMsg'); m.textContent = t || ''; m.style.display = t ? 'block' : 'none'; }
   function onDrivePos(pos) {
@@ -1866,10 +1874,13 @@
     else if (e && e.code === 2) driveMessage('No GPS position yet. Try again with a clear view of the sky.');
     else driveMessage('Waiting for GPS…');
   }
-  function openDrive(target) {
-    driveDest = target; drivePrev = null; driveFixAt = null; driveDenied = false; driveSpeed = null; driveCourse = null; driveMph = currentUnits().speed !== 'kph';
+  let driveDialBuilt = false;
+  function startDrive(target) {
+    if (drivePing) { driveDest = target; document.getElementById('driveDest').textContent = target.name; renderDrive(driveLastFix); return; }
+    driveDest = target; drivePrev = null; driveFixAt = null; driveDenied = false; driveSpeed = null; driveCourse = null; driveMph = currentUnits().speed !== 'kph'; driveBuiltUnit = '';
+    if (!driveDialBuilt) { document.getElementById('driveDial').innerHTML = dialMarkup(); driveDialBuilt = true; }
     document.getElementById('driveDest').textContent = target.name;
-    driveScreen.style.display = 'flex'; driveScreen.dataset.rel = ''; driveScreen.dataset.dist = '';
+    cardGround.dataset.rel = ''; cardGround.dataset.dist = '';
     renderDrive(null);
     if (!navigator.geolocation) { driveMessage('This device has no GPS.'); return; }
     driveMessage('Waiting for GPS…');
@@ -1877,12 +1888,11 @@
     const pingDrive = () => navigator.geolocation.getCurrentPosition(onDrivePos, onDriveErr, { enableHighAccuracy: true, maximumAge: 0, timeout: 3000 });
     pingDrive(); drivePing = setInterval(pingDrive, 1000); driveStatusTimer = setInterval(renderDriveStatus, 1000);
   }
-  function closeDrive() { if (drivePing) { clearInterval(drivePing); clearInterval(driveStatusTimer); } drivePing = driveStatusTimer = null; driveScreen.style.display = 'none'; }
+  function stopDrive() { if (drivePing) { clearInterval(drivePing); clearInterval(driveStatusTimer); } drivePing = driveStatusTimer = null; }
   rttBtn.addEventListener('click', () => {
-    if (rttMode === 'air') { airOn = !(airOn && airOnKey === dashSelected); airOnKey = dashSelected; renderDash(); }
-    else if (dashCompass) openDrive(dashCompass);
+    if (!rttMode) return;
+    rttOn = !(rttOn && rttKey === dashSelected); rttKey = dashSelected; renderDash();
   });
-  document.getElementById('driveBack').addEventListener('click', closeDrive);
 
   /* ============ IMPORT A BOOKING (.ics, PDF, or pasted text) ============ */
   const itinModal = document.getElementById('itinModal');

@@ -459,23 +459,31 @@ Queue 4.
 - **Verification:** `verify2`: title "Layover", 13 labels and 61 ticks in mph, 21 labels and 101 ticks in km/h, Distance "—", arrow at 0, 1.2 m/s reads 2.6 mph (smoothed) with a matching strip offset, the ring turns to a 135° course at walking speed; screenshot looked at.
 - **Not checked:** a real phone with real GPS (indoor GPS in a terminal can be weak and jumpy); the old driving regression script (`verify35`) was not re-run.
 
+### Build 67: Fix the Ground RTT speed tape (completed)
+Queue 1. Jon saw about 50 units on the tape, not 40, and the pointer tip off the ticks. The Build 63 check had measured the strip offset only, not the tape height or the pointer position.
+- [x] `styles.css`: `.tape { height: 200px }` (later in the file) overrode `.drive-tape { height: 150px }`, so the tape was 200 px high (about 53 units) and the pointer (50% of 200) was 25 px below the strip centre (75 px). The rule is now `.drive-speedbox .drive-tape` with `box-sizing: content-box`, so the tape is exactly 150 px inside its border and 40 units show.
+- [x] `.dt-ptr` is 99 px wide so the arrow tip reaches the left end of the short (5) tick, and the box covers the label at its level.
+- [x] Cache-bust bumped (Builds 67 to 69 together): `script.js?v=30→31`, `styles.css?v=27→28`. Version: v1.19→v1.20.
+- **Verification:** `verify3` (scratch, not committed; simulated GPS, headless Chromium 780x390, zero JS errors), measured with bounding boxes: tape padding box 150 px; at 0, 45, 70, and 119 mph the pointer centre is within 2 px of the speed's tick and equals the tape centre; the tip meets the short tick within 1.5 px; about 40 units in view (40.5 counting the 2 px border); screenshot looked at. Found and fixed during verification: my first fix used a selector with the same weight as `.tape`, so the 200 px height still won (measured 202 px); the selector was made more specific.
+
+### Build 68: Ground RTT compass like the Airborne RTT dial (completed)
+Queue 2.
+- [x] `script.js`: `dialMarkup()` extracted from `buildAir()` (same ticks every 5 degrees, longer every 10, labels every 30 with N / E / S / W) and used for both `#airDial` and the new `#driveDial`. `renderDrive()` turns the dial by minus the course and fills the heading box `#driveHdg` (three digits, "---" without a course). The target arrow (`#driveArrow`, `setDriveRel()`) is drawn on top of the dial, turned by the relative bearing; straight up on a layover. No aircraft reticle.
+- [x] `styles.css`: the dial rules (`#airDial line / text / circle`) also apply to `#driveDial`. The tilted 3D ring and its CSS were removed.
+- [x] Cache-bust and version: see Build 67.
+- **Verification:** `verify3`: 72 ticks (36 longer) and 12 labels; heading box reads 135 for a 135 degree course and the dial turns to -135; the arrow turns to a bearing at a hotel and stays at 0 on a layover; screenshot looked at. Found and fixed during verification: the first screenshot showed a plain black disc because the dial styles were tied to `#airDial` only.
+
+### Build 69: Ground RTT replaces the step card (completed)
+Queue 3. No more full-screen Ground RTT.
+- [x] `index.html` / `script.js`: `#driveScreen`, its Back button, and `openDrive()` / `closeDrive()` removed. New inline card `#cardGround` after `#cardAir`: tape | compass | right column (place name above Distance, "Layover" on a layover), GPS dot top right, message line below. `startDrive()` / `stopDrive()` run from `renderDash()` exactly as `startAir()` / `stopAir()` do. One shared flag (`rttOn`, `rttKey`, was `airOn`) so only one RTT card is open; it resets on a step change and when leaving the Dashboard. The dock button reads Ground RTT, then "Step Details" while the card is open. Copy Address stays in the dock.
+- [x] `styles.css`: `#cardGround`, `.ground-grid` (112 px | 1fr | 104 px), `.ground-dest`; the full-screen CSS (`.drive-screen`, `.drive-head`, `.drive-dest`, `.drive-card`, `.drive-compass`, `.drive-plane`, `.drive-ring`, `.drive-n`, `.drive-arrow`, `.drive-fwd`) removed as stale.
+- [x] Cache-bust and version: see Build 67.
+- **Verification:** `verify3`: the Ground RTT card shows and the step card hides on Uber out, Rental, Hotel, and Layover; no `#driveScreen` left; button text; a second tap brings the step card back; no GPS requests while closed or after closing; both cards off after a step change and after leaving and returning to the Dashboard; tape, compass, distance in that order; screenshots looked at.
+- **Not checked:** a real phone with real GPS; narrow portrait width; the old driving regression script (`verify35`) was not re-run.
+
 ## Build Queue
 
-### Queue 1: Fix the Ground RTT speed tape (window and pointer)
-Not yet authorized to build. Found by Jon on a phone: the tape shows about 50 units, not 40, and the pointer tip is not on the tick. Cause: `.tape { height: 200px }` (later in `styles.css`) overrides `.drive-tape { height: 150px }`, so the tape is 200 px tall (about 53 units at 3.75 px per unit) and the pointer sits at 100 px while the strip is centred at 75 px (`DRIVE_CENTER`). Build 63's check measured the strip offset but never the tape height or the pointer position, so it missed this.
-- Make the 150 px height win (a more specific selector), so exactly 40 units show and the pointer centre equals `DRIVE_CENTER`.
-- Pointer tip: the arrow tip reaches the left end of the short (5) tick at the current speed's level, as in Jon's screenshot, with the box covering the label area at that level. Pointer vertical centre equals the y of the current speed on the strip.
-- Verify by measuring in the browser: tape height 150, 40 units between the top and bottom edges at several speeds, pointer centre within 1 px of the speed's tick at 0, 45, 70, and 120 mph, tip x at the short tick's left end; screenshot looked at.
-
-### Queue 2: Ground RTT compass like the Airborne RTT dial
-Not yet authorized to build. Reuse the airborne rose: the flat SVG dial from `buildAir()` (tick every 5 degrees, longer every 10, a label every 30 degrees with N / E / S / W and the others as degrees divided by 10), turned by minus the heading, with the heading box above it (`.hdg-box`, three digits, "---" when there is no course). Replaces the tilted 3D ring. The target arrow stays on top of the dial (turned by the bearing relative to the course); no aircraft reticle, to keep the arrow clear. On a layover the arrow points straight up, as in Build 66. Verify: dial ticks and labels match the airborne one, heading box reads the course (for example 135), arrow follows the bearing; screenshot looked at.
-
-### Queue 3: Ground RTT replaces the step card (no full screen)
-Not yet authorized to build. Ground RTT becomes an inline card `#cardGround` that replaces the Uber / Rental / Hotel / Objective / Rental Return / Uber Home / Layover card, exactly as the Airborne RTT card replaces the flight card. The full-screen `#driveScreen` and its Back button are removed.
-- Card layout copies the airborne card: tape | compass | right column. Right column: the place name (or "Layover") above Distance. GPS status dot top right; the GPS message line below.
-- The dock button says Ground RTT, then "Step Details" while the card is open; one tap each way. Copy Address stays in the dock. Uses the same on / off state as the Airborne RTT (one `airOn` style flag, reset on step change and on leaving the Dashboard), so only one RTT card can be open.
-- GPS (the 1-second ping, the status dot, the walking mode on a layover, units and the pill) all keep working unchanged; `openDrive()` / `closeDrive()` become start and stop of the inline card.
-- Verify: card swap on each step type, button text, the step card returns, pings only while open, no full-screen overlay left; screenshot looked at.
+_Empty — nothing queued right now._
 
 ## Build Planner
 
