@@ -1479,7 +1479,7 @@
     dashCard.style.display = (showAir || showGround) ? 'none' : 'block';
     cardAir.style.display = showAir ? 'block' : 'none';
     cardGround.style.display = showGround ? 'block' : 'none';
-    if (showAir) startAir(); else stopAir();
+    if (showAir) { airNode = node; airJourney = journeyInfo(node); startAir(); } else { airNode = null; airJourney = null; stopAir(); }
     if (showGround) startDrive(dashCompass); else stopDrive();
     const copyShown = COPY_ADDR_TYPES.indexOf(node.type) >= 0;
     copyAddrBtn.style.display = copyShown ? '' : 'none';
@@ -1706,7 +1706,7 @@
     else if (m.moving) { m.fails++; if (m.fails >= 2) { m.moving = false; m.fails = 0; } }
     return { moving: m.moving, speed: m.lastSpd, heading: m.lastHdg };
   }
-  const AIR_K = 2.4, AIR_CENTER = 100, KT_PER_MS = 1.943844;
+  const KT_PER_MS = 1.943844;
   let airTimer = null, airStatusTimer = null, airFix = null, airMotion = newMotion(), airKnots = null, airHdg = null, airDenied = false, airBuilt = false;
   function dialMarkup() {
     let d = '<circle r="90"/>';
@@ -1717,14 +1717,91 @@
     }
     return d;
   }
-  function buildAir() {
-    if (airBuilt) return; airBuilt = true;
-    const strip = document.getElementById('airStrip'); let html = '';
+  /* ---- Itinerary clock: US time zones by airport state, so a flight's local departure and landing times become real moments ---- */
+  const STATE_ZONE = {};
+  'CT DE DC GA MA MD ME NC NH NJ NY OH PA RI SC VA VT WV MI IN FL KY'.split(' ').forEach(s => { STATE_ZONE[s] = [-5, true]; });
+  'AL AR IL IA LA MN MS MO OK WI KS NE ND SD TX TN'.split(' ').forEach(s => { STATE_ZONE[s] = [-6, true]; });
+  'CO MT NM UT WY ID'.split(' ').forEach(s => { STATE_ZONE[s] = [-7, true]; });
+  'CA OR WA NV'.split(' ').forEach(s => { STATE_ZONE[s] = [-8, true]; });
+  STATE_ZONE.AZ = [-7, false]; STATE_ZONE.AK = [-9, true]; STATE_ZONE.HI = [-10, false];
+  const CODE_ZONE = { PNS: [-6, true], VPS: [-6, true], ECP: [-6, true], PAH: [-6, true], OWB: [-6, true], BWG: [-6, true], EVV: [-6, true], GYY: [-6, true], IMT: [-6, true], IWD: [-6, true],
+    TYS: [-5, true], TRI: [-5, true], CHA: [-5, true], ELP: [-7, true], DIK: [-7, true], RAP: [-7, true], BFF: [-7, true], GLD: [-7, true], ENV: [-7, true], LWS: [-8, true], COE: [-8, true], ADK: [-10, true] };
+  function airportZone(code) { const ap = airportByCode(code); return ap ? (CODE_ZONE[code] || STATE_ZONE[ap.state] || null) : null; }
+  function nthSunday(y, month, n) { const first = (7 - new Date(Date.UTC(y, month, 1)).getUTCDay()) % 7; return 1 + first + 7 * (n - 1); }
+  /* the real moment (ms) of a wall-clock time at an airport; without a zone the phone's own zone is used */
+  function wallToMs(y, mo, d, h, mi, zone) {
+    if (!zone) return new Date(y, mo, d, h, mi).getTime();
+    const wall = Date.UTC(y, mo, d, h, mi);
+    let off = zone[0];
+    if (zone[1]) { const yy = new Date(wall).getUTCFullYear(); if (wall >= Date.UTC(yy, 2, nthSunday(yy, 2, 2), 2) && wall < Date.UTC(yy, 10, nthSunday(yy, 10, 1), 2)) off += 1; }
+    return wall - off * 3600000;
+  }
+  /* the journey that contains the viewed flight: that stop's flights, or the return flights; first departure to final landing */
+  function journeyInfo(node) {
+    const isRet = node.type === 'returnFlight', list = isRet ? wizardState.returnFlights : wizardState.stops[node.stopIndex].flights;
+    const eff = effDates(), ap = effAirports(), legs = [];
+    for (let i = 0; i < list.length; i++) {
+      const f = list[i], key = isRet ? 'rf:' + i + ':0' : 'f:' + node.stopIndex + ':' + i, d = eff[key];
+      const depT = parseSmartTime(f.dep, new Date()), arrT = parseSmartTime(f.arr, new Date());
+      if (!d || !depT || !arrT) return { ok: false };
+      const from = (ap[key] && ap[key].from) || '', to = (ap[key] && ap[key].to) || '';
+      let zf = airportZone(from), zt = airportZone(to); if (!zf) zf = zt; if (!zt) zt = zf;
+      const depAt = wallToMs(d.getFullYear(), d.getMonth(), d.getDate(), depT.getHours(), depT.getMinutes(), zf);
+      const arrAt = wallToMs(d.getFullYear(), d.getMonth(), d.getDate() + (f.arrDay ? 1 : 0), arrT.getHours(), arrT.getMinutes(), zt);
+      const a1 = airportByCode(from), a2 = airportByCode(to);
+      legs.push({ from, to, depAt, arrAt, len: a1 && a2 ? distanceM(a1.lat, a1.lon, a2.lat, a2.lon) : null, toAp: a2 });
+    }
+    if (!legs.length || legs.some(l => l.arrAt <= l.depAt)) return { ok: false };
+    return { ok: true, key: (isRet ? 'R' : 'S' + node.stopIndex) + ':' + legs.map(l => l.depAt).join(','), legs, first: legs[0].depAt, last: legs[legs.length - 1].arrAt, finalCode: legs[legs.length - 1].to };
+  }
+  function fmtHM(ms, up) { const m = up ? Math.ceil(ms / 60000) : Math.floor(ms / 60000), h = Math.floor(m / 60); return h ? h + 'h ' + (m % 60) + 'm' : m + 'm'; } /* up: round a countdown up, so it reads 1m until it is gone */
+  let airNode = null, airJourney = null, airShift = null, airAvgMs = null, airAvgAt = null;
+  /* Flight Log, ETA, and Distance to Target: from the itinerary (flights on time); GPS at cruise speed corrects the ETA by a shift */
+  function renderAirTrip() {
+    const g = id => document.getElementById(id), J = airJourney, now = Date.now();
+    const put = (log, etaLab, eta, etaSub, distLab, dist, distSub) => { g('airLog').textContent = log; g('airEtaLab').textContent = etaLab; g('airEta').textContent = eta; g('airEtaSub').textContent = etaSub; g('airDistLab').textContent = distLab; g('airDist').textContent = dist; g('airDistSub').textContent = distSub; };
+    if (!J || !J.ok) { put('—', 'ETA', '—', J ? 'add flight times' : '', 'Distance to Target', '—', J ? 'add flight times' : ''); return; }
+    const legs = J.legs, code = J.finalCode, airIdx = legs.findIndex(l => now >= l.depAt && now < l.arrAt);
+    let lastDone = -1; legs.forEach((l, i) => { if (now >= l.arrAt) lastDone = i; });
+    const fixAge = airFix ? now - airFix.at : Infinity;
+    const cruise = airAvgMs != null && airAvgMs >= 67.056 /* 150 mph */ && airMotion.moving && fixAge < 120000 && airIdx >= 0 && !!legs[airIdx].toAp;
+    let dGps = null;
+    if (cruise) {
+      const L = legs[airIdx]; dGps = distanceM(airFix.lat, airFix.lon, L.toAp.lat, L.toAp.lon);
+      let shift = airFix.at + dGps / airAvgMs * 1000 - L.arrAt; if (airIdx < legs.length - 1) shift = Math.max(0, shift);
+      airShift = { key: J.key, leg: airIdx, ms: shift };
+    }
+    const cur = airIdx >= 0 ? airIdx : lastDone, hasShift = !!(airShift && airShift.key === J.key && airShift.leg === cur), sh = hasShift ? airShift.ms : 0;
+    /* Flight Log: counts up from the first departure and stops at the final landing */
+    const log = now < J.first ? '—' : fmtHM(Math.min(now, J.last) - J.first);
+    /* ETA: time remaining to the final landing */
+    const rem = J.last + sh - now, eta = now < J.first ? '—' : rem <= 0 ? 'landed' : rem < 60000 ? '<1m' : fmtHM(rem, true);
+    const etaSub = hasShift ? (Math.abs(sh) < 60000 ? 'on schedule' : 'GPS: ' + fmtHM(Math.abs(sh)) + (sh > 0 ? ' late' : ' early')) : '';
+    /* Distance to Target: what is left of the journey to the final airport */
+    let dist = '—', distSub = 'airport not in list';
+    if (!legs.some(l => l.len == null)) {
+      let left = 0; legs.forEach(l => { if (now >= l.arrAt) return; left += now <= l.depAt ? l.len : l.len * (1 - (now - l.depAt) / (l.arrAt - l.depAt)); });
+      distSub = 'by schedule';
+      if (dGps != null) { left = dGps; for (let j = airIdx + 1; j < legs.length; j++) left += legs[j].len; distSub = fixAge < 60000 ? 'GPS just now' : 'GPS ' + Math.round(fixAge / 60000) + ' min ago'; }
+      dist = fmtHomeDist(left);
+    }
+    put(log, code ? 'ETA ' + code : 'ETA', eta, etaSub, code ? 'Distance to ' + code : 'Distance to Target', dist, distSub);
+  }
+
+  /* the airborne speed tape looks like the Ground RTT's: 40 knots in view, its real height read from the page */
+  let airTapeKey = '';
+  function airTapeH() { return document.getElementById('airTape').clientHeight || 150; }
+  function buildAirTape() {
+    const H = airTapeH(); if (airTapeKey === String(H)) return; airTapeKey = String(H);
+    const k = H / 40, strip = document.getElementById('airStrip'); let html = '';
     for (let v = 900; v >= 0; v -= 5) {
-      const y = Math.round((900 - v) * AIR_K);
+      const y = Math.round((900 - v) * k * 100) / 100;
       if (v % 10 === 0) html += '<div class="tk" style="top:' + y + 'px"></div><div class="tl" style="top:' + y + 'px">' + v + '</div>'; else html += '<div class="tk5" style="top:' + y + 'px"></div>';
     }
-    strip.innerHTML = html; strip.style.height = Math.round(900 * AIR_K) + 'px';
+    strip.innerHTML = html; strip.style.height = Math.round(900 * k) + 'px';
+  }
+  function buildAir() {
+    if (airBuilt) return; airBuilt = true;
     document.getElementById('airDial').innerHTML = dialMarkup();
   }
   function airStatusNow() {
@@ -1733,7 +1810,7 @@
     return age <= 3.5 ? 'green' : age <= 9 ? 'yellow' : 'red';
   }
   function renderAir() {
-    buildAir();
+    buildAir(); buildAirTape();
     const st = airStatusNow(), live = st !== 'red' && airKnots != null;
     const box = document.getElementById('airStatus'); box.querySelector('i').className = 'air-dot ' + st; box.querySelector('span').textContent = st === 'green' ? 'GPS LOCK' : st === 'yellow' ? 'GPS STALE' : 'NO GPS';
     const kt = live ? Math.round(airKnots) : null;
@@ -1741,21 +1818,47 @@
     document.getElementById('airKph').textContent = live ? Math.round(airKnots * 1.852) + ' km/h' : '— km/h';
     document.getElementById('airMph').textContent = live ? Math.round(airKnots * 1.150779) + ' mph' : '— mph';
     const v = Math.max(0, Math.min(900, live ? airKnots : 0));
-    document.getElementById('airStrip').style.transform = 'translateY(' + (AIR_CENTER - (900 - v) * AIR_K) + 'px)';
+    const H = airTapeH();
+    document.getElementById('airStrip').style.transform = 'translateY(' + (H / 2 - (900 - v) * (H / 40)) + 'px)';
     const hdg = (st !== 'red' && airHdg != null) ? airHdg : null;
     document.getElementById('airHdg').textContent = hdg == null ? '---' : String(Math.round(hdg) % 360 === 0 ? 360 : Math.round(hdg) % 360).padStart(3, '0');
     document.getElementById('airDial').setAttribute('transform', 'rotate(' + (hdg == null ? 0 : -hdg) + ')');
     const c = document.getElementById('cardAir'); c.dataset.status = st; c.dataset.knots = live ? kt : ''; c.dataset.heading = hdg == null ? '' : Math.round(hdg) % 360;
+    renderAirTrip();
   }
   function onAirPos(pos) {
     const c = pos.coords, t = pos.timestamp || Date.now(), fix = { lat: c.latitude, lon: c.longitude, t, at: Date.now() };
     const r = gpsMotion(airMotion, c, fix, { floor: FLOOR_MS, bypassMs: FAST_MS });
-    if (r.moving && r.speed != null) { const kn = r.speed * KT_PER_MS; airKnots = (airKnots == null || airKnots < 0.5 || r.speed < 0.3) ? kn : 0.5 * airKnots + 0.5 * kn; if (r.heading != null) airHdg = r.heading; }
-    else airKnots = 0; /* not confirmed as moving: reads 0 and the heading is held */
+    if (r.moving && r.speed != null) {
+      const kn = r.speed * KT_PER_MS; airKnots = (airKnots == null || airKnots < 0.5 || r.speed < 0.3) ? kn : 0.5 * airKnots + 0.5 * kn; if (r.heading != null) airHdg = r.heading;
+      const a = airAvgAt ? 1 - Math.exp(-(fix.at - airAvgAt) / 300000) : 1; airAvgMs = airAvgMs == null ? r.speed : airAvgMs + a * (r.speed - airAvgMs); airAvgAt = fix.at; /* ground speed averaged over about 5 minutes, for the ETA */
+    } else { airKnots = 0; airAvgMs = null; airAvgAt = null; } /* not confirmed as moving: reads 0 and the heading is held */
     airFix = fix; airDenied = false;
     const m = document.getElementById('airMsg'); m.style.display = 'none';
     renderAir();
   }
+  /* Airborne full screen (same look and rules as the Ground RTT: tap the card, X to close; true full screen when allowed, else it fills the window) */
+  let airTrueFs = false;
+  function airRerender() { requestAnimationFrame(() => { buildAirTape(); renderAir(); }); }
+  function openAirFull() {
+    cardAir.classList.add('ground-full');
+    try { const p = cardAir.requestFullscreen && cardAir.requestFullscreen(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+    airRerender();
+  }
+  function closeAirFull() {
+    if (!cardAir.classList.contains('ground-full')) return;
+    cardAir.classList.remove('ground-full'); airTrueFs = false;
+    try { if (document.fullscreenElement) { const p = document.exitFullscreen(); if (p && p.catch) p.catch(() => {}); } } catch (e) {}
+    airRerender();
+  }
+  cardAir.addEventListener('click', e => { if (e.target.closest('#airFullX')) return; if (!cardAir.classList.contains('ground-full')) openAirFull(); });
+  document.getElementById('airFullX').addEventListener('click', e => { e.stopPropagation(); closeAirFull(); });
+  document.addEventListener('fullscreenchange', () => {
+    if (document.fullscreenElement === cardAir) airTrueFs = true;
+    else if (airTrueFs) { airTrueFs = false; cardAir.classList.remove('ground-full'); airRerender(); }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAirFull(); });
+  window.addEventListener('resize', () => { if (cardAir.style.display !== 'none') airRerender(); });
   function onAirErr(e) {
     if (e && e.code === 1) { airDenied = true; const m = document.getElementById('airMsg'); m.textContent = 'Location is turned off for this site. Allow it to see speed and heading.'; m.style.display = 'block'; }
     renderAir();
@@ -1769,7 +1872,7 @@
     renderAir(); pingAir();
     airTimer = setInterval(pingAir, 3000); airStatusTimer = setInterval(renderAir, 1000);
   }
-  function stopAir() { if (airTimer) { clearInterval(airTimer); clearInterval(airStatusTimer); airTimer = airStatusTimer = null; } }
+  function stopAir() { closeAirFull(); if (airTimer) { clearInterval(airTimer); clearInterval(airStatusTimer); airTimer = airStatusTimer = null; } }
 
   /* ============ PLACE LOOKUP + DRIVING COMPASS (works offline once an address is located) ============ */
   /* An address is turned into coordinates once, while online (OpenStreetMap Nominatim, address text only, one request at a time), and saved with the address. */

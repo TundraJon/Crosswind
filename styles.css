@@ -256,28 +256,28 @@
   .unit-btn { width: 100%; min-height: 40px; background: transparent; border: 0; color: var(--cyan); font-family: inherit; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; padding: 0; }
   #cardGround { position: relative; padding-top: 22px; cursor: pointer; }
   .gf-x { display: none; position: absolute; top: 10px; right: 14px; z-index: 3; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg-card); color: var(--text); font-size: 1.1rem; line-height: 1; cursor: pointer; }
-  #cardGround.ground-full { position: fixed; inset: 0; z-index: 60; margin: 0; border-radius: 0; border: 0; background: var(--bg-page); padding: 18px 18px 12px; overflow: hidden; display: flex !important; align-items: center; }
-  #cardGround.ground-full .gf-x { display: block; }
-  #cardGround.ground-full .air-status { top: 20px; right: 62px; font-size: 0.7rem; }
-  #cardGround.ground-full .air-grid { width: 100%; align-items: center; grid-template-columns: 100px minmax(0, 1fr) 190px; gap: 16px; }
-  #cardGround.ground-full .drive-speedbox .drive-tape { height: calc(100vh - 150px); height: calc(100dvh - 150px); min-height: 150px; }
-  #cardGround.ground-full .air-rose { max-width: calc(100vh - 70px); max-width: calc(100dvh - 70px); }
-  #cardGround.ground-full .drive-tape .tape-strip .tl { font-size: 1.6rem; }
-  #cardGround.ground-full .dt-ptr { width: calc(100% - 10px); height: 40px; line-height: 40px; font-size: 1.9rem; }
-  #cardGround.ground-full .hdg-box { font-size: 1.3rem; min-width: 64px; }
-  #cardGround.ground-full .ground-dest { font-size: 0.85rem; }
-  #cardGround.ground-full .telem-col .t-val { font-size: 2.2rem; }
-  #cardGround.ground-full .drive-msg { position: absolute; left: 0; right: 0; bottom: 8px; }
+  #cardGround.ground-full, #cardAir.ground-full { position: fixed; inset: 0; z-index: 60; margin: 0; border-radius: 0; border: 0; background: var(--bg-page); padding: 18px 18px 12px; overflow: hidden; display: flex !important; align-items: center; }
+  #cardGround.ground-full .gf-x, #cardAir.ground-full .gf-x { display: block; }
+  #cardGround.ground-full .air-status, #cardAir.ground-full .air-status { top: 20px; right: 62px; font-size: 0.7rem; }
+  #cardGround.ground-full .air-grid, #cardAir.ground-full .air-grid { width: 100%; align-items: center; grid-template-columns: 100px minmax(0, 1fr) 190px; gap: 16px; }
+  #cardGround.ground-full .drive-speedbox .drive-tape, #cardAir.ground-full .drive-speedbox .drive-tape { height: calc(100vh - 150px); height: calc(100dvh - 150px); min-height: 150px; }
+  #cardGround.ground-full .air-rose, #cardAir.ground-full .air-rose { max-width: calc(100vh - 70px); max-width: calc(100dvh - 70px); }
+  #cardGround.ground-full .drive-tape .tape-strip .tl, #cardAir.ground-full .drive-tape .tape-strip .tl { font-size: 1.6rem; }
+  #cardGround.ground-full .dt-ptr, #cardAir.ground-full .dt-ptr { width: calc(100% - 10px); height: 40px; line-height: 40px; font-size: 1.9rem; }
+  #cardGround.ground-full .hdg-box, #cardAir.ground-full .hdg-box { font-size: 1.3rem; min-width: 64px; }
+  #cardGround.ground-full .ground-dest, #cardAir.ground-full .ground-dest { font-size: 0.85rem; }
+  #cardGround.ground-full .telem-col .t-val, #cardAir.ground-full .telem-col .t-val { font-size: 2.2rem; }
+  #cardGround.ground-full .drive-msg, #cardAir.ground-full .drive-msg { position: absolute; left: 0; right: 0; bottom: 8px; }
   @media (orientation: portrait) {
-    #cardGround.ground-full { align-items: flex-start; padding-top: 70px; }
-    #cardGround.ground-full .air-grid { grid-template-columns: 100px minmax(0, 1fr); grid-template-areas: "dial dial" "tape info"; row-gap: 14px; column-gap: 22px; align-items: start; }
-    #cardGround.ground-full .air-mid { grid-area: dial; width: 100%; align-items: center; }
-    #cardGround.ground-full .drive-speedbox { grid-area: tape; }
-    #cardGround.ground-full .telem-col.right { grid-area: info; text-align: right; align-self: center; }
-    #cardGround.ground-full .air-rose { max-width: min(calc(100vw - 36px), calc(100vh - 198px - min(34vh, 300px))); }
-    #cardGround.ground-full .drive-speedbox .drive-tape { height: min(34vh, 300px); min-height: 0; }
-    #cardGround.ground-full .telem-col .t-val { font-size: 2.6rem; }
-    #cardGround.ground-full .ground-dest { font-size: 1rem; }
+    #cardGround.ground-full, #cardAir.ground-full { align-items: flex-start; padding-top: 70px; }
+    #cardGround.ground-full .air-grid, #cardAir.ground-full .air-grid { grid-template-columns: 100px minmax(0, 1fr); grid-template-areas: "dial dial" "tape info"; row-gap: 14px; column-gap: 22px; align-items: start; }
+    #cardGround.ground-full .air-mid, #cardAir.ground-full .air-mid { grid-area: dial; width: 100%; align-items: center; }
+    #cardGround.ground-full .drive-speedbox, #cardAir.ground-full .drive-speedbox { grid-area: tape; }
+    #cardGround.ground-full .telem-col.right, #cardAir.ground-full .telem-col.right { grid-area: info; text-align: right; align-self: center; }
+    #cardGround.ground-full .air-rose, #cardAir.ground-full .air-rose { max-width: min(calc(100vw - 36px), calc(100vh - 198px - min(34vh, 300px))); }
+    #cardGround.ground-full .drive-speedbox .drive-tape, #cardAir.ground-full .drive-speedbox .drive-tape { height: min(34vh, 300px); min-height: 0; }
+    #cardGround.ground-full .telem-col .t-val, #cardAir.ground-full .telem-col .t-val { font-size: 2.6rem; }
+    #cardGround.ground-full .ground-dest, #cardAir.ground-full .ground-dest { font-size: 1rem; }
   }
   .air-grid.ground-grid { grid-template-columns: 56px 1fr fit-content(104px); }
   #cardGround .air-rose { max-width: 190px; }
@@ -299,14 +299,16 @@
   .air-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
   .air-dot.yellow { background: #f3e45a; box-shadow: 0 0 6px #f3e45a; }
   .air-grid { display: grid; grid-template-columns: 86px 1fr 96px; gap: 8px; align-items: end; text-align: left; }
-  .air-left { align-self: start; }
+  #cardAir .air-grid { grid-template-columns: 56px 1fr 96px; }
+  #cardAir .air-rose { max-width: 190px; }
+  #cardAir { cursor: pointer; }
+  .unit-btn.static { display: flex; align-items: center; justify-content: center; cursor: default; }
   .tape-head { text-align: center; font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cyan); margin-bottom: 4px; }
   .tape { position: relative; height: 200px; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--bg-input); }
   .tape-strip { position: absolute; left: 0; top: 0; width: 100%; will-change: transform; }
   .tape-strip .tk { position: absolute; left: 0; width: 22px; border-top: 2px solid var(--text-dim); height: 0; }
   .tape-strip .tk5 { position: absolute; left: 0; width: 12px; border-top: 1px solid var(--text-faint); height: 0; }
   .tape-strip .tl { position: absolute; left: 26px; transform: translateY(-50%); font-size: 0.7rem; color: var(--text); }
-  .tape-ptr { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); min-width: 40px; text-align: center; border: 2px solid var(--cyan); background: var(--bg-page); color: var(--text); font-weight: 700; font-size: 0.9rem; padding: 3px 4px; box-shadow: var(--glow-cyan); }
   .tape-alt { margin-top: 4px; text-align: center; font-size: 0.6rem; color: var(--text-dim); line-height: 1.5; }
   .air-mid { position: relative; align-self: end; display: flex; flex-direction: column; align-items: center; }
   .hdg-box { position: relative; z-index: 2; margin-bottom: -6px; min-width: 46px; text-align: center; border: 2px solid var(--cyan); background: var(--bg-page); color: var(--text); font-weight: 700; font-size: 0.95rem; letter-spacing: 0.06em; padding: 2px 6px; }

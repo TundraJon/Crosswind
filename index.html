@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.33) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.34) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#10161f">
 <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" href="styles.css?v=39">
+<link rel="stylesheet" href="styles.css?v=40">
 </head>
 <body>
 
@@ -238,11 +238,12 @@
     <div class="node-track" id="dashTrack"></div>
     <div class="quick-card" id="dashCard"></div>
     <div class="quick-card" id="cardAir" style="display:none;">
+      <button class="gf-x" id="airFullX" aria-label="Close full screen">✕</button>
       <div class="air-status" id="airStatus"><i class="air-dot red"></i><span>NO GPS</span></div>
       <div class="air-grid">
-        <div class="air-left">
-          <div class="tape-head">Knots</div>
-          <div class="tape" id="airTape"><div class="tape-strip" id="airStrip"></div><div class="tape-ptr" id="airPtr">—</div></div>
+        <div class="drive-speedbox">
+          <div class="tape-head"><div class="unit-btn static">KTS</div></div>
+          <div class="tape drive-tape" id="airTape"><div class="tape-strip" id="airStrip"></div><div class="dt-ptr" id="airPtr">—</div></div>
           <div class="tape-alt"><div id="airKph">— km/h</div><div id="airMph">— mph</div></div>
         </div>
         <div class="air-mid">
@@ -253,9 +254,9 @@
           </svg>
         </div>
         <div class="telem-col right">
-          <div class="t-lab">Flight Log (3D GPS)</div><div class="t-val">+2h 15m</div>
-          <div class="t-sub">ETA MCI: 08:30 PM (LCL)</div>
-          <div class="t-lab">Distance to Target</div><div class="t-val">980 <small style="font-size:0.7rem;">MI</small></div>
+          <div class="t-lab">Flight Log</div><div class="t-val" id="airLog">—</div>
+          <div class="t-lab" id="airEtaLab">ETA</div><div class="t-val" id="airEta">—</div><div class="t-sub" id="airEtaSub"></div>
+          <div class="t-lab" id="airDistLab">Distance to Target</div><div class="t-val" id="airDist">—</div><div class="t-sub" id="airDistSub"></div>
         </div>
       </div>
       <div class="drive-msg" id="airMsg" style="display:none;"></div>
@@ -408,7 +409,7 @@
 <script src="airports.js?v=1"></script>
 <script src="hotel-brands.js?v=2"></script>
 <script src="booking-parser.js?v=1"></script>
-<script src="script.js?v=38"></script>
+<script src="script.js?v=39"></script>
 
 </body>
 </html>
