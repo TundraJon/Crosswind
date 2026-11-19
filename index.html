@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.34) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.35) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#10161f">
 <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" href="styles.css?v=40">
+<link rel="stylesheet" href="styles.css?v=41">
 </head>
 <body>
 
@@ -196,6 +196,28 @@
 </div>
 
 <!-- Travel Horizon Calendar: read-only month view of booked trips -->
+<div class="modal-overlay" id="clipModal">
+  <div class="modal-card" style="max-height:88vh; overflow-y:auto;">
+    <div class="modal-title" id="clipTitle">Text Clipboard Parser</div>
+    <div id="clipPaste">
+      <div class="card-sub" id="clipHelp">Paste the booking text for this step. It is read on this phone.</div>
+      <textarea id="clipText" style="min-height:90px;" placeholder="Paste a booking email or confirmation here"></textarea>
+      <div class="fld-note val-note" id="clipMsg" style="display:none;"></div>
+      <div class="btn-row" style="margin-top:10px;"><button class="btn ghost" id="clipCancel1">Cancel</button><button class="btn primary grow" id="clipRead">Read</button></div>
+    </div>
+    <div id="clipPick" style="display:none;">
+      <div class="card-sub" id="clipPickHelp">Several were found. Pick the one for this step.</div>
+      <div id="clipList"></div>
+      <div class="btn-row" style="margin-top:10px;"><button class="btn ghost" id="clipCancel2">Cancel</button><button class="btn primary grow" id="clipUse">Use this one</button></div>
+    </div>
+    <div id="clipPreview" style="display:none;">
+      <div id="clipWarn"></div>
+      <div class="card-sub" id="clipPrevHelp">This will change:</div>
+      <div id="clipRows"></div>
+      <div class="btn-row" style="margin-top:10px;"><button class="btn ghost" id="clipCancel3">Cancel</button><button class="btn primary grow" id="clipFill">Fill</button></div>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="horizonModal">
   <div class="modal-card" style="max-width:340px;">
     <div class="cal-header">
@@ -409,7 +431,7 @@
 <script src="airports.js?v=1"></script>
 <script src="hotel-brands.js?v=2"></script>
 <script src="booking-parser.js?v=1"></script>
-<script src="script.js?v=39"></script>
+<script src="script.js?v=40"></script>
 
 </body>
 </html>

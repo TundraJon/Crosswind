@@ -964,6 +964,7 @@
   }
 
   function parserButtonHTML(label) {
+    if (label === 'Flight' || label === 'Rental' || label === 'Hotel') return '<button class="parser-btn" data-parser="' + label.toLowerCase() + '">Text Clipboard Parser<small>Reads what you copied</small></button>';
     return '<button class="parser-btn" disabled title="Coming soon">Text Clipboard Parser<small>Coming soon</small></button>';
   }
 
@@ -1157,6 +1158,7 @@
     if (!node) return;
     stepFormContainer.innerHTML = stepFormHTML(node);
     wireStepFormInputs(node);
+    const parserBtn = stepFormContainer.querySelector('.parser-btn[data-parser]'); if (parserBtn) parserBtn.addEventListener('click', () => startClipParser(node));
     wireDateFields();
     equalizeStepHeight(nodes, node);
   }
@@ -2137,12 +2139,15 @@
   function itinFlightObj(f) {
     return Object.assign(newFlight(), { airline: programMatch('airline', f.airline || CrosswindBooking.CARRIERS[f.code]) || f.airline || CrosswindBooking.CARRIERS[f.code] || '', flightNum: f.number, conf: f.conf || '', seat: f.seat || '', date: f.date || '', from: f.from || '', to: f.to || '', dep: f.dep || '', arr: f.arr || '', arrDay: (f.arrDate && f.date && f.arrDate > f.date) ? 1 : 0 });
   }
+  /* parsed hotel / car to the Wizard's fields (used by Import Itinerary and the Text Clipboard Parser) */
+  function itinHotelObj(h) { const cb = hotelChainAndBrand(h.name); return { chain: cb.chain, brand: cb.brand, name: niceCase(h.name), address: niceCase(h.address), checkIn: h.checkIn || '', checkOut: h.checkOut || '', conf: h.conf || '' }; }
+  function itinCarObj(c) { return { company: programMatch('rental', c.company) || c.company || '', conf: c.conf || '', pickup: c.pickDate || '', ret: c.retDate || '', pickupTime: c.pickTime || '', retTime: c.retTime || '' }; }
   function itineraryFromLayout(L, keep) {
     const it = newItinerary(); it.stops = [];
     L.stops.forEach(sp => {
       const st = newStop(); st.flights = sp.flights.filter(keep).map(itinFlightObj); if (!st.flights.length) st.flights = [newFlight()];
-      if (sp.hotel && keep(sp.hotel)) { const h = sp.hotel, cb = hotelChainAndBrand(h.name); Object.assign(st.hotel, { chain: cb.chain, brand: cb.brand, name: niceCase(h.name), address: niceCase(h.address), checkIn: h.checkIn || '', checkOut: h.checkOut || '', conf: h.conf || '' }); }
-      if (sp.car && keep(sp.car)) { const c = sp.car; Object.assign(st.rental, { company: programMatch('rental', c.company) || c.company || '', conf: c.conf || '', pickup: c.pickDate || '', ret: c.retDate || '', pickupTime: c.pickTime || '', retTime: c.retTime || '' }); }
+      if (sp.hotel && keep(sp.hotel)) Object.assign(st.hotel, itinHotelObj(sp.hotel));
+      if (sp.car && keep(sp.car)) Object.assign(st.rental, itinCarObj(sp.car));
       it.stops.push(st);
     });
     if (!it.stops.length) it.stops.push(newStop());
@@ -2262,6 +2267,97 @@
   document.getElementById('itinCancel').addEventListener('click', closeItin);
   document.getElementById('itinBack').addEventListener('click', () => { document.getElementById('itinStep1').style.display = 'block'; document.getElementById('itinStep2').style.display = 'none'; });
   itinModal.addEventListener('click', e => { if (e.target === itinModal) closeItin(); });
+
+  /* ============ TEXT CLIPBOARD PARSER (Flight, Rental, and Hotel steps) ============ */
+  /* One tap reads the clipboard (a paste box if that is refused), the Build 58 parser reads it, a pick list if there are several matches, a preview of what changes, then Fill. */
+  const clipModal = document.getElementById('clipModal');
+  let clipKind = '', clipNode = null, clipMatches = [], clipChanges = null;
+  const CLIP_FIELDS = {
+    flight: [['Airline', 'airline'], ['Flight #', 'flightNum'], ['Confirmation #', 'conf'], ['Seat #', 'seat'], ['Date', 'date'], ['From', 'from'], ['To', 'to'], ['Departure time', 'dep'], ['Arrival time', 'arr'], ['+1 day', 'arrDay']],
+    rental: [['Company', 'company'], ['Confirmation #', 'conf'], ['Pickup date', 'pickup'], ['Pickup time', 'pickupTime'], ['Return date', 'ret'], ['Return time', 'retTime']],
+    hotel: [['Chain', 'chain'], ['Brand', 'brand'], ['Hotel name', 'name'], ['Address', 'address'], ['Check-in', 'checkIn'], ['Check-out', 'checkOut'], ['Confirmation #', 'conf']]
+  };
+  const CLIP_DATE_KEYS = ['date', 'pickup', 'ret', 'checkIn', 'checkOut'];
+  function clipTarget() {
+    if (clipKind === 'rental') return wizardState.stops[clipNode.stopIndex].rental;
+    if (clipKind === 'hotel') return wizardState.stops[clipNode.stopIndex].hotel;
+    return clipNode.type === 'returnFlight' ? wizardState.returnFlights[clipNode.flightIndex] : wizardState.stops[clipNode.stopIndex].flights[clipNode.flightIndex];
+  }
+  function clipShow(which) { ['clipPaste', 'clipPick', 'clipPreview'].forEach(id => { document.getElementById(id).style.display = id === which ? 'block' : 'none'; }); }
+  function clipMsg(text) { const m = document.getElementById('clipMsg'); m.textContent = text || ''; m.style.display = text ? 'block' : 'none'; }
+  function clipShowPaste(msg, keepText) {
+    const word = clipKind === 'rental' ? 'rental car' : clipKind === 'hotel' ? 'hotel' : 'flight';
+    document.getElementById('clipTitle').textContent = 'Text Clipboard Parser: ' + word.replace(/^./, c => c.toUpperCase());
+    document.getElementById('clipHelp').textContent = 'Paste the ' + word + ' booking text for this step. It is read on this phone.';
+    if (!keepText) document.getElementById('clipText').value = '';
+    clipMsg(msg); clipShow('clipPaste'); clipModal.classList.add('open');
+  }
+  function clipClose() { clipModal.classList.remove('open'); clipMatches = []; clipChanges = null; }
+  function clipDate(iso) { const d = iso && fromISODate(iso); return d ? fmtDate(d) : ''; }
+  function clipLine(m) {
+    if (clipKind === 'flight') return [(m.code || '') + (m.number || ''), (m.from || m.fromName || '?') + ' to ' + (m.to || m.toName || '?') + (m.date ? ', ' + clipDate(m.date) : ''), [m.dep, m.arr].filter(Boolean).join(' to ')].filter(Boolean).join(' ');
+    if (clipKind === 'rental') return (m.company || 'Rental car') + (m.pickDate ? ', pickup ' + clipDate(m.pickDate) : '') + (m.pickTime ? ' ' + m.pickTime : '');
+    return (m.name || 'Hotel') + (m.checkIn ? ', ' + clipDate(m.checkIn) + (m.checkOut ? ' to ' + clipDate(m.checkOut) : '') : '');
+  }
+  async function startClipParser(node) {
+    clipNode = node; clipKind = node.type === 'hotel' ? 'hotel' : node.type === 'rental' ? 'rental' : 'flight';
+    let text = '';
+    try { if (navigator.clipboard && navigator.clipboard.readText) text = await navigator.clipboard.readText(); } catch (e) { text = ''; }
+    if (text && text.trim()) clipProcess(text);
+    else clipShowPaste(navigator.clipboard && navigator.clipboard.readText ? 'Nothing could be read from the clipboard. Paste the text here.' : 'This browser cannot read the clipboard. Paste the text here.');
+  }
+  function clipProcess(text) {
+    let model; try { model = CrosswindBooking.parse([{ name: 'clipboard', kind: 'text', text }], { airports: airportData, today: new Date() }); } catch (e) { model = { flights: [], cars: [], hotels: [], warnings: [] }; }
+    clipMatches = clipKind === 'flight' ? model.flights : clipKind === 'rental' ? model.cars : model.hotels;
+    clipModel = model;
+    if (!clipMatches.length) {
+      const word = clipKind === 'rental' ? 'rental car' : clipKind === 'hotel' ? 'hotel' : 'flight';
+      document.getElementById('clipText').value = text;
+      clipShowPaste('Nothing for a ' + word + ' was found in what you copied.' + (model.warnings.length ? ' ' + model.warnings.join(' ') : '') + ' Paste other text, or Cancel.', true); return;
+    }
+    if (clipMatches.length === 1) clipPreview(clipMatches[0]); else clipPickList();
+  }
+  let clipModel = null;
+  function clipPickList() {
+    document.getElementById('clipTitle').textContent = 'Text Clipboard Parser';
+    document.getElementById('clipList').innerHTML = clipMatches.map((m, i) => '<label class="clip-pick"><input type="radio" name="clipPick" value="' + i + '"' + (i === 0 ? ' checked' : '') + '><span>' + esc(clipLine(m)) + '</span></label>').join('');
+    clipShow('clipPick'); clipModal.classList.add('open');
+  }
+  function clipPreview(m) {
+    const cur = clipTarget(); const nw = clipKind === 'flight' ? itinFlightObj(m) : clipKind === 'rental' ? itinCarObj(m) : itinHotelObj(m);
+    clipChanges = {}; const rows = [];
+    CLIP_FIELDS[clipKind].forEach(([label, key]) => {
+      const nv = nw[key], cv = cur[key];
+      if (key === 'arrDay') { if (nv === 1 && cv !== 1) { clipChanges.arrDay = 1; rows.push([label, cv === 1 ? 'yes' : 'no', 'yes', false]); } return; }
+      if (nv == null || nv === '' || nv === cv) return;
+      clipChanges[key] = nv; const show = v => CLIP_DATE_KEYS.indexOf(key) >= 0 ? clipDate(v) : v; rows.push([label, show(cv || ''), show(nv), false]);
+    });
+    if (clipKind === 'flight') {
+      if (!m.from && (m.fromName || m.fromOptions)) rows.push(['From', '', 'not identified', true]);
+      if (!m.to && (m.toName || m.toOptions)) rows.push(['To', '', 'not identified', true]);
+    }
+    const warn = (clipModel && clipModel.warnings || []).filter(Boolean);
+    document.getElementById('clipWarn').innerHTML = warn.map(w => '<div class="fld-note val-note">' + esc(w) + '</div>').join('');
+    document.getElementById('clipTitle').textContent = 'Text Clipboard Parser';
+    const changing = Object.keys(clipChanges).length > 0;
+    document.getElementById('clipPrevHelp').textContent = changing ? 'This will change:' : 'Everything in the text already matches this step.';
+    document.getElementById('clipRows').innerHTML = rows.map(r => '<div class="clip-row"><div class="cl">' + esc(r[0]) + '</div><div>' + (r[1] ? '<span class="old">' + esc(r[1]) + '</span>' : '') + '<span class="' + (r[3] ? 'nid' : 'new') + '">' + esc(r[2]) + '</span></div></div>').join('');
+    document.getElementById('clipFill').style.display = changing ? '' : 'none';
+    clipShow('clipPreview'); clipModal.classList.add('open');
+  }
+  function clipApply() {
+    const cur = clipTarget(); if (!cur || !clipChanges) { clipClose(); return; }
+    Object.assign(cur, clipChanges);
+    if (clipKind === 'hotel' && 'address' in clipChanges) { cur.lat = null; cur.lon = null; }
+    const hotelCur = clipKind === 'hotel' ? cur : null;
+    clipClose(); renderNodeTrack(true); renderStepForm(); commitTrips();
+    if (hotelCur && hotelCur.address.trim()) locatePlace(hotelPlace(hotelCur));
+  }
+  document.getElementById('clipRead').addEventListener('click', () => { const t = document.getElementById('clipText').value; if (!t.trim()) { clipMsg('Paste some text first.'); return; } clipProcess(t); });
+  document.getElementById('clipUse').addEventListener('click', () => { const r = document.querySelector('input[name="clipPick"]:checked'); if (r) clipPreview(clipMatches[+r.value]); });
+  document.getElementById('clipFill').addEventListener('click', clipApply);
+  ['clipCancel1', 'clipCancel2', 'clipCancel3'].forEach(id => document.getElementById(id).addEventListener('click', clipClose));
+  clipModal.addEventListener('click', e => { if (e.target === clipModal) clipClose(); });
 
   /* ============ TRAVEL HORIZON CALENDAR (Dashboard popup, read-only) ============ */
   const horizonModal = document.getElementById('horizonModal');
