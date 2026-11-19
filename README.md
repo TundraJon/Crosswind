@@ -638,12 +638,6 @@ In design with Jon. Today the right column of the Airborne card is fixed text ("
 - Distance to Target (decided): straight-line distance from the GPS position to the viewed flight's To airport, in the Setup unit; needs a GPS fix, so when the reading is old it shows how old ("updated 12 min ago") rather than a stale number; "—" with a reason when there is no fix, no To airport, or the airport is not in the table.
 - Open, for Jon: the schedule times in the itinerary are local to each airport, so a flight that crosses time zones (Orlando to Los Angeles: 3 hours apart on the clock) comes out too short by the zone gap unless corrected. Options: leave it uncorrected, or a rough US zone by airport state (`airports.js` has the state) so durations come out right for most US flights (DST and a few split states are the exceptions). Also: whether it belongs in the Airborne full screen too (it would, since that shows the same column).
 
-### Travel Log: door to door (idea from Jon)
-New idea, not designed. A log that counts from leaving the house to arriving in the hotel room, and the same in reverse (leaving the room to arriving home).
-- Not from GPS (Jon: unreliable in the air and on the phone's schedule). Likely taps: "Left home", "In my room", "Left room", "Home", each stamping the time, editable afterwards; saved with the trip. Could pre-fill from the itinerary: the Uber out pickup time for "Left home".
-- Shows the two durations and the total per trip. Where it lives (a card on the Dashboard, a button like the Horizon calendar, or on the Trip card) is open.
-- Open questions: taps or automatic from itinerary times; where it shows; whether it keeps a history across trips (averages, a "door to door" record).
-
 ### Other screens not yet designed
 - Wind-Shear Audio (local .mp3, offline ID3 parsing, big tap zones, minimal). A placeholder screen exists (`#screenMedia`); its buttons do nothing.
 - Aviation weather / delay risk (METAR/TAF), never discussed.
