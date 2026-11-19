@@ -95,6 +95,7 @@
   .clip-row .old { color: var(--text-faint); text-decoration: line-through; margin-right: 6px; }
   .clip-row .new { color: var(--cyan); font-weight: 600; }
   .clip-row .nid { color: var(--amber); }
+  .clip-row .ref { color: var(--text-dim); }
   .modal-card { background: var(--bg-panel); border: 1px solid var(--cyan-dim); border-radius: 14px; box-shadow: var(--glow-cyan); padding: 16px; max-width: 420px; width: 100%; max-height: 88vh; overflow-y: auto; }
   .modal-title { font-weight: 700; font-size: 0.9rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cyan); margin-bottom: 12px; }
   .type-btn-row { display: flex; gap: 6px; margin-bottom: 12px; }

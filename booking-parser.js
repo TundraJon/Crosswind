@@ -141,6 +141,12 @@
       const date = parseDate(m[1], ctx.today), dep = parseTime(m[9]), arr = parseTime(m[10]);
       addFlight(res, { code: m[7], number: String(+m[8]), airline: clean(m[6]), date, dep: dep.text, arrDate: m[11] ? addDays(date, +m[11]) : null, arr: arr.text, from: m[3], to: m[5], fromName: clean(m[2]), toName: clean(m[4]), summary: true });
     }
+    const hot = t.match(new RegExp('Hotel\\s+(' + DATE_RE + ')\\s*-\\s*(' + DATE_RE + ')\\s+(.+?)(?=\\s+(?:Flight|Car|Hotel)\\s+(?:' + WD_RE + ',?\\s+)?' + MON_RE + '|\\s*$)'));
+    if (hot) {
+      const toks = clean(hot[3]).split(' '); let k = toks.length; while (k > 0 && /^[A-Z0-9&'.\/#-]+$/.test(toks[k - 1])) k--;
+      const name = toks.slice(k).join(' ') || clean(hot[3]);
+      if (name && name.length < 80) res.hotels.push({ name, address: '', checkIn: parseDate(hot[1], ctx.today), checkOut: parseDate(hot[2], ctx.today), conf: '', summary: true, src: 'text' });
+    }
     const car = t.match(new RegExp('Car\\s+(' + DATE_RE + ')\\s*-\\s*(' + DATE_RE + ')\\s+(.+?)\\s+(' + TIME_RE + ')\\s*-\\s*(' + TIME_RE + ')'));
     if (car) {
       const seg = car[3]; let comp = '';
@@ -283,21 +289,23 @@
   }
   function parse(inputs, ctx) {
     ctx = ctx || {}; ctx.today = ctx.today || new Date();
-    const res = { ref: '', flights: [], cars: [], hotels: [], warnings: [], stats: { inputs: inputs.length } };
+    const res = { ref: '', flights: [], cars: [], hotels: [], rides: [], warnings: [], stats: { inputs: inputs.length } };
     let summaryCount = 0, detailCount = 0;
     inputs.forEach(inp => {
-      const text = String(inp.text || '');
+      let text = String(inp.text || '');
       if (inp.kind === 'ics' || /BEGIN:VCALENDAR/i.test(text)) { parseIcs(text, ctx, res); return; }
-      const before = res.flights.length + res.cars.length + res.hotels.length;
+      text = joinLabelLines(text);
+      const before = res.flights.length + res.cars.length + res.hotels.length + res.rides.length;
       const rm = text.match(/Agency reference:?\s*([A-Z0-9]{5,8})/i); if (rm && !res.ref) res.ref = rm[1].toUpperCase();
       const f = flat(text);
       summaryCount += agencySummary(f, ctx, res);
       detailCount += agencyDetail(text.split('\n').map(l => l.replace(/\s+$/, '')), ctx, res);
       southwest(text, ctx, res); delta(text, ctx, res); american(text, ctx, res);
+      detailCount += bookingPageFlights(text, ctx, res); uber(text, ctx, res);
       const blocks = findBlocks(text); let gotHotel = false;
       blocks.forEach(b => { if (b.type === 'car') carBlock(b.text, ctx, res); else if (b.type === 'hotel') { if (hotelEmail(b.text, ctx, res)) gotHotel = true; } });
       if (!gotHotel && /\bCheck-?\s?in\b|Your Stay|Arrival\s*-\s*Departure/i.test(text) && !blocks.some(b => b.type === 'hotel')) hotelEmail(text, ctx, res);
-      if (res.flights.length + res.cars.length + res.hotels.length === before) res.warnings.push((inp.name ? inp.name + ': ' : '') + 'This layout was not recognised, so nothing was read from it.');
+      if (res.flights.length + res.cars.length + res.hotels.length + res.rides.length === before) res.warnings.push((inp.name ? inp.name + ': ' : '') + 'This layout was not recognised, so nothing was read from it.');
     });
     /* cross-check the agency summary against the detail blocks */
     if (summaryCount && detailCount && summaryCount !== detailCount) res.warnings.push('The itinerary summary lists ' + summaryCount + ' flights but the detail pages have ' + detailCount + '.');
@@ -357,6 +365,62 @@
     its.forEach(i => { const r = rows.find(r => Math.abs(r.y - i.y) <= 3); if (r) r.items.push(i); else rows.push({ y: i.y, items: [i] }); });
     rows.sort((a, b) => b.y - a.y);
     return rows.map(r => r.items.sort((a, b) => a.x - b.x).map(i => String(i.s).trim()).join(' ')).join('\n');
+  }
+
+
+  /* ---- Booking text copied from a booking page: each label on its own line, its value on the next ---- */
+  const LABEL_LINES = CAR_LABELS.concat(HOTEL_LABELS).map(l => l.toLowerCase().replace(/\.$/, ''));
+  function isLabelLine(l) { return LABEL_LINES.indexOf(String(l).trim().toLowerCase().replace(/\.$/, '')) >= 0; }
+  /* a line that is exactly a known label is joined to the line after it, unless that line is empty or is itself a label (a label with no value stays as it is) */
+  function joinLabelLines(text) {
+    const lines = String(text).split('\n'), out = [];
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i];
+      if (isLabelLine(l) && i + 1 < lines.length && lines[i + 1].trim() && !isLabelLine(lines[i + 1])) { out.push(l.trim() + ' ' + lines[i + 1].trim()); i++; } else out.push(l);
+    }
+    return out.join('\n');
+  }
+  /* Flights in a booking page copy: airline code and number on their own lines, then city and airport (CODE) twice, then Departure and Arrival with a date and time on the next line, Seat, and the airline check-in ID */
+  function bookingPageFlights(text, ctx, res) {
+    const DT = '(?:' + WD_RE + ',?\\s+)?' + MON_RE + '\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s+\\d{4}';
+    const re = new RegExp('(?:^|\\n)([A-Z0-9]{2})[ \\t]*\\n(\\d{1,4})[ \\t]*\\n[^\\n]+\\n[^\\n]*\\(([A-Z]{3})\\)[ \\t]*\\n+[^\\n]+\\n[^\\n]*\\(([A-Z]{3})\\)[ \\t]*\\nDeparture[ \\t]*\\n(' + DT + ')[ \\t]+(?:Time[ \\t]+)?(' + TIME_RE + ')[ \\t]*\\nArrival[ \\t]*\\n(' + DT + ')[ \\t]+(?:Time[ \\t]+)?(' + TIME_RE + ')([\\s\\S]*?)(?=\\n[A-Z0-9]{2}[ \\t]*\\n\\d{1,4}[ \\t]*\\n|$)', 'g');
+    let m, n = 0;
+    while ((m = re.exec(text))) {
+      const date = parseDate(m[5], ctx.today), arrDate = parseDate(m[7], ctx.today), dep = parseTime(m[6]), arr = parseTime(m[8]); if (!date || !dep || !arr) continue;
+      const seat = (m[9].match(/\nSeat[ \t]*\n(\d{1,2}[A-Z])/) || [])[1] || '', conf = (m[9].match(/Airline check-in ID\s+([A-Z0-9]{5,8})/) || [])[1] || '';
+      n++; addFlight(res, { code: m[1], number: String(+m[2]), date, dep: dep.text, arrDate: arrDate || date, arr: arr.text, from: m[3], to: m[4], seat: seat.replace(/^0/, ''), conf, detail: true });
+    }
+    return n;
+  }
+  /* Uber: a reservation email ("Scheduled for", "Pickup at", "Dropoff at") or a trip receipt (a time and an address, twice, after "Trip details"); several emails in one text give several rides */
+  function uber(text, ctx, res) {
+    if (!/Uber/i.test(text)) return 0;
+    const all = String(text).replace(/\r/g, '').split('\n').map(l => l.replace(/\s+/g, ' ').trim());
+    const TM = new RegExp('(' + TIME_RE + ')', 'i'), MD = new RegExp('(?:' + WD_RE + ',?\\s*)?' + MON_RE + '\\s+\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s+\\d{4})?', 'i');
+    const isTime = l => new RegExp('^' + TIME_RE + '$', 'i').test(l), MILES = /\d+(?:\.\d+)?\s*miles?,\s*\d+\s*min/i;
+    const starts = (re) => all.map((l, i) => re.test(l) ? i : -1).filter(i => i >= 0);
+    let n = 0;
+    const resStarts = starts(/^Scheduled for\b/i);
+    resStarts.forEach((si, k) => {
+      const lines = all.slice(si, k + 1 < resStarts.length ? resStarts[k + 1] : all.length);
+      if (!lines.some(l => /^Pickup at\b/i.test(l))) return;
+      const dl = lines.slice(1, 4).find(l => MD.test(l) && TM.test(l)); if (!dl) return;
+      const after = i => { const out = []; for (let j = i + 1; j < lines.length; j++) { if (!lines[j] || /^(Pickup at|Dropoff at|Payment information)\b/i.test(lines[j])) break; out.push(lines[j]); } return out; };
+      let dropTime = '', dropAddr = '', pickAddr = '';
+      lines.forEach((l, i) => {
+        if (/^Pickup at\b/i.test(l)) pickAddr = after(i).join(', ');
+        else if (/^Dropoff at\b/i.test(l)) { const nx = MD.test(l) && TM.test(l) ? l : lines.slice(i + 1, i + 3).find(x => x); if (nx && MD.test(nx) && TM.test(nx)) dropTime = (parseTime(nx.match(TM)[1]) || {}).text || ''; else dropAddr = after(i).join(', '); }
+      });
+      res.rides.push({ date: parseDate(dl.match(MD)[0], ctx.today), pickTime: (parseTime(dl.match(TM)[1]) || {}).text || '', dropTime, pickAddr, dropAddr, src: 'text' }); n++;
+    });
+    const rcStarts = all.map((l, i) => /^Trip details\b/i.test(l) && all.slice(i, i + 6).some(x => MILES.test(x)) ? i : -1).filter(i => i >= 0);
+    rcStarts.forEach((ti, k) => {
+      const lines = all.slice(ti, k + 1 < rcStarts.length ? rcStarts[k + 1] : all.length), mi = lines.findIndex(l => MILES.test(l)), rest = lines.slice(mi + 1).filter(Boolean), a = rest.findIndex(isTime);
+      if (a < 0 || !rest[a + 1] || !isTime(rest[a + 2] || '')) return;
+      const body = lines.join('\n'), dm = body.match(new RegExp('(?:' + WD_RE + ',?\\s*)?' + MON_RE + '\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s+\\d{4}', 'i')) || body.match(new RegExp(WD_RE + ',?\\s+' + MON_RE + '\\s+\\d{1,2}(?:st|nd|rd|th)?\\b', 'i'));
+      res.rides.push({ date: dm ? parseDate(dm[0], ctx.today) : '', pickTime: (parseTime(rest[a]) || {}).text || '', dropTime: (parseTime(rest[a + 2]) || {}).text || '', pickAddr: rest[a + 1], dropAddr: rest[a + 3] || '', src: 'text' }); n++;
+    });
+    return n;
   }
 
   root.CrosswindBooking = { parse, rowsFromItems, layout, tripSummary, parseDate, parseTime, resolveAirport, splitLabels, addDays, CARRIERS, STATES };

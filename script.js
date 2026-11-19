@@ -964,7 +964,7 @@
   }
 
   function parserButtonHTML(label) {
-    if (label === 'Flight' || label === 'Rental' || label === 'Hotel') return '<button class="parser-btn" data-parser="' + label.toLowerCase() + '">Text Clipboard Parser<small>Reads what you copied</small></button>';
+    if (label === 'Flight' || label === 'Rental' || label === 'Hotel' || label === 'Uber') return '<button class="parser-btn" data-parser="' + label.toLowerCase() + '">Text Clipboard Parser<small>Reads what you copied</small></button>';
     return '<button class="parser-btn" disabled title="Coming soon">Text Clipboard Parser<small>Coming soon</small></button>';
   }
 
@@ -1121,7 +1121,7 @@
         '<div class="fld-grid">' +
         '<div><label class="fld">Pickup Time</label>' + timeFieldHTML('wf-uberhome-pickup', 'e.g. 6:15 PM', wizardState.uberHome.pickup, '<div class="fld-note">(usually set live at baggage claim)</div>') + '</div>' +
         '<div><label class="fld">Drop-off Time <span class="fld-opt">(optional)</span></label>' + timeFieldHTML('wf-uberhome-dropoff', 'e.g. 6:50 PM', wizardState.uberHome.dropoff) + '</div>' +
-        '</div>';
+        '</div>' + parserButtonHTML('Uber');
     }
 
     return html;
@@ -2141,6 +2141,7 @@
   }
   /* parsed hotel / car to the Wizard's fields (used by Import Itinerary and the Text Clipboard Parser) */
   function itinHotelObj(h) { const cb = hotelChainAndBrand(h.name); return { chain: cb.chain, brand: cb.brand, name: niceCase(h.name), address: niceCase(h.address), checkIn: h.checkIn || '', checkOut: h.checkOut || '', conf: h.conf || '' }; }
+  function itinRideObj(r) { return { date: r.date || '', pickup: r.pickTime || '', dropoff: r.dropTime || '' }; }
   function itinCarObj(c) { return { company: programMatch('rental', c.company) || c.company || '', conf: c.conf || '', pickup: c.pickDate || '', ret: c.retDate || '', pickupTime: c.pickTime || '', retTime: c.retTime || '' }; }
   function itineraryFromLayout(L, keep) {
     const it = newItinerary(); it.stops = [];
@@ -2220,7 +2221,7 @@
       const pasted = document.getElementById('itinPaste').value; if (pasted.trim()) inputs.push({ name: 'pasted text', kind: /BEGIN:VCALENDAR/i.test(pasted) ? 'ics' : 'text', text: pasted });
       if (!inputs.length) { itinMsg('Choose a file or paste some booking text first.'); return; }
       itinModel = CrosswindBooking.parse(inputs, { airports: airportData, today: new Date() });
-      if (!itinModel.flights.length && !itinModel.cars.length && !itinModel.hotels.length) { itinMsg('Nothing could be read from this. ' + (itinModel.warnings[0] || 'The layout was not recognised.')); return; }
+      if (!itinModel.flights.length && !itinModel.cars.length && !itinModel.hotels.length) { itinMsg(itinModel.rides.length ? 'This looks like an Uber ride. Use the Text Clipboard Parser on the Uber step.' : 'Nothing could be read from this. ' + (itinModel.warnings[0] || 'The layout was not recognised.')); return; }
       showItinPreview();
     } finally { btn.disabled = false; btn.textContent = 'Read'; }
   }
@@ -2274,11 +2275,15 @@
   let clipKind = '', clipNode = null, clipMatches = [], clipChanges = null;
   const CLIP_FIELDS = {
     flight: [['Airline', 'airline'], ['Flight #', 'flightNum'], ['Confirmation #', 'conf'], ['Seat #', 'seat'], ['Date', 'date'], ['From', 'from'], ['To', 'to'], ['Departure time', 'dep'], ['Arrival time', 'arr'], ['+1 day', 'arrDay']],
+    uber: [['Date', 'date'], ['Pickup time', 'pickup'], ['Drop-off time', 'dropoff']],
     rental: [['Company', 'company'], ['Confirmation #', 'conf'], ['Pickup date', 'pickup'], ['Pickup time', 'pickupTime'], ['Return date', 'ret'], ['Return time', 'retTime']],
     hotel: [['Chain', 'chain'], ['Brand', 'brand'], ['Hotel name', 'name'], ['Address', 'address'], ['Check-in', 'checkIn'], ['Check-out', 'checkOut'], ['Confirmation #', 'conf']]
   };
-  const CLIP_DATE_KEYS = ['date', 'pickup', 'ret', 'checkIn', 'checkOut'];
+  /* which fields hold a date (the Uber "pickup" is a time, the rental "pickup" is a date) */
+  function clipIsDate(key) { return key === 'date' || key === 'checkIn' || key === 'checkOut' || (clipKind === 'rental' && (key === 'pickup' || key === 'ret')); }
+  function clipWord() { return clipKind === 'rental' ? 'rental car' : clipKind === 'hotel' ? 'hotel' : clipKind === 'uber' ? 'Uber ride' : 'flight'; }
   function clipTarget() {
+    if (clipKind === 'uber') return clipNode.type === 'uberHome' ? wizardState.uberHome : wizardState.uberOut;
     if (clipKind === 'rental') return wizardState.stops[clipNode.stopIndex].rental;
     if (clipKind === 'hotel') return wizardState.stops[clipNode.stopIndex].hotel;
     return clipNode.type === 'returnFlight' ? wizardState.returnFlights[clipNode.flightIndex] : wizardState.stops[clipNode.stopIndex].flights[clipNode.flightIndex];
@@ -2286,21 +2291,22 @@
   function clipShow(which) { ['clipPaste', 'clipPick', 'clipPreview'].forEach(id => { document.getElementById(id).style.display = id === which ? 'block' : 'none'; }); }
   function clipMsg(text) { const m = document.getElementById('clipMsg'); m.textContent = text || ''; m.style.display = text ? 'block' : 'none'; }
   function clipShowPaste(msg, keepText) {
-    const word = clipKind === 'rental' ? 'rental car' : clipKind === 'hotel' ? 'hotel' : 'flight';
+    const word = clipWord();
     document.getElementById('clipTitle').textContent = 'Text Clipboard Parser: ' + word.replace(/^./, c => c.toUpperCase());
-    document.getElementById('clipHelp').textContent = 'Paste the ' + word + ' booking text for this step. It is read on this phone.';
+    document.getElementById('clipHelp').textContent = 'Paste the ' + word + (clipKind === 'uber' ? ' reservation or receipt' : ' booking') + ' text for this step. It is read on this phone.';
     if (!keepText) document.getElementById('clipText').value = '';
     clipMsg(msg); clipShow('clipPaste'); clipModal.classList.add('open');
   }
   function clipClose() { clipModal.classList.remove('open'); clipMatches = []; clipChanges = null; }
   function clipDate(iso) { const d = iso && fromISODate(iso); return d ? fmtDate(d) : ''; }
   function clipLine(m) {
+    if (clipKind === 'uber') return [m.date ? clipDate(m.date) : '', [m.pickTime, m.dropTime].filter(Boolean).join(' to '), [m.pickAddr, m.dropAddr].filter(Boolean).join(' to ')].filter(Boolean).join(', ');
     if (clipKind === 'flight') return [(m.code || '') + (m.number || ''), (m.from || m.fromName || '?') + ' to ' + (m.to || m.toName || '?') + (m.date ? ', ' + clipDate(m.date) : ''), [m.dep, m.arr].filter(Boolean).join(' to ')].filter(Boolean).join(' ');
     if (clipKind === 'rental') return (m.company || 'Rental car') + (m.pickDate ? ', pickup ' + clipDate(m.pickDate) : '') + (m.pickTime ? ' ' + m.pickTime : '');
     return (m.name || 'Hotel') + (m.checkIn ? ', ' + clipDate(m.checkIn) + (m.checkOut ? ' to ' + clipDate(m.checkOut) : '') : '');
   }
   async function startClipParser(node) {
-    clipNode = node; clipKind = node.type === 'hotel' ? 'hotel' : node.type === 'rental' ? 'rental' : 'flight';
+    clipNode = node; clipKind = node.type === 'hotel' ? 'hotel' : node.type === 'rental' ? 'rental' : (node.type === 'uberOut' || node.type === 'uberHome') ? 'uber' : 'flight';
     let text = '';
     try { if (navigator.clipboard && navigator.clipboard.readText) text = await navigator.clipboard.readText(); } catch (e) { text = ''; }
     if (text && text.trim()) clipProcess(text);
@@ -2308,12 +2314,12 @@
   }
   function clipProcess(text) {
     let model; try { model = CrosswindBooking.parse([{ name: 'clipboard', kind: 'text', text }], { airports: airportData, today: new Date() }); } catch (e) { model = { flights: [], cars: [], hotels: [], warnings: [] }; }
-    clipMatches = clipKind === 'flight' ? model.flights : clipKind === 'rental' ? model.cars : model.hotels;
+    clipMatches = clipKind === 'flight' ? model.flights : clipKind === 'rental' ? model.cars : clipKind === 'uber' ? model.rides : model.hotels;
     clipModel = model;
     if (!clipMatches.length) {
-      const word = clipKind === 'rental' ? 'rental car' : clipKind === 'hotel' ? 'hotel' : 'flight';
+      const word = clipWord();
       document.getElementById('clipText').value = text;
-      clipShowPaste('Nothing for a ' + word + ' was found in what you copied.' + (model.warnings.length ? ' ' + model.warnings.join(' ') : '') + ' Paste other text, or Cancel.', true); return;
+      clipShowPaste('Nothing for ' + (clipKind === 'uber' ? 'an ' : 'a ') + word + ' was found in what you copied.' + (model.warnings.length ? ' ' + model.warnings.join(' ') : '') + ' Paste other text, or Cancel.', true); return;
     }
     if (clipMatches.length === 1) clipPreview(clipMatches[0]); else clipPickList();
   }
@@ -2324,24 +2330,25 @@
     clipShow('clipPick'); clipModal.classList.add('open');
   }
   function clipPreview(m) {
-    const cur = clipTarget(); const nw = clipKind === 'flight' ? itinFlightObj(m) : clipKind === 'rental' ? itinCarObj(m) : itinHotelObj(m);
+    const cur = clipTarget(); const nw = clipKind === 'flight' ? itinFlightObj(m) : clipKind === 'rental' ? itinCarObj(m) : clipKind === 'uber' ? itinRideObj(m) : itinHotelObj(m);
     clipChanges = {}; const rows = [];
     CLIP_FIELDS[clipKind].forEach(([label, key]) => {
       const nv = nw[key], cv = cur[key];
-      if (key === 'arrDay') { if (nv === 1 && cv !== 1) { clipChanges.arrDay = 1; rows.push([label, cv === 1 ? 'yes' : 'no', 'yes', false]); } return; }
+      if (key === 'arrDay') { if (nv === 1 && cv !== 1) { clipChanges.arrDay = 1; rows.push([label, cv === 1 ? 'yes' : 'no', 'yes', '']); } return; }
       if (nv == null || nv === '' || nv === cv) return;
-      clipChanges[key] = nv; const show = v => CLIP_DATE_KEYS.indexOf(key) >= 0 ? clipDate(v) : v; rows.push([label, show(cv || ''), show(nv), false]);
+      clipChanges[key] = nv; const show = v => clipIsDate(key) ? clipDate(v) : v; rows.push([label, show(cv || ''), show(nv), '']);
     });
     if (clipKind === 'flight') {
-      if (!m.from && (m.fromName || m.fromOptions)) rows.push(['From', '', 'not identified', true]);
-      if (!m.to && (m.toName || m.toOptions)) rows.push(['To', '', 'not identified', true]);
+      if (!m.from && (m.fromName || m.fromOptions)) rows.push(['From', '', 'not identified', 'nid']);
+      if (!m.to && (m.toName || m.toOptions)) rows.push(['To', '', 'not identified', 'nid']);
     }
+    if (clipKind === 'uber') { if (m.pickAddr) rows.push(['Pickup at', '', m.pickAddr + ' (not saved)', 'ref']); if (m.dropAddr) rows.push(['Drop-off at', '', m.dropAddr + ' (not saved)', 'ref']); }
     const warn = (clipModel && clipModel.warnings || []).filter(Boolean);
     document.getElementById('clipWarn').innerHTML = warn.map(w => '<div class="fld-note val-note">' + esc(w) + '</div>').join('');
     document.getElementById('clipTitle').textContent = 'Text Clipboard Parser';
     const changing = Object.keys(clipChanges).length > 0;
     document.getElementById('clipPrevHelp').textContent = changing ? 'This will change:' : 'Everything in the text already matches this step.';
-    document.getElementById('clipRows').innerHTML = rows.map(r => '<div class="clip-row"><div class="cl">' + esc(r[0]) + '</div><div>' + (r[1] ? '<span class="old">' + esc(r[1]) + '</span>' : '') + '<span class="' + (r[3] ? 'nid' : 'new') + '">' + esc(r[2]) + '</span></div></div>').join('');
+    document.getElementById('clipRows').innerHTML = rows.map(r => '<div class="clip-row"><div class="cl">' + esc(r[0]) + '</div><div>' + (r[1] ? '<span class="old">' + esc(r[1]) + '</span>' : '') + '<span class="' + (r[3] || 'new') + '">' + esc(r[2]) + '</span></div></div>').join('');
     document.getElementById('clipFill').style.display = changing ? '' : 'none';
     clipShow('clipPreview'); clipModal.classList.add('open');
   }
