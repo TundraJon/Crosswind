@@ -619,7 +619,15 @@ It had been a fixed "—" since Build 3. Jon chose one GPS reading rather than c
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Text Clipboard Parser on the Flight, Rental, and Hotel steps
+Not yet authorized to build. Decided with Jon: one tap reads the clipboard (a paste box if that is refused), a pick list when the text holds several matches, and Uber and Destination stay disabled.
+- The disabled button (`parserButtonHTML()`, "Text Clipboard Parser / Coming soon") becomes live on the Flight steps (outbound and return), Rental, and Hotel. On Uber and Destination it stays disabled and keeps "Coming soon".
+- Tap: `navigator.clipboard.readText()` (needs https or localhost and the tap; Chrome asks once). If it is refused, unavailable, or empty, a dialog with a paste box and a Read button opens (same look as the Import Itinerary dialog).
+- Parse with `CrosswindBooking.parse([{ name: 'clipboard', kind: 'text', text }], { airports, today })`, the same call and context as Import Itinerary (Build 58). Offline, no network.
+- Matches for the step's type: Flight steps use `flights`, Rental uses `cars`, Hotel uses `hotels`. None: the message "Nothing for a flight / rental / hotel was found in what you copied." plus the parser's warnings, and the paste box offered again. One match goes straight to the preview. Several matches show a pick list (one line each: flight "DL 1234 MCO to ATL, Mar 2, 8:00 AM to 9:45 AM"; car "National, pickup Mar 2 3:30 PM"; hotel "Residence Inn, Mar 2 to Mar 5") and the chosen one goes to the preview.
+- Preview: each field with its current value and the new value, only the fields that would change; fields the text did not give are left alone and not listed; the parser's warnings are shown; a flight whose airport could not be identified lists the airport as "not identified" and leaves it blank. Fill or Cancel. Nothing in the step changes until Fill.
+- Fill writes the step's fields and redraws the step: flight (airline, flight number, confirmation, seat if read, date, From, To, departure time, arrival time and the "+1 day" box; the existing `itinFlightObj()` mapping), rental (company matched to the Setup rental programs with `programMatch()`, confirmation, pickup and return dates and times; the mapping used by `itineraryFromLayout()`), hotel (chain and brand with `hotelChainAndBrand()`, name and address with `niceCase()`, check-in and check-out dates, confirmation). The hotel and rental mappings become small shared helpers used by both Import Itinerary and this, so the two cannot drift apart. The trip is saved the usual way.
+- Verify with Playwright and sample texts built from the formats the parser reads (Southwest, Delta, American, an agency block, a hotel email, a car block): clipboard permission granted and denied (paste box), empty clipboard, text with no match, one match, several matches and the pick list, the preview lists only changed fields, Cancel changes nothing, Fill updates the DOM fields and survives a reload, a return flight step, Uber and Destination still disabled, offline, zero JS errors, Import Itinerary regression (it shares the mapping), screenshots looked at. Cache-bust and version bump.
 
 ## Build Planner
 
@@ -649,7 +657,7 @@ Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished
   - Two ways to avoid typing the flight number: (1) pasting the Concur or airline email text: built as Import Itinerary (Build 58); (2) a route lookup from airline + date + from-airport + to-airport (the airport table in `airports.js` helps), listing candidate flights to pick from, then filling the number, gate, and times (needs internet and an API key). Only (2) is open.
   - Recommendation: route lookup for gates and live times. The app is a static site, so an API key cannot be hidden; each user would enter their own key in Setup (or a small backend proxy is needed). Provider free-tier limits are unchecked.
 - Nearest-airports suggestion (a short list of nearby airports from the geocoded home address, using the coordinates already in `airports.js`) and USPS/CASS address validation, reused for Hotel/Destination addresses.
-- Per-step Text Clipboard Parser buttons (disabled, `parserButtonHTML()` in `script.js`), one segment at a time; could reuse `booking-parser.js` (Build 58). Also open: the generic fallback for booking layouts the parser does not recognise.
+- Text Clipboard Parser for Flight, Rental, and Hotel steps is queued (see the Build Queue). Still open: the Uber and Destination parser buttons (Jon: leave disabled; no matching text format yet) and the generic fallback for booking layouts the parser does not recognise (Build 58 limit).
 - WhatsApp Report (content and layout not designed; Markdown to clipboard).
 - SQLite persistence (profile, loyalty, Touchless, units, step defaults, projects, per-project wizard data). Today only `crosswindLastRequest` and `crosswindFavorites` use localStorage.
 - Compass and cockpit telemetry are live from GPS (Builds 54, 57; haversine distance done). Still open: smoothing at altitude and a real Android device check. The magnetometer is not used.
