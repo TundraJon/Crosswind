@@ -1,0 +1,70 @@
+WN
+1560
+Cincinnati
+Cincinnati/N Kentucky (CVG)
+
+Nashville
+Nashville Metropolitan, TN (BNA)
+Departure
+Fri Dec 11, 2026 6:40 PM
+Arrival
+Fri Dec 11, 2026 6:50 PM
+Departure terminal
+Arrival terminal
+Class
+Economy(J)
+Seat
+03F
+Status
+Confirmed
+Airline check-in ID  ABC123
+Special requests
+Frequent traveler
+00000000000
+Equipment
+Boeing 737
+Duration/Meal service
+01:10/No meal service
+eTicket
+0000000000000
+ 
+ 
+Remarks
+Baggage allowance: 0 pc
+ 	 
+ 
+
+
+WN
+647
+Nashville
+Nashville Metropolitan, TN (BNA)
+
+Orlando
+Orlando (MCO)
+Departure
+Fri Dec 11, 2026 9:50 PM
+Arrival
+Sat Dec 12, 2026 12:50 AM
+Departure terminal
+Arrival terminal
+Class
+Economy(J)
+Seat
+03A
+Status
+Confirmed
+Airline check-in ID  ABC123
+Special requests
+Frequent traveler
+00000000000
+Equipment
+Boeing 737Max
+Duration/Meal service
+02:00/No meal service
+eTicket
+0000000000000
+ 
+ 
+Remarks
+Baggage allowance: 0 pc

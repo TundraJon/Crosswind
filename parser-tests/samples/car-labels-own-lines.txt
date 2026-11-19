@@ -1,0 +1,29 @@
+National
+3057 TERMINAL DR 41048 HEBRON ,OH ,US
+Pick up
+Sun Dec 06, 2026  Time 2:00 PM
+Drop off
+Fri Dec 11, 2026  Time 6:00 PM
+Rental location
+3057 TERMINAL DR 41048 HEBRON ,OH ,US
+Return location
+3057 TERMINAL DR 41048 HEBRON ,OH ,US
+Type
+Fullsize,2/4 Door,Auto,Air Con
+Confirmation
+12345678ABCDE
+Phone
+800-555-0100,800-555-0101
+Rate
+USD288.00/WEEK-Unlimited miles
+Name
+TEST USER
+Approx. total
+USD419.88
+Drop off charge
+Corporate discount
+XX00000
+Frequent renter ID
+000000000
+Special requests
+Special info

@@ -1,0 +1,382 @@
+{
+ "agency-summary": {
+  "note": "Real \"Itinerary summary\" table (Builds 58 and 95): four flights, the car without a confirmation, and the hotel row.",
+  "samples": [
+   "agency-summary"
+  ],
+  "expect": {
+   "rides": [],
+   "flights": [
+    [
+     "WN2816",
+     "MCO",
+     "BNA",
+     "2026-12-06",
+     "8:35 AM",
+     "2026-12-06",
+     "9:45 AM",
+     "",
+     ""
+    ],
+    [
+     "WN843",
+     "BNA",
+     "CVG",
+     "2026-12-06",
+     "10:50 AM",
+     "2026-12-06",
+     "1:05 PM",
+     "",
+     ""
+    ],
+    [
+     "WN1560",
+     "CVG",
+     "BNA",
+     "2026-12-11",
+     "6:40 PM",
+     "2026-12-11",
+     "6:50 PM",
+     "",
+     ""
+    ],
+    [
+     "WN647",
+     "BNA",
+     "MCO",
+     "2026-12-11",
+     "9:50 PM",
+     "2026-12-12",
+     "12:50 AM",
+     "",
+     ""
+    ]
+   ],
+   "cars": [
+    [
+     "National",
+     "",
+     "2026-12-06",
+     "2:00 PM",
+     "2026-12-11",
+     "6:00 PM",
+     "3057 TERMINAL DR 41048 HEBRON,OH,US"
+    ]
+   ],
+   "hotels": [
+    [
+     "RESIDENCE INN DWTN MARRIOTT",
+     "",
+     "2026-12-06",
+     "2026-12-11",
+     ""
+    ]
+   ],
+   "warnings": []
+  }
+ },
+ "car-labels-own-lines": {
+  "note": "Real National car text, every label on its own line (Build 93). Redacted: name, confirmation, phone, discount, renter ID.",
+  "samples": [
+   "car-labels-own-lines"
+  ],
+  "expect": {
+   "rides": [],
+   "flights": [],
+   "cars": [
+    [
+     "National",
+     "12345678ABCDE",
+     "2026-12-06",
+     "2:00 PM",
+     "2026-12-11",
+     "6:00 PM",
+     "3057 TERMINAL DR 41048 HEBRON ,OH ,US"
+    ]
+   ],
+   "hotels": [],
+   "warnings": []
+  }
+ },
+ "flights-booking-page": {
+  "note": "Real two-flight block copied from the booking page (Build 94): the second flight lands the next day. Redacted: confirmation, traveler and eTicket numbers.",
+  "samples": [
+   "flights-booking-page"
+  ],
+  "expect": {
+   "rides": [],
+   "flights": [
+    [
+     "WN1560",
+     "CVG",
+     "BNA",
+     "2026-12-11",
+     "6:40 PM",
+     "2026-12-11",
+     "6:50 PM",
+     "ABC123",
+     "3F"
+    ],
+    [
+     "WN647",
+     "BNA",
+     "MCO",
+     "2026-12-11",
+     "9:50 PM",
+     "2026-12-12",
+     "12:50 AM",
+     "ABC123",
+     "3A"
+    ]
+   ],
+   "cars": [],
+   "hotels": [],
+   "warnings": []
+  }
+ },
+ "hotel-americinn": {
+  "note": "Real hotel text with \"Time 3:00 PM\" after the dates. Redacted: name, phone, fax, confirmation, card, guest ID.",
+  "samples": [
+   "hotel-americinn"
+  ],
+  "expect": {
+   "rides": [],
+   "flights": [],
+   "cars": [],
+   "hotels": [
+    [
+     "AMERICINN BY WYNDHAM MAQUOKETA",
+     "1910 Nairn Drive ,Maquoketa IA 52060 US",
+     "2026-07-26",
+     "2026-08-01",
+     "11111AA000000"
+    ]
+   ],
+   "warnings": []
+  }
+ },
+ "hotel-residence-inn": {
+  "note": "Real hotel text, labels on their own lines. Redacted: name, phone, confirmation, card, guest ID.",
+  "samples": [
+   "hotel-residence-inn"
+  ],
+  "expect": {
+   "rides": [],
+   "flights": [],
+   "cars": [],
+   "hotels": [
+    [
+     "RESIDENCE INN DWTN MARRIOTT",
+     "506 EAST 4TH STREET, CINCINNATI, OH, 45202, US",
+     "2026-12-06",
+     "2026-12-11",
+     "11111111"
+    ]
+   ],
+   "warnings": []
+  }
+ },
+ "synthetic-car-block": {
+  "note": "SYNTHETIC: built from the formats the parser reads (agency car block, labels and values on one line).",
+  "samples": [
+   "synthetic-car-block"
+  ],
+  "expect": {
+   "rides": [],
+   "flights": [],
+   "cars": [
+    [
+     "National",
+     "1234567890",
+     "2027-03-02",
+     "3:30 PM",
+     "2027-03-05",
+     "11:00 AM",
+     "CVG Airport"
+    ]
+   ],
+   "hotels": [],
+   "warnings": []
+  }
+ },
+ "synthetic-hotel-email": {
+  "note": "SYNTHETIC: built from the formats the parser reads (a hotel confirmation email).",
+  "samples": [
+   "synthetic-hotel-email"
+  ],
+  "expect": {
+   "rides": [],
+   "flights": [],
+   "cars": [],
+   "hotels": [
+    [
+     "Residence Inn Cincinnati Downtown",
+     "1 Fountain Square, Cincinnati, OH 45202",
+     "2027-03-02",
+     "2027-03-05",
+     "12345678"
+    ]
+   ],
+   "warnings": []
+  }
+ },
+ "synthetic-southwest": {
+  "note": "SYNTHETIC: built from the formats the parser reads (a Southwest itinerary, two flights).",
+  "samples": [
+   "synthetic-southwest"
+  ],
+  "expect": {
+   "rides": [],
+   "flights": [
+    [
+     "WN1234",
+     "MCO",
+     "ATL",
+     "2027-03-02",
+     "8:00 AM",
+     "2027-03-02",
+     "9:45 AM",
+     "",
+     ""
+    ],
+    [
+     "WN567",
+     "ATL",
+     "CVG",
+     "2027-03-02",
+     "11:00 AM",
+     "2027-03-02",
+     "12:25 PM",
+     "",
+     ""
+    ]
+   ],
+   "cars": [],
+   "hotels": [],
+   "warnings": []
+  }
+ },
+ "uber-receipt": {
+  "note": "Real Uber trip receipt (Build 92): no date line, so the ride has no date; the drop-off time is after midnight. Redacted: the home street address and the driver name.",
+  "samples": [
+   "uber-receipt"
+  ],
+  "expect": {
+   "rides": [
+    [
+     "",
+     "11:55 PM",
+     "12:28 AM",
+     "Terminal B, Orlando International Airport (MCO), Orlando, FL 32827, US",
+     "456 Oak Ave, Orlando, FL 32835-0000, US"
+    ]
+   ],
+   "flights": [],
+   "cars": [],
+   "hotels": [],
+   "warnings": []
+  }
+ },
+ "uber-reservation": {
+  "note": "Real Uber reservation email (Build 92): the year comes from the weekday. Redacted: name, home street address, card digits.",
+  "samples": [
+   "uber-reservation"
+  ],
+  "expect": {
+   "rides": [
+    [
+     "2026-10-25",
+     "6:45 AM",
+     "7:26 AM",
+     "123 Main St, Groveland, FL",
+     "Southwest Airlines, Terminal A, MCO"
+    ]
+   ],
+   "flights": [],
+   "cars": [],
+   "hotels": [],
+   "warnings": []
+  }
+ },
+ "booking-page-together": {
+  "note": "The summary, flights, car, and hotel texts pasted together (Builds 93 to 95): the detail and summary merge; the warning is correct because the flights text holds only 2 of the 4 flights.",
+  "samples": [
+   "agency-summary",
+   "flights-booking-page",
+   "car-labels-own-lines",
+   "hotel-residence-inn"
+  ],
+  "expect": {
+   "rides": [],
+   "flights": [
+    [
+     "WN2816",
+     "MCO",
+     "BNA",
+     "2026-12-06",
+     "8:35 AM",
+     "2026-12-06",
+     "9:45 AM",
+     "",
+     ""
+    ],
+    [
+     "WN843",
+     "BNA",
+     "CVG",
+     "2026-12-06",
+     "10:50 AM",
+     "2026-12-06",
+     "1:05 PM",
+     "",
+     ""
+    ],
+    [
+     "WN1560",
+     "CVG",
+     "BNA",
+     "2026-12-11",
+     "6:40 PM",
+     "2026-12-11",
+     "6:50 PM",
+     "ABC123",
+     "3F"
+    ],
+    [
+     "WN647",
+     "BNA",
+     "MCO",
+     "2026-12-11",
+     "9:50 PM",
+     "2026-12-12",
+     "12:50 AM",
+     "ABC123",
+     "3A"
+    ]
+   ],
+   "cars": [
+    [
+     "National",
+     "12345678ABCDE",
+     "2026-12-06",
+     "2:00 PM",
+     "2026-12-11",
+     "6:00 PM",
+     "3057 TERMINAL DR 41048 HEBRON,OH,US"
+    ]
+   ],
+   "hotels": [
+    [
+     "RESIDENCE INN DWTN MARRIOTT",
+     "506 EAST 4TH STREET, CINCINNATI, OH, 45202, US",
+     "2026-12-06",
+     "2026-12-11",
+     "11111111"
+    ]
+   ],
+   "warnings": [
+    "The itinerary summary lists 4 flights but the detail pages have 2."
+   ]
+  }
+ }
+}

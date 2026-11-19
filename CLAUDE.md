@@ -92,7 +92,7 @@ The header comment at the top of `index.html` carries the app version in hundred
 
 "Verify it" means driving the running app, not reading the diff. Chromium and Playwright are available in the sandbox.
 
-1. Write throwaway scripts to a scratch directory and **never commit them**.
+1. Write throwaway scripts to a scratch directory and **never commit them**. The one exception is `parser-tests/` (see Working conventions).
 2. Register a page-error listener first and print the collected list at the end. Zero JS errors is a hard bar.
 3. Drive the UI like a user: click real buttons, fill real inputs, read state back from the rendered DOM. Don't poke internal JS state.
 4. Print each check with a label and expected value beside the actual value, so the output audits itself.
@@ -115,6 +115,7 @@ The header comment at the top of `index.html` carries the app version in hundred
 - **Cleanup that a build itself makes stale rides along.** If an authorized build makes a Queue entry or Planner item obsolete, delete it in the same commit. Fixing an unrelated thing you noticed is still logged, not fixed.
 - **Audit every reference when editing numbered or cross-referenced text** (numbered sections, tables of contents, "see section N"). Update all of them and confirm with a script, not a visual skim.
 - **Keep Queue and Planner status to one short line** ("Added to the Planner.", "Promoted to the Build Queue.", "Queue: five entries."). Don't explain why an item went where, how the sections work, or that each entry stands alone; the user already knows.
+- **Parser samples live in `parser-tests/` (redacted).** Run `node parser-tests/run.js` after any change to `booking-parser.js`. When Jon sends a booking text in a new format, redact it (name, personal addresses, phone and traveler numbers, card digits, confirmation numbers) and add it as a sample with its expected result in `expected.json`. The folder is public on GitHub Pages, so never save an unredacted text there.
 - **`sw.js` (offline cache) needs no version bump.** It reads `index.html` itself, so the existing `?v=N` rule keeps the offline copy fresh. Don't add files to `index.html` that live outside the app folder, and don't edit `sw.js` unless a build is about offline mode.
 - **Don't clean up, optimize, modernize, or reformat** anything that wasn't asked for. Keep existing formatting, spacing, and structure. Don't add or remove features unless asked.
 - **Keep replies short and direct.** Jon is billed by response size. Lead with the result, skip recaps and over-explaining, and keep the Build Log entries and Queue / Planner writing as tight as the job allows.

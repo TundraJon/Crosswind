@@ -1,0 +1,6 @@
+Your Southwest Airlines itinerary
+Confirmation: ABC123
+Flight 1: Tuesday, 03/02/2027
+FLIGHT WN # 1234 DEPARTS MCO 8:00 AM Orlando ARRIVES ATL 9:45 AM
+Flight 2: Tuesday, 03/02/2027
+FLIGHT WN # 567 DEPARTS ATL 11:00 AM Atlanta ARRIVES CVG 12:25 PM

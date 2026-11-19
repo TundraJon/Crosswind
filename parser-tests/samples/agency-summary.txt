@@ -1,0 +1,21 @@
+ Itinerary summary
+ 	From / To	Flight / Provider	Departure / Arrival	 
+Flight	Sun Dec 06, 2026
+Orlando(MCO) - Nashville Metropolitan, TN(BNA)	Southwest Airlines WN2816	8:35 AM-
+9:45 AM	Check in
+Flight	Sun Dec 06, 2026
+Nashville Metropolitan, TN(BNA) - Cincinnati/N Kentucky(CVG)	Southwest Airlines WN843	10:50 AM-
+1:05 PM	Check in
+Car	Sun Dec 06, 2026-
+Fri Dec 11, 2026
+3057 TERMINAL DR 41048 HEBRON,OH,US	National	2:00 PM-
+6:00 PM	 	
+Hotel	Sun Dec 06, 2026-
+Fri Dec 11, 2026	Residence Inns
+RESIDENCE INN DWTN MARRIOTT	 	 	
+Flight	Fri Dec 11, 2026
+Cincinnati/N Kentucky(CVG) - Nashville Metropolitan, TN(BNA)	Southwest Airlines WN1560	6:40 PM-
+6:50 PM	Check in
+Flight	Fri Dec 11, 2026
+Nashville Metropolitan, TN(BNA) - Orlando(MCO)	Southwest Airlines WN647	9:50 PM-
+12:50 AM (1)	Check in

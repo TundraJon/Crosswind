@@ -1,0 +1,8 @@
+Car
+National Car Rental
+Pick up Tue, Mar 2, 2027 3:30 PM
+Drop off Fri, Mar 5, 2027 11:00 AM
+Rental location CVG Airport
+Return location CVG Airport
+Type Midsize
+Confirmation 1234567890
