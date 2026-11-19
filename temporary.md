@@ -7,7 +7,7 @@ Only the rules that are not obvious. Style: ELI5 (`.claude/output-styles/ELI5.md
 - Design question answered → write it in the Build Queue, say so in one line, wait for a fresh "build it".
 - If I ask a question, I wait for the answer before building.
 - A bug or inconsistency I find is written down (Queue / Planner), never fixed on my own. No unrequested cleanup, reformatting, or feature changes.
-- Jon's own commands that are plain imperatives ("Replace X with Y") count as explicit.
+- Plain requests ("Replace X with Y", "Add Z", "Let's fix W") are not go-aheads: they go in the Build Queue first.
 
 ## README is my memory (I keep it current)
 - Build Log: numbered, append-only, one entry per build with a checklist and a Verification line (what was really tested, what was not). Never edit an old entry; a correction is a new entry. A bug found and fixed during verification gets its own mention.

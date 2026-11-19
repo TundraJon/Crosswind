@@ -8,6 +8,7 @@ This governs everything below.
 
 - Finding a bug, spotting an inconsistency, or thinking of an improvement is never permission to fix it. Write it down (Build Queue / Build Planner in `README.md`) and leave it alone until authorized.
 - Explicit instruction means something unambiguous in the moment: "go ahead and build it," "yes, add it." Describing a problem, discussing a design, or "that should probably be fixed" is not authorization.
+- A plain request like "Replace X with Y", "Add Z", or "Let's fix W" is not a go-ahead either. Add it to the Build Queue and wait for "build it".
 - If an instruction is genuinely ambiguous (two scopes, two files, etc.), ask before building. Don't guess, and don't build partway while waiting on the answer.
 - This applies to small, "obviously fine" changes too. A one-line fix still waits for the go-ahead.
 - If you ask a question, wait for the answer before building.
