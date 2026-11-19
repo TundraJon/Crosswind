@@ -649,7 +649,16 @@ Jon supplied a real Uber reservation email and a real trip receipt.
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Parser regression samples (redacted real texts and a test script in the repo)
+Not yet authorized to build. Jon said yes. Today the sample texts and checks used to build the parser live in a scratch folder that disappears with each session, so a later change to `booking-parser.js` could quietly break a format Jon already uses.
+- New folder `parser-tests/` (not part of the app: nothing links to it, so it is not cached for offline use; GitHub Pages will still serve it, which is why the samples are redacted):
+  - `samples/*.txt`: the real texts Jon has sent so far, one file each: Uber reservation email, Uber trip receipt, National car (labels on their own lines), Residence Inn hotel, AmericInn hotel, the two booking-page flights, the agency "Itinerary summary". Plus three samples I built from the parser's own known formats (a Southwest itinerary, a hotel email, an agency car block), labelled synthetic in `expected.json`. (The 13 samples used for Build 58 are gone and cannot be recovered.)
+  - `expected.json`: for each sample, what the parser must return (rides, flights, cars, hotels, and the warnings, if any), with a short note.
+  - `run.js`: a Node script with no dependencies: `node parser-tests/run.js`. It loads `booking-parser.js` and `airports.js`, parses every sample with the date fixed at 19 Nov 2026 (so the year-from-weekday logic is repeatable), compares each with `expected.json`, prints PASS or FAIL per sample with the differences, and exits with an error code if anything fails. It also parses a few combinations (the booking page pieces pasted together).
+- Redaction, applied to every sample before it is saved (structure, line breaks, tabs, and formats are kept exactly): Jon's name becomes TEST USER (and the driver's name, "Josue", becomes DRIVER); home and personal street addresses become dummy ones (415 Regatta Dr, Groveland and 6462 Cantua Ln, Orlando become 123 Main St and 456 Oak Ave, in the same city and state format); phone and fax numbers, frequent traveler / renter / guest numbers, eTicket numbers, the corporate discount code, and card digits become same-length dummy digits; booking confirmation numbers become dummy codes of the same shape (246EQF becomes ABC123, 80162232EXSEL becomes 12345678ABCDE, and so on); prices and rates stay. Hotels, airlines, airports, dates, and times stay as they are (they are not personal). `expected.json` is written against the redacted values.
+- `CLAUDE.md`: a new line: "Parser samples live in `parser-tests/` (redacted). Run `node parser-tests/run.js` after any change to `booking-parser.js`. When Jon sends a booking text in a new format, redact it and add it as a sample with its expected result." The Verification rule "never commit throwaway scripts" gets one exception: `parser-tests/`.
+- No app file changes in this entry, so no cache-bust and no version bump (the Log entry says so).
+- Verify: `node parser-tests/run.js` passes on the current parser; breaking the parser on purpose (a scratch copy with one regex changed) makes it fail with a clear message; a search of the folder finds none of the redacted values (Jon's name and the driver's, the two street addresses, the phone, fax, traveler, eTicket, renter, guest, and discount numbers, the card digits, and the real confirmation numbers); the service worker's cache list does not include the folder; the app is unchanged.
 
 ## Build Planner
 
