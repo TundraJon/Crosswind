@@ -1668,7 +1668,7 @@
   }
   /* ============ AIRBORNE PANEL: airspeed tape + heading compass, live from GPS (one ping every 3 seconds) ============ */
   /* ---- GPS noise filter: movement only counts when several samples in a row agree ---- */
-  const MPH_MS = 0.44704, FLOOR_MS = 0.894 /* 2 mph */, FLOOR_WALK_MS = 0.3126 /* 0.7 mph */, FAST_MS = 4.4704 /* 10 mph */;
+  const MPH_MS = 0.44704, FLOOR_MS = 0.894 /* 2 mph */, FAST_MS = 4.4704 /* 10 mph */;
   function newMotion() { return { buf: [], moving: false, fails: 0, lastSpd: null, lastHdg: null }; }
   function angDiff(a, b) { return Math.abs(((a - b + 540) % 360) - 180); }
   /* Two samples agree when both are above the speed floor, their headings are within 30 degrees, their speeds within max(1 mph, 25%),
@@ -1972,7 +1972,7 @@
   }
 
   /* ---- The driving screen: arrow to the destination, relative to the direction of travel (GPS course only), ground speed, distance ---- */
-  let driveDestFull = '', drivePing = null, driveStatusTimer = null, driveFixAt = null, driveDenied = false, driveBuiltUnit = '', driveDest = null, driveMotion = newMotion(), driveHold = null, driveSpeed = null, driveCourse = null, driveMph = true;
+  let driveDestFull = '', drivePing = null, driveStatusTimer = null, driveFixAt = null, driveDenied = false, driveBuiltUnit = '', driveDest = null, driveMotion = newMotion(), driveWalkState = newWalk(), driveHold = null, driveSpeed = null, driveCourse = null, driveMph = true;
   function fmtDriveDist(m) {
     const km = currentUnits().dist === 'km';
     if (km) return m < 100 ? Math.round(m) + ' <small>M</small>' : (m / 1000).toFixed(1) + ' <small>KM</small>';
@@ -2035,10 +2035,30 @@
     cardGround.dataset.rel = Math.round(rel); cardGround.dataset.bearing = Math.round(brg); cardGround.dataset.dist = Math.round(dist);
   }
   function driveMessage(t) { const m = document.getElementById('driveMsg'); m.textContent = t || ''; m.style.display = t ? 'block' : 'none'; }
+  /* Layover (walking) speed: the movement of the AVERAGE position, so GPS wander indoors cancels out instead of making every fix look different.
+     Last 8 fixes; speed = distance between the average of the oldest 3 and the average of the newest 3, over the time between those averages (about 5 s).
+     Zero when under max(0.5 m/s, accuracy x 0.12; 6 m when the phone gives no accuracy); then a smoothing step (new = old + 0.6 x (estimate - old)). Starts after 6 fixes. */
+  function newWalk() { return { buf: [], ema: 0 }; }
+  function walkEstimate(w, c, fix) {
+    if (w.buf.length && fix.t - w.buf[w.buf.length - 1].t > 8000) { w.buf = []; w.ema = 0; }
+    w.buf.push({ lat: fix.lat, lon: fix.lon, t: fix.t }); if (w.buf.length > 8) w.buf.shift();
+    const acc = (typeof c.accuracy === 'number' && isFinite(c.accuracy) && c.accuracy > 0) ? c.accuracy : 6;
+    let raw = 0, hdg = null;
+    if (w.buf.length >= 6) {
+      const avg = a => ({ lat: a.reduce((s, p) => s + p.lat, 0) / a.length, lon: a.reduce((s, p) => s + p.lon, 0) / a.length, t: a.reduce((s, p) => s + p.t, 0) / a.length });
+      const a = avg(w.buf.slice(0, 3)), b = avg(w.buf.slice(-3)), dt = (b.t - a.t) / 1000, v = dt > 0 ? distanceM(a.lat, a.lon, b.lat, b.lon) / dt : 0;
+      if (v >= Math.max(0.5, acc * 0.12)) { raw = v; hdg = bearingDeg(a.lat, a.lon, b.lat, b.lon); }
+    }
+    w.ema += 0.6 * (raw - w.ema);
+    return { speed: w.ema < 0.15 ? 0 : w.ema, heading: hdg };
+  }
   function onDrivePos(pos) {
     const c = pos.coords, now = pos.timestamp || Date.now(), fix = { lat: c.latitude, lon: c.longitude, t: now };
     driveMessage(''); driveFixAt = Date.now(); driveDenied = false; renderDriveStatus();
-    const r = gpsMotion(driveMotion, c, fix, { floor: driveWalk() ? FLOOR_WALK_MS : FLOOR_MS });
+    if (driveWalk()) { /* Layover: no destination, so only the speed and the heading */
+      const w = walkEstimate(driveWalkState, c, fix); driveSpeed = w.speed; if (w.heading != null) driveCourse = w.heading; driveHold = fix; renderDrive(fix); return;
+    }
+    const r = gpsMotion(driveMotion, c, fix, { floor: FLOOR_MS });
     if (r.moving && r.speed != null) {
       driveSpeed = (driveSpeed == null || driveSpeed < 0.3 || r.speed < 0.3) ? r.speed : 0.6 * driveSpeed + 0.4 * r.speed; /* smoothed while moving */
       if (r.heading != null) driveCourse = r.heading;
@@ -2054,7 +2074,7 @@
   let driveDialBuilt = false;
   function startDrive(target) {
     if (drivePing) { driveDest = target; driveDestFull = target.name; fitDriveDest(); renderDrive(driveLastFix); return; }
-    driveDest = target; driveMotion = newMotion(); driveHold = null; driveFixAt = null; driveDenied = false; driveSpeed = null; driveCourse = null; driveMph = currentUnits().speed !== 'kph'; driveBuiltUnit = '';
+    driveDest = target; driveMotion = newMotion(); driveWalkState = newWalk(); driveHold = null; driveFixAt = null; driveDenied = false; driveSpeed = null; driveCourse = null; driveMph = currentUnits().speed !== 'kph'; driveBuiltUnit = '';
     if (!driveDialBuilt) { document.getElementById('driveDial').innerHTML = dialMarkup(); driveDialBuilt = true; }
     driveDestFull = target.name; fitDriveDest();
     cardGround.dataset.rel = ''; cardGround.dataset.dist = '';
