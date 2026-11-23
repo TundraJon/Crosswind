@@ -696,7 +696,11 @@ Jon's one-frame screenshots could not show what the phone does while he walks. T
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Layover speed ignores a phone speed of 0 and drops the accuracy-scaled cutoff
+Not yet authorized to build. Jon's first real walk log (v1.40, 147 fixes over 146 s, accuracy 4 to 31 m, mostly 9 to 13 m): the phone's speed is `0.00` on every fix that has one, even while he moves, and the phone's heading is almost always missing. The positions do move: path 157 m, straight line 3.7 m, with walking bursts of about 1.2 m/s (for example 16 m in 13 s from 105 s to 118 s). Build 99 trusted the phone's 0.00, so the card showed 0.0 mph for the whole walk. A replay of the log through the Build 97 averaging showed movement only 7% of the time, because the cutoff (accuracy x 0.12) is 1.1 to 1.6 m/s at 9 to 13 m accuracy, which is above his walking speed. Replay with a fixed 0.3 m/s cutoff: movement shown 61% of the time, up to 4.0 mph, average 0.95 mph (the real walk was about 1.1 m/s = 2.4 mph over the whole path, with pauses and some drift).
+- Build: in `walkEstimate()`, use the phone's speed only when it is above 0 (a speed of 0 or none means "use the average-position estimate"); the cutoff becomes a fixed 0.3 m/s (no accuracy scaling). Keep the 20 s reset gap, the 6 s / 15 s GPS light, the info line and the recorder. The phone's heading is used only when it gives one.
+- Open: standing still will blip more (some jitter shows, which Jon prefers over a dead needle). A 60-second standing log from Jon would show how much, so the cutoff can be set from data. The recorder's results screen needs no change.
+- Verify with the Playwright Layover test (phone speed always 0.00 mock; no-speed mock) and a replay of Jon's log through the real `walkEstimate()`; plus the usual suites. Cache-bust and version bump.
 
 ## Build Planner
 
