@@ -673,13 +673,20 @@ Jon restarted the app 5 times and the Layover speed (Build 97) still read 0 on h
 - **Not checked:** a real phone and real GPS. That is the point of the line: Jon walks with the Layover card open and reads it.
 - **Bug found in verification:** my first test showed the line overlapping the dial in full screen; the line now sits at the bottom edge.
 
+### Build 99: Layover speed from the phone's own speed and heading (completed)
+Jon's phone showed 0 while walking. His info line (Build 98) showed that the phone gives its own speed and heading, that fixes arrive in bursts (gap 0.0 s, then a gap of 8.6 s that wiped the average), and that the average-position speed sat under the cutoff. The GPS light flipped between LOCK and STALE about every 3 s, which fits the same bursts.
+- [x] `script.js`, `walkEstimate()`: when the phone gives a speed (a number, 0 or more), that speed is the input to the same smoothing step, and the phone's heading is used when it gives one and the speed is 0.3 m/s or more. With no phone speed, the Build 97 average-position estimate runs as before. The reset gap goes from 8 s to 20 s.
+- [x] `script.js`, `driveStatusNow()`: on the Layover card the GPS light is green up to 6 s after a fix and yellow up to 15 s (before: 3.5 s and 9 s). Other steps are unchanged.
+- [x] `script.js`, info line: now also shows `from phone` or `from average`.
+- [x] Cache-bust bumped: `script.js?v=43→44`. Version: v1.38→v1.39. `styles.css` and `index.html` markup unchanged.
+- **Reuse:** the same smoothing step, `driveWalk()` check, and info line from Builds 97 and 98.
+- **Verification:** Playwright Layover test, two mocks. Phone-like mock (speed and heading given, 5 m jitter): a 3.1 mph walk reads 3.1 mph; it reaches 1.5 mph at the first fix; falls under 0.5 mph in 2 s; standing averages 0.05 mph; the heading is exact; the info line shows `from phone`; an 11 s gap in fixes no longer resets the buffer. No-speed mock (the old test): the average-position estimate still works (3.2 mph, 4 s to start, 3 s to stop, 0.25 mph standing, heading within 13 degrees), shows `from average`, and a 25 s gap resets with `reset: gap of 26.0 s`; the line is hidden on the Hotel and Rental steps. Regression: verify19 (46), gps (13), hd (18), air (30), air_ui (40), clip2 (27), off2 (30), `node parser-tests/run.js` (11): all pass; zero JS errors. The old `clip.js` failure from Build 98 is unchanged and not run again.
+- **Bug found in verification:** none in the build. One check ("shown equals the card speed") failed once when two test runs shared the CPU, because the test reads two values at different moments; it passes when run alone.
+- **Not checked:** a real phone. The GPS light timing (6 s and 15 s) was not tested directly: the mock cannot hold back fixes. How quickly the phone's own speed rises when Jon starts walking is also unknown; if it feels slow, the numbers on the info line will show.
+
 ## Build Queue
 
-### Queue 1: Layover speed from the phone's own speed and heading
-Not yet authorized to build. Jon's phone, v1.38, Layover card: standing still it showed `acc 6 m | gap 1.0 s | fixes 8 | raw 0.09 m/s | cutoff 0.68 m/s | device speed 0.0 m/s, heading none`; while walking it showed `acc 6 m | gap 0.0 s | fixes 8 | raw 0.17 m/s | cutoff 0.75 m/s | shown 0.0 mph | device speed 0.4 m/s, heading 90 | reset: gap of 8.6 s`. So (1) the phone gives its own speed and heading, (2) fixes arrive in bursts (gap 0.0 s, then a gap of 8.6 s that wipes the average), and (3) the averaging reads far under the cutoff. The GPS light flipping between LOCK and STALE about every 3 s fits the same bursts.
-- Build: when the phone gives a speed (a number, 0 or more), the Layover card shows that speed, lightly smoothed (same step as now), and the heading from the phone when it gives one. When it gives no speed, the card uses the current average-position estimate. The reset gap goes from 8 s to 20 s. The GPS light stays green up to 6 s after a fix, and goes yellow to 15 s (Layover card only).
-- Open point: one walking snapshot only (0.4 m/s may just be a slow moment). The info line stays in this build so Jon can check the new numbers; a later build removes it.
-- Verify with the Playwright Layover test (mock with device speed and bursts) plus the usual suites; cache-bust and version bump.
+_Empty — nothing queued right now._
 
 ## Build Planner
 

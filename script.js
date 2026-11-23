@@ -2001,8 +2001,8 @@
   let driveLastFix = null;
   function driveStatusNow() {
     if (driveDenied || driveFixAt == null) return 'red';
-    const age = (Date.now() - driveFixAt) / 1000;
-    return age <= 3.5 ? 'green' : age <= 9 ? 'yellow' : 'red';
+    const age = (Date.now() - driveFixAt) / 1000, g = driveWalk() ? 6 : 3.5, y = driveWalk() ? 15 : 9; /* Layover: the phone delivers fixes in bursts */
+    return age <= g ? 'green' : age <= y ? 'yellow' : 'red';
   }
   function renderDriveStatus() {
     const st = driveStatusNow(), box = document.getElementById('driveStatus');
@@ -2014,7 +2014,7 @@
     const el = document.getElementById('driveInfo'); if (!el) return;
     if (!driveWalk()) { el.style.display = 'none'; return; }
     el.style.display = 'block'; const d = driveWalkState.diag;
-    el.textContent = !d ? 'GPS info: waiting for the first fix' : 'acc ' + (d.acc == null ? 'none' : d.acc.toFixed(0) + ' m') + ' | gap ' + (d.gap == null ? '-' : d.gap.toFixed(1) + ' s') + ' | fixes ' + d.fixes + ' | raw ' + (d.raw == null ? '-' : d.raw.toFixed(2) + ' m/s') + ' | cutoff ' + d.thr.toFixed(2) + ' m/s | shown ' + (d.speed * 2.23694).toFixed(1) + ' mph | device speed ' + (d.devSpeed == null ? 'none' : d.devSpeed.toFixed(1) + ' m/s') + ', heading ' + (d.devHeading == null ? 'none' : d.devHeading.toFixed(0)) + ' | ' + d.reason;
+    el.textContent = !d ? 'GPS info: waiting for the first fix' : 'acc ' + (d.acc == null ? 'none' : d.acc.toFixed(0) + ' m') + ' | gap ' + (d.gap == null ? '-' : d.gap.toFixed(1) + ' s') + ' | fixes ' + d.fixes + ' | raw ' + (d.raw == null ? '-' : d.raw.toFixed(2) + ' m/s') + ' | cutoff ' + d.thr.toFixed(2) + ' m/s | shown ' + (d.speed * 2.23694).toFixed(1) + ' mph | device speed ' + (d.devSpeed == null ? 'none' : d.devSpeed.toFixed(1) + ' m/s') + ', heading ' + (d.devHeading == null ? 'none' : d.devHeading.toFixed(0)) + ' | from ' + d.src + ' | ' + d.reason;
   }
   function setDriveRel(r) { document.getElementById('driveArrow').setAttribute('transform', 'rotate(' + r + ')'); }
   function renderDrive(fix) {
@@ -2044,11 +2044,11 @@
   function driveMessage(t) { const m = document.getElementById('driveMsg'); m.textContent = t || ''; m.style.display = t ? 'block' : 'none'; }
   /* Layover (walking) speed: the movement of the AVERAGE position, so GPS wander indoors cancels out instead of making every fix look different.
      Last 8 fixes; speed = distance between the average of the oldest 3 and the average of the newest 3, over the time between those averages (about 5 s).
-     Zero when under max(0.5 m/s, accuracy x 0.12; 6 m when the phone gives no accuracy); then a smoothing step (new = old + 0.6 x (estimate - old)). Starts after 6 fixes. */
+     When the phone gives a speed, that speed is used (and its heading when it gives one); otherwise: zero when under max(0.5 m/s, accuracy x 0.12; 6 m when the phone gives no accuracy); then a smoothing step (new = old + 0.6 x (estimate - old)). Starts after 6 fixes. */
   function newWalk() { return { buf: [], ema: 0, diag: null, reason: 'waiting for fixes' }; }
   function walkEstimate(w, c, fix) {
     const gapS = w.buf.length ? (fix.t - w.buf[w.buf.length - 1].t) / 1000 : null;
-    if (w.buf.length && fix.t - w.buf[w.buf.length - 1].t > 8000) { w.buf = []; w.ema = 0; w.reason = 'reset: gap of ' + gapS.toFixed(1) + ' s'; } else if (!w.buf.length) w.reason = 'started';
+    if (w.buf.length && fix.t - w.buf[w.buf.length - 1].t > 20000) { w.buf = []; w.ema = 0; w.reason = 'reset: gap of ' + gapS.toFixed(1) + ' s'; } else if (!w.buf.length) w.reason = 'started';
     w.buf.push({ lat: fix.lat, lon: fix.lon, t: fix.t }); if (w.buf.length > 8) w.buf.shift();
     const acc = (typeof c.accuracy === 'number' && isFinite(c.accuracy) && c.accuracy > 0) ? c.accuracy : 6;
     let raw = 0, hdg = null, rawAll = null, thr = Math.max(0.5, acc * 0.12);
@@ -2057,9 +2057,11 @@
       const a = avg(w.buf.slice(0, 3)), b = avg(w.buf.slice(-3)), dt = (b.t - a.t) / 1000, v = dt > 0 ? distanceM(a.lat, a.lon, b.lat, b.lon) / dt : 0;
       rawAll = v; if (v >= thr) { raw = v; hdg = bearingDeg(a.lat, a.lon, b.lat, b.lon); }
     }
+    const devOk = typeof c.speed === 'number' && isFinite(c.speed) && c.speed >= 0;
+    if (devOk) { raw = c.speed; if (typeof c.heading === 'number' && isFinite(c.heading) && c.speed >= 0.3) hdg = c.heading; } /* the phone gives its own speed: use it; else the average-position estimate above */
     w.ema += 0.6 * (raw - w.ema);
     const speed = w.ema < 0.15 ? 0 : w.ema;
-    w.diag = { acc: (typeof c.accuracy === 'number' && isFinite(c.accuracy) && c.accuracy > 0) ? c.accuracy : null, gap: gapS, fixes: w.buf.length, raw: rawAll, thr, speed, devSpeed: (typeof c.speed === 'number' && isFinite(c.speed)) ? c.speed : null, devHeading: (typeof c.heading === 'number' && isFinite(c.heading)) ? c.heading : null, reason: w.reason };
+    w.diag = { acc: (typeof c.accuracy === 'number' && isFinite(c.accuracy) && c.accuracy > 0) ? c.accuracy : null, gap: gapS, fixes: w.buf.length, raw: rawAll, thr, speed, devSpeed: (typeof c.speed === 'number' && isFinite(c.speed)) ? c.speed : null, devHeading: (typeof c.heading === 'number' && isFinite(c.heading)) ? c.heading : null, src: devOk ? 'phone' : 'average', reason: w.reason };
     return { speed, heading: hdg };
   }
   function onDrivePos(pos) {
