@@ -664,7 +664,11 @@ Jon: on a Layover the Ground RTT speed showed nothing however fast he walked, an
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Layover GPS info line (temporary diagnostic)
+Not yet authorized to build. Jon restarted the app 5 times and the Layover speed (Build 97) still reads 0 on his phone, although it passes in simulation. Suspects: (1) a phone-reported `coords.accuracy` of 15 m or more makes the cutoff (accuracy x 0.12) 1.8 m/s or higher, above walking speed (about 1.4 m/s), so everything reads 0; the simulation only used up to about 10 m; (2) fixes arriving more than 8 seconds apart restart the averaging every time (the gap rule), so the 6 fixes are never reached; (3) the old script still loaded (Setup, Offline card, should say v1.37). Jon also suggested using the last 2 positions plus the newest; in simulation that reads standing still as 3.5 mph (3 m wander) and 5.5 mph (5 m wander) and walking as 4.5 and 6.4 mph, so it cannot tell them apart unless the wander is under about 2 m. The way forward is to measure his phone.
+- Build: on the Layover card only (walking mode), one small line of text at the bottom of the card (`#driveInfo`), updated with every fix: `acc 18 m | gap 2.1 s | fixes 7 | raw 0.9 m/s | cutoff 2.2 m/s | shown 0.0 mph`. Accuracy is the phone's `coords.accuracy` ("none" when it gives no value); gap is the seconds between the last two fixes; fixes is the number held; raw is the speed from the two average positions before the cutoff; cutoff is the value the raw speed must reach; shown is what the card displays. Also the last reset reason ("gap over 8 s" or "started") and the phone's own speed and heading when it gives them ("device speed 1.3 m/s, heading 87").
+- It is a temporary diagnostic: Jon walks with the Layover card open, reads the line, and tells me the numbers; a later build removes the line (and applies whatever the numbers show). `walkEstimate()` is unchanged apart from exposing those values.
+- Verify with the Playwright Layover test (mocked GPS): the line shows the values and they match the mock (accuracy 6.5 m, 1 s gap, 8 fixes, the raw speed and cutoff the node simulation computes); it is not shown on other steps; the Ground RTT and Airborne checks still pass; zero JS errors; screenshot looked at. Cache-bust and version bump.
 
 ## Build Planner
 
