@@ -675,14 +675,15 @@ Jon restarted the app 5 times and the Layover speed (Build 97) still read 0 on h
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Layover speed from the phone's own speed and heading
+Not yet authorized to build. Jon's phone, v1.38, Layover card: standing still it showed `acc 6 m | gap 1.0 s | fixes 8 | raw 0.09 m/s | cutoff 0.68 m/s | device speed 0.0 m/s, heading none`; while walking it showed `acc 6 m | gap 0.0 s | fixes 8 | raw 0.17 m/s | cutoff 0.75 m/s | shown 0.0 mph | device speed 0.4 m/s, heading 90 | reset: gap of 8.6 s`. So (1) the phone gives its own speed and heading, (2) fixes arrive in bursts (gap 0.0 s, then a gap of 8.6 s that wipes the average), and (3) the averaging reads far under the cutoff. The GPS light flipping between LOCK and STALE about every 3 s fits the same bursts.
+- Build: when the phone gives a speed (a number, 0 or more), the Layover card shows that speed, lightly smoothed (same step as now), and the heading from the phone when it gives one. When it gives no speed, the card uses the current average-position estimate. The reset gap goes from 8 s to 20 s. The GPS light stays green up to 6 s after a fix, and goes yellow to 15 s (Layover card only).
+- Open point: one walking snapshot only (0.4 m/s may just be a slow moment). The info line stays in this build so Jon can check the new numbers; a later build removes it.
+- Verify with the Playwright Layover test (mock with device speed and bursts) plus the usual suites; cache-bust and version bump.
 
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
-
-### Layover GPS light flips between LOCK and STALE every 3 s
-Jon, standing still on the Layover card (v1.38): the light flips between GPS LOCK and GPS STALE about every 3 seconds, while the info line says `acc 6 m | gap 1.0 s | fixes 8 | raw 0.09 m/s | cutoff 0.68 m/s | device speed 0.0 m/s, heading none`. The light is green only if a fix was delivered in the last 3.5 s (`driveStatusNow()`), while the gap in the info line uses the fix's own timestamp. Guess (not confirmed): the phone delivers fixes in a batch about every 3 s, each stamped 1 s apart. Open: walking numbers from Jon to confirm; the fix may be a longer green window and a delivery-time gap in the info line. Also open: the phone gives its own speed (0.0 m/s standing), so the walking speed could use it when it is present.
 
 ### Inventory: what Setup and the Trip Wizard really do today (updated after Build 60)
 Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished but does nothing real; "Missing" = not built or not designed yet. Setup saves for real (Build 15), trips save (Build 16), and the Wizard's dates and fields are real (Build 18). Builds 35 to 60 added more (see the Build Log: rearrange flights, Import Itinerary, layover calculation, driving and airborne screens). Earlier: remove a flight or stop (Build 21), hotel brand picker and every major chain in the Chain list (Builds 22 and 26), phone formatting (Build 23), a Home step at both ends (Build 29), and steady page height in the Wizard (Builds 30 to 34).
