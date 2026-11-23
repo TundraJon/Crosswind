@@ -696,15 +696,16 @@ Jon's one-frame screenshots could not show what the phone does while he walks. T
 
 ## Build Queue
 
-### Queue 1: Layover speed ignores a phone speed of 0 and drops the accuracy-scaled cutoff
-Not yet authorized to build. Jon's first real walk log (v1.40, 147 fixes over 146 s, accuracy 4 to 31 m, mostly 9 to 13 m): the phone's speed is `0.00` on every fix that has one, even while he moves, and the phone's heading is almost always missing. The positions do move: path 157 m, straight line 3.7 m, with walking bursts of about 1.2 m/s (for example 16 m in 13 s from 105 s to 118 s). Build 99 trusted the phone's 0.00, so the card showed 0.0 mph for the whole walk. A replay of the log through the Build 97 averaging showed movement only 7% of the time, because the cutoff (accuracy x 0.12) is 1.1 to 1.6 m/s at 9 to 13 m accuracy, which is above his walking speed. Replay with a fixed 0.3 m/s cutoff: movement shown 61% of the time, up to 4.0 mph, average 0.95 mph (the real walk was about 1.1 m/s = 2.4 mph over the whole path, with pauses and some drift).
-- Build: in `walkEstimate()`, use the phone's speed only when it is above 0 (a speed of 0 or none means "use the average-position estimate"); the cutoff becomes a fixed 0.3 m/s (no accuracy scaling). Keep the 20 s reset gap, the 6 s / 15 s GPS light, the info line and the recorder. The phone's heading is used only when it gives one.
-- Open: standing still will blip more (some jitter shows, which Jon prefers over a dead needle). A 60-second standing log from Jon would show how much, so the cutoff can be set from data. The recorder's results screen needs no change.
-- Verify with the Playwright Layover test (phone speed always 0.00 mock; no-speed mock) and a replay of Jon's log through the real `walkEstimate()`; plus the usual suites. Cache-bust and version bump.
+_Empty — nothing queued right now._
 
 ## Build Planner
 
 Resolved, built, dropped, or superseded items are not kept here. Their history lives in the Build Log.
+
+### Layover speed: parked (Jon: too big for a fun feature)
+What the real data showed (Builds 98 to 100, Jon's phone, indoors): the phone's own speed is 0.00 on every fix, even while moving; the heading is almost always missing; accuracy is 4 to 48 m; fixes can arrive as duplicates and the first ones jump 40 m or more (a fake 16 mph spike). Standing still, the position drifts smoothly (17 m south and 34 m east in 25 s while the GPS settled, then 3 to 5 m), which looks like slow walking. Replays of the logs: no cutoff separates standing from walking (a 0.3 m/s cutoff shows movement 61% of the time walking and 70% standing; 0.9 m/s: 16% and 51%), and a Kalman filter did no better (walking 10 to 31%, standing 23 to 81%). So GPS alone cannot do it indoors. A trip on a tram or people mover moves the position without steps, so a step counter alone would miss it.
+- Idea if ever picked up: the phone's motion sensor (steps, about 2 a second, speed = steps per second x 0.75 m) for walking, plus a long GPS window (15 to 20 s) for trams and movers, 0 otherwise. Needs a recorder with a motion-sensor column and three real logs (standing, walking, tram) before any design. Also worth doing on its own: ignore a fix that jumps far from the previous one.
+- Today's state: the Layover card shows the Build 99 / 100 behavior (phone speed, which reads 0.0 for Jon), the temporary info line, and the Mark recorder.
 
 ### Inventory: what Setup and the Trip Wizard really do today (updated after Build 60)
 Audit only; nothing here is decided. "Real" = works; "Cosmetic" = looks finished but does nothing real; "Missing" = not built or not designed yet. Setup saves for real (Build 15), trips save (Build 16), and the Wizard's dates and fields are real (Build 18). Builds 35 to 60 added more (see the Build Log: rearrange flights, Import Itinerary, layover calculation, driving and airborne screens). Earlier: remove a flight or stop (Build 21), hotel brand picker and every major chain in the Chain list (Builds 22 and 26), phone formatting (Build 23), a Home step at both ends (Build 29), and steady page height in the Wizard (Builds 30 to 34).
