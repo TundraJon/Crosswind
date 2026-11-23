@@ -686,10 +686,13 @@ Jon's phone showed 0 while walking. His info line (Build 98) showed that the pho
 
 ## Build Queue
 
-### Queue 1: Info line shows the peak speeds of the last 30 seconds
-Not yet authorized to build. Jon's v1.39 screenshot (taken standing or stopped): `acc 8 m | gap 2.0 s | fixes 8 | raw 0.46 m/s | cutoff 0.90 m/s | shown 0.0 mph | device speed 0.0 m/s, heading none | from phone | started`. One frame cannot show whether the phone reports speed while walking indoors, since he cannot hold the phone steady and take a screenshot mid-walk.
-- Build: the info line adds `peak 30 s: phone X m/s, average Y m/s` (the highest phone speed and the highest average-position speed in the last 30 seconds). Jon walks about 20 seconds, stops, takes the screenshot, and the peaks show what happened while he moved. The line stays temporary. No change to the speed maths.
-- Verify with the Playwright Layover test (peaks fall back after 30 s); cache-bust and version bump.
+### Queue 1: Layover walk recorder (Mark button, full-screen results, Copy log)
+Not yet authorized to build. Replaces the earlier "peak speeds of the last 30 seconds" idea (removed from the Queue; it covered the same need). Jon: mark a start and an end, record the GPS positions and the calculated distance and speed, and show it full screen so the numbers can be recalculated from what was reported. His v1.39 screenshot (standing or stopped) showed `device speed 0.0 m/s, from phone, shown 0.0 mph`, which one frame cannot explain.
+- Build: on the Layover card (temporary diagnostic, next to the info line) one toggle button, **Mark**. First tap starts a recording and the button reads **Stop**; second tap stops it. While recording, every fix is saved in memory with: seconds since the start, latitude, longitude, accuracy, the phone's speed and heading, and the speed the card shows (from the phone or from the average).
+- After Stop, the card goes full screen with the results: elapsed time, number of fixes, path length (sum of the distance between fixes), straight-line distance (first to last fix), average speed (path length / time), the average of the phone's own speed, and the average of the speed shown; then the list of fixes (the last rows that fit, scrollable). A **Copy log** button copies every fix as plain text (one row per fix, with those columns, plus the results at the top) so Jon can paste it to me. A **Close** button returns to the card.
+- Memory only: nothing is saved to the phone, and the recording clears when the card closes or a new one starts. If the Clipboard is refused, the text shows in a box to select by hand. A recording stops itself after 10 minutes (about 600 fixes).
+- The info line stays (temporary). No change to the speed maths. A later build removes the recorder and the info line.
+- Verify with the Playwright Layover test (mocked GPS; known walk: results match the mock's true distance and speed within the jitter; Copy log text has one row per fix; the full-screen results fit the screen in portrait and landscape; Mark and Stop work on the Layover card only; screenshots looked at); plus the usual suites. Cache-bust and version bump.
 
 ## Build Planner
 
