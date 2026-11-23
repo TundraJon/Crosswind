@@ -696,7 +696,13 @@ Jon's one-frame screenshots could not show what the phone does while he walks. T
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Layover tidy-up (disable the Layover speed meter button, remove the diagnostics)
+Not yet authorized to build. Jon: the Layover speed meter is parked (see the Planner item "Layover speed: parked"). Disable the button that opens it, keep the code, and remove the pieces that are not needed.
+- Disable: on the Layover step only, the Ground RTT button (`#rttBtn`) is disabled and its sub-label reads "Coming soon". Same pattern as a step with no compass target (`dashCompassTarget()` gives none for a Layover, `dashRttReason()` gives the label). The driving steps (Uber, Rental, Hotel, Destination, Rental Return, Home) are unchanged. The Layover card code (`driveWalk()`, `newWalk()`, `walkEstimate()`, the Layover tape scale, the GPS light timing) stays in `script.js`, unused for now.
+- Remove: the temporary GPS info line (`#driveInfo`, `renderDriveInfo()`, the `w.diag` values and the `.drive-info` CSS), and the Mark recorder (`#markBtn`, the `#walkRec` results screen, `recAdd()`, `recStop()`, `recLogText()` and the related CSS and calls). The Build Log entries 98 to 100 stay as history.
+- Not changed: the driving speed meter, the Airborne RTT, and everything else.
+- Verify with Playwright: the Layover step shows the button disabled with "Coming soon" and the card cannot be opened; a driving step (Rental) still opens the Ground card, its speed, compass, and Distance; no `#driveInfo`, `#markBtn`, or `#walkRec` on the page; zero JS errors; the usual suites (the Layover-card tests no longer apply and are retired). Cache-bust and version bump.
+- Open point for Jon, only if he wants it different: the Layover card code stays but cannot be reached; if he would rather have it removed completely, that is a separate item.
 
 ## Build Planner
 
