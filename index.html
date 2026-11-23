@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.37) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.38) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#10161f">
 <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" href="styles.css?v=42">
+<link rel="stylesheet" href="styles.css?v=43">
 </head>
 <body>
 
@@ -305,6 +305,7 @@
         </div>
       </div>
       <div class="drive-msg" id="driveMsg" style="display:none;"></div>
+      <div class="drive-info" id="driveInfo" style="display:none;"></div>
     </div>
   </div>
   <div class="dock" id="dashDock" style="margin-top:12px;"><button class="btn primary grow" id="copyAddrBtn">[ Copy Address ]<small>Paste into your GPS app</small></button><button class="btn grow" id="rttBtn" style="display:none;">🧭 Ground RTT<small>Works offline</small></button></div>
@@ -431,7 +432,7 @@
 <script src="airports.js?v=1"></script>
 <script src="hotel-brands.js?v=2"></script>
 <script src="booking-parser.js?v=2"></script>
-<script src="script.js?v=42"></script>
+<script src="script.js?v=43"></script>
 
 </body>
 </html>

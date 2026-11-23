@@ -299,6 +299,8 @@
   .dt-ptr { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 43px; height: 30px; line-height: 30px; padding: 0 10px 0 0; box-sizing: border-box; text-align: center; font-weight: 700; font-size: 0.95rem; background: var(--cyan); color: #04151c; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); }
   .drive-speedbox .tape-alt { font-size: 0.7rem; color: var(--text); white-space: nowrap; }
   .drive-msg { color: var(--amber); text-align: center; font-size: 0.8rem; padding: 6px; }
+  .drive-info { color: var(--text-dim); text-align: center; font-size: 0.6rem; letter-spacing: 0.02em; padding: 6px 4px 0; overflow-wrap: anywhere; }
+  #cardGround.ground-full .drive-info { position: absolute; left: 0; right: 0; bottom: 4px; }
   .time-pick { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; border: 0; padding: 0; }
   /* Airborne panel: airspeed tape (left), heading compass (centre), status dot (top right) */
   #cardAir { position: relative; padding-top: 22px; }

@@ -2009,6 +2009,13 @@
     box.querySelector('i').className = 'air-dot ' + st; box.querySelector('span').textContent = st === 'green' ? 'GPS LOCK' : st === 'yellow' ? 'GPS STALE' : 'NO GPS';
     cardGround.dataset.status = st;
   }
+  /* temporary diagnostic on the Layover card: what the phone's GPS gives and what the walking estimate does with it */
+  function renderDriveInfo() {
+    const el = document.getElementById('driveInfo'); if (!el) return;
+    if (!driveWalk()) { el.style.display = 'none'; return; }
+    el.style.display = 'block'; const d = driveWalkState.diag;
+    el.textContent = !d ? 'GPS info: waiting for the first fix' : 'acc ' + (d.acc == null ? 'none' : d.acc.toFixed(0) + ' m') + ' | gap ' + (d.gap == null ? '-' : d.gap.toFixed(1) + ' s') + ' | fixes ' + d.fixes + ' | raw ' + (d.raw == null ? '-' : d.raw.toFixed(2) + ' m/s') + ' | cutoff ' + d.thr.toFixed(2) + ' m/s | shown ' + (d.speed * 2.23694).toFixed(1) + ' mph | device speed ' + (d.devSpeed == null ? 'none' : d.devSpeed.toFixed(1) + ' m/s') + ', heading ' + (d.devHeading == null ? 'none' : d.devHeading.toFixed(0)) + ' | ' + d.reason;
+  }
   function setDriveRel(r) { document.getElementById('driveArrow').setAttribute('transform', 'rotate(' + r + ')'); }
   function renderDrive(fix) {
     driveLastFix = fix;
@@ -2038,25 +2045,28 @@
   /* Layover (walking) speed: the movement of the AVERAGE position, so GPS wander indoors cancels out instead of making every fix look different.
      Last 8 fixes; speed = distance between the average of the oldest 3 and the average of the newest 3, over the time between those averages (about 5 s).
      Zero when under max(0.5 m/s, accuracy x 0.12; 6 m when the phone gives no accuracy); then a smoothing step (new = old + 0.6 x (estimate - old)). Starts after 6 fixes. */
-  function newWalk() { return { buf: [], ema: 0 }; }
+  function newWalk() { return { buf: [], ema: 0, diag: null, reason: 'waiting for fixes' }; }
   function walkEstimate(w, c, fix) {
-    if (w.buf.length && fix.t - w.buf[w.buf.length - 1].t > 8000) { w.buf = []; w.ema = 0; }
+    const gapS = w.buf.length ? (fix.t - w.buf[w.buf.length - 1].t) / 1000 : null;
+    if (w.buf.length && fix.t - w.buf[w.buf.length - 1].t > 8000) { w.buf = []; w.ema = 0; w.reason = 'reset: gap of ' + gapS.toFixed(1) + ' s'; } else if (!w.buf.length) w.reason = 'started';
     w.buf.push({ lat: fix.lat, lon: fix.lon, t: fix.t }); if (w.buf.length > 8) w.buf.shift();
     const acc = (typeof c.accuracy === 'number' && isFinite(c.accuracy) && c.accuracy > 0) ? c.accuracy : 6;
-    let raw = 0, hdg = null;
+    let raw = 0, hdg = null, rawAll = null, thr = Math.max(0.5, acc * 0.12);
     if (w.buf.length >= 6) {
       const avg = a => ({ lat: a.reduce((s, p) => s + p.lat, 0) / a.length, lon: a.reduce((s, p) => s + p.lon, 0) / a.length, t: a.reduce((s, p) => s + p.t, 0) / a.length });
       const a = avg(w.buf.slice(0, 3)), b = avg(w.buf.slice(-3)), dt = (b.t - a.t) / 1000, v = dt > 0 ? distanceM(a.lat, a.lon, b.lat, b.lon) / dt : 0;
-      if (v >= Math.max(0.5, acc * 0.12)) { raw = v; hdg = bearingDeg(a.lat, a.lon, b.lat, b.lon); }
+      rawAll = v; if (v >= thr) { raw = v; hdg = bearingDeg(a.lat, a.lon, b.lat, b.lon); }
     }
     w.ema += 0.6 * (raw - w.ema);
-    return { speed: w.ema < 0.15 ? 0 : w.ema, heading: hdg };
+    const speed = w.ema < 0.15 ? 0 : w.ema;
+    w.diag = { acc: (typeof c.accuracy === 'number' && isFinite(c.accuracy) && c.accuracy > 0) ? c.accuracy : null, gap: gapS, fixes: w.buf.length, raw: rawAll, thr, speed, devSpeed: (typeof c.speed === 'number' && isFinite(c.speed)) ? c.speed : null, devHeading: (typeof c.heading === 'number' && isFinite(c.heading)) ? c.heading : null, reason: w.reason };
+    return { speed, heading: hdg };
   }
   function onDrivePos(pos) {
     const c = pos.coords, now = pos.timestamp || Date.now(), fix = { lat: c.latitude, lon: c.longitude, t: now };
     driveMessage(''); driveFixAt = Date.now(); driveDenied = false; renderDriveStatus();
     if (driveWalk()) { /* Layover: no destination, so only the speed and the heading */
-      const w = walkEstimate(driveWalkState, c, fix); driveSpeed = w.speed; if (w.heading != null) driveCourse = w.heading; driveHold = fix; renderDrive(fix); return;
+      const w = walkEstimate(driveWalkState, c, fix); driveSpeed = w.speed; if (w.heading != null) driveCourse = w.heading; driveHold = fix; renderDrive(fix); renderDriveInfo(); return;
     }
     const r = gpsMotion(driveMotion, c, fix, { floor: FLOOR_MS });
     if (r.moving && r.speed != null) {
@@ -2078,7 +2088,7 @@
     if (!driveDialBuilt) { document.getElementById('driveDial').innerHTML = dialMarkup(); driveDialBuilt = true; }
     driveDestFull = target.name; fitDriveDest();
     cardGround.dataset.rel = ''; cardGround.dataset.dist = '';
-    renderDrive(null);
+    renderDrive(null); renderDriveInfo();
     if (!navigator.geolocation) { driveMessage('This device has no GPS.'); return; }
     driveMessage('Waiting for GPS…');
     renderDriveStatus();
