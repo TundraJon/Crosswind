@@ -657,7 +657,14 @@ The sample texts used to build the parser lived in a scratch folder that disappe
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Layover walking speed that works indoors (average-position estimate)
+Not yet authorized to build. Jon: on a Layover the Ground RTT speed shows nothing, however fast he walks.
+- Reproduced in a scratch simulation of the Build 79 filter in walking mode (120 one-second fixes, a walker at 3 mph): clear outdoor GPS (2 m jitter, speed and heading given) shows a speed 98% of the time; a terminal (5 m jitter, noisy heading) 12%; a terminal with speed given but no heading 3%; 8 m jitter 1%; no device speed (derived from positions) 0%; a device speed that reads 0 indoors 0%; a slow stroll 9%.
+- Cause: `gpsMotion()` (Build 79) only counts movement when several fixes in a row agree on heading (within 30 degrees), speed, and the ground covered. Walking is about 1.4 m/s, indoor GPS wanders 5 to 8 m and often gives no heading or a speed of 0, so no run of fixes ever agrees.
+- Fix, in walking mode only (the Layover card): do not use the sample-agreement filter. Keep the last 16 fixes; the speed is the distance between the average position of the oldest 5 and the average position of the newest 5, divided by the time between those two averages (about 11 seconds); averaging cancels most of the jitter. It reads 0 when that speed is under max(0.5 m/s (1.1 mph), `coords.accuracy` x 0.09; with no accuracy value, 5 m is assumed). The heading dial uses the direction between the two average positions while moving and holds otherwise (the device heading is not needed). The existing smoothing and the one-decimal display stay.
+- Tested in the scratch simulation (this config): standing still shows as moving 0% of the time at 3, 5, 8, and 12 m jitter; walking at 3 mph shows 100% (average 2.9 mph) at 3 and 5 m, 91% at 8 m, 46% at 12 m; a 2 mph stroll shows 100%, 91%, and 48% at 3, 5, and 8 m. At 12 m jitter (very poor GPS) there is a real limit.
+- Trade-off for Jon to accept: the number needs about 16 seconds of fixes after the Layover card opens, and a change in pace shows after about 10 seconds. It is steady and reliable instead of instant and empty. The Ground RTT at driving speeds and the Airborne RTT are unchanged.
+- Verify with the node simulation: standing still, 3 mph, 2 mph, turns, and stopping (back to 0.0 within about 15 seconds) at 3, 5, and 8 m jitter, with no device speed, with speed 0, and with a noisy heading; then Playwright with the Layover card and a mocked terminal-like GPS (no speed, no heading, 5 m jitter): it shows about 3 mph after about 16 seconds and 0.0 when still; the old Layover checks in the GPS suite are replaced by these (they used a clean signal); the Ground RTT and Airborne checks still pass; zero JS errors; screenshot looked at. Cache-bust and version bump.
 
 ## Build Planner
 
