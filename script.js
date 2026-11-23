@@ -2012,10 +2012,62 @@
   /* temporary diagnostic on the Layover card: what the phone's GPS gives and what the walking estimate does with it */
   function renderDriveInfo() {
     const el = document.getElementById('driveInfo'); if (!el) return;
-    if (!driveWalk()) { el.style.display = 'none'; return; }
-    el.style.display = 'block'; const d = driveWalkState.diag;
+    if (!driveWalk()) { el.style.display = 'none'; recReset(); return; }
+    el.style.display = 'block'; recButton(); const d = driveWalkState.diag;
     el.textContent = !d ? 'GPS info: waiting for the first fix' : 'acc ' + (d.acc == null ? 'none' : d.acc.toFixed(0) + ' m') + ' | gap ' + (d.gap == null ? '-' : d.gap.toFixed(1) + ' s') + ' | fixes ' + d.fixes + ' | raw ' + (d.raw == null ? '-' : d.raw.toFixed(2) + ' m/s') + ' | cutoff ' + d.thr.toFixed(2) + ' m/s | shown ' + (d.speed * 2.23694).toFixed(1) + ' mph | device speed ' + (d.devSpeed == null ? 'none' : d.devSpeed.toFixed(1) + ' m/s') + ', heading ' + (d.devHeading == null ? 'none' : d.devHeading.toFixed(0)) + ' | from ' + d.src + ' | ' + d.reason;
   }
+  /* Layover walk recorder (temporary diagnostic): Mark starts, Stop ends. Every fix is kept in memory only, then shown full screen with the results and a Copy log button. */
+  const REC_MAX = 600; let rec = { on: false, rows: [] };
+  function recReset() { rec = { on: false, rows: [] }; const m = document.getElementById('markBtn'); if (m) { m.style.display = 'none'; m.textContent = 'Mark'; m.classList.remove('rec'); } const o = document.getElementById('walkRec'); if (o) o.style.display = 'none'; }
+  function recButton() {
+    const m = document.getElementById('markBtn'); if (!m) return;
+    m.style.display = 'block'; m.classList.toggle('rec', rec.on); m.textContent = rec.on ? 'Stop (' + rec.rows.length + ' fixes)' : 'Mark';
+  }
+  function recAdd(c, fix, w) {
+    if (!rec.on) return;
+    const num = v => (typeof v === 'number' && isFinite(v)) ? v : null;
+    rec.rows.push({ t: fix.t, lat: fix.lat, lon: fix.lon, acc: num(c.accuracy), spd: num(c.speed), hdg: num(c.heading), shown: w.speed });
+    if (rec.rows.length >= REC_MAX) recStop(); else recButton();
+  }
+  function recSummary(rows) {
+    const n = rows.length, el = n > 1 ? (rows[n - 1].t - rows[0].t) / 1000 : 0; let path = 0;
+    for (let i = 1; i < n; i++) path += distanceM(rows[i - 1].lat, rows[i - 1].lon, rows[i].lat, rows[i].lon);
+    const straight = n > 1 ? distanceM(rows[0].lat, rows[0].lon, rows[n - 1].lat, rows[n - 1].lon) : 0;
+    const ps = rows.filter(r => r.spd != null), mean = a => a.length ? a.reduce((s, v) => s + v, 0) / a.length : null;
+    return { n, el, path, straight, avgPath: el > 0 ? path / el : null, avgPhone: mean(ps.map(r => r.spd)), nPhone: ps.length, avgShown: mean(rows.map(r => r.shown)) };
+  }
+  function recLogText(rows, s) {
+    const f = (v, d) => v == null ? '-' : v.toFixed(d), t0 = rows.length ? rows[0].t : 0;
+    const head = ['Crosswind Layover walk log', 'fixes ' + s.n + ', elapsed ' + f(s.el, 1) + ' s, path ' + f(s.path, 1) + ' m, straight line ' + f(s.straight, 1) + ' m',
+      'average speed from path ' + f(s.avgPath, 2) + ' m/s, average phone speed ' + f(s.avgPhone, 2) + ' m/s (' + s.nPhone + ' of ' + s.n + ' fixes had one), average shown ' + f(s.avgShown, 2) + ' m/s',
+      't_s,lat,lon,acc_m,phone_speed_mps,phone_heading,shown_mps'];
+    return head.concat(rows.map(r => [f((r.t - t0) / 1000, 1), r.lat.toFixed(6), r.lon.toFixed(6), f(r.acc, 0), f(r.spd, 2), f(r.hdg, 0), f(r.shown, 2)].join(','))).join('\n');
+  }
+  function recStop() {
+    rec.on = false; recButton();
+    const s = recSummary(rec.rows), text = recLogText(rec.rows, s), M = 2.23694, f = (v, d) => v == null ? '-' : v.toFixed(d);
+    const mm = Math.floor(s.el / 60), ss = Math.round(s.el % 60);
+    document.getElementById('wrSum').innerHTML =
+      '<div>Time <b>' + mm + ':' + String(ss).padStart(2, '0') + '</b></div><div>Fixes <b>' + s.n + '</b></div>' +
+      '<div>Path walked <b>' + f(s.path, 1) + ' m</b> (' + f(s.path * 3.28084, 0) + ' ft)</div><div>Straight line <b>' + f(s.straight, 1) + ' m</b></div>' +
+      '<div>Average speed (path / time) <b>' + f(s.avgPath, 2) + ' m/s</b> (' + f(s.avgPath == null ? null : s.avgPath * M, 1) + ' mph)</div>' +
+      '<div>Average phone speed <b>' + f(s.avgPhone, 2) + ' m/s</b> (' + s.nPhone + ' of ' + s.n + ' fixes)</div>' +
+      '<div>Average shown <b>' + f(s.avgShown, 2) + ' m/s</b> (' + f(s.avgShown == null ? null : s.avgShown * M, 1) + ' mph)</div>';
+    document.getElementById('wrTbl').textContent = text.split('\n').slice(3).join('\n');
+    document.getElementById('wrBox').style.display = 'none'; document.getElementById('wrNote').textContent = '';
+    rec.text = text; document.getElementById('walkRec').style.display = 'flex';
+  }
+  document.getElementById('markBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    if (rec.on) { recStop(); return; }
+    rec = { on: true, rows: [] }; recButton();
+  });
+  document.getElementById('wrClose').addEventListener('click', () => { document.getElementById('walkRec').style.display = 'none'; });
+  document.getElementById('wrCopy').addEventListener('click', async () => {
+    const text = rec.text || '', note = document.getElementById('wrNote'), box = document.getElementById('wrBox');
+    try { if (!(navigator.clipboard && navigator.clipboard.writeText)) throw new Error('no clipboard'); await navigator.clipboard.writeText(text); note.textContent = 'Copied.'; box.style.display = 'none'; }
+    catch (e) { box.value = text; box.style.display = 'block'; box.focus(); box.select(); note.textContent = 'Copy was refused. Select the text below and copy it by hand.'; }
+  });
   function setDriveRel(r) { document.getElementById('driveArrow').setAttribute('transform', 'rotate(' + r + ')'); }
   function renderDrive(fix) {
     driveLastFix = fix;
@@ -2068,7 +2120,7 @@
     const c = pos.coords, now = pos.timestamp || Date.now(), fix = { lat: c.latitude, lon: c.longitude, t: now };
     driveMessage(''); driveFixAt = Date.now(); driveDenied = false; renderDriveStatus();
     if (driveWalk()) { /* Layover: no destination, so only the speed and the heading */
-      const w = walkEstimate(driveWalkState, c, fix); driveSpeed = w.speed; if (w.heading != null) driveCourse = w.heading; driveHold = fix; renderDrive(fix); renderDriveInfo(); return;
+      const w = walkEstimate(driveWalkState, c, fix); driveSpeed = w.speed; if (w.heading != null) driveCourse = w.heading; driveHold = fix; renderDrive(fix); renderDriveInfo(); recAdd(c, fix, w); return;
     }
     const r = gpsMotion(driveMotion, c, fix, { floor: FLOOR_MS });
     if (r.moving && r.speed != null) {
@@ -2085,7 +2137,7 @@
   }
   let driveDialBuilt = false;
   function startDrive(target) {
-    if (drivePing) { driveDest = target; driveDestFull = target.name; fitDriveDest(); renderDrive(driveLastFix); return; }
+    if (drivePing) { driveDest = target; driveDestFull = target.name; fitDriveDest(); renderDrive(driveLastFix); renderDriveInfo(); return; }
     driveDest = target; driveMotion = newMotion(); driveWalkState = newWalk(); driveHold = null; driveFixAt = null; driveDenied = false; driveSpeed = null; driveCourse = null; driveMph = currentUnits().speed !== 'kph'; driveBuiltUnit = '';
     if (!driveDialBuilt) { document.getElementById('driveDial').innerHTML = dialMarkup(); driveDialBuilt = true; }
     driveDestFull = target.name; fitDriveDest();
@@ -2130,7 +2182,7 @@
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGroundFull(); });
   window.addEventListener('resize', () => { if (cardGround.style.display !== 'none') groundRerender(); });
-  function stopDrive() { closeGroundFull(); if (drivePing) { clearInterval(drivePing); clearInterval(driveStatusTimer); } drivePing = driveStatusTimer = null; }
+  function stopDrive() { recReset(); closeGroundFull(); if (drivePing) { clearInterval(drivePing); clearInterval(driveStatusTimer); } drivePing = driveStatusTimer = null; }
   rttBtn.addEventListener('click', () => {
     if (!rttMode || rttBtn.disabled) return;
     rttOn = !(rttOn && rttKey === dashSelected); rttKey = dashSelected; renderDash();

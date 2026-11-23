@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.39) -->
+<!-- CROSSWIND — Step 1: Static Shell + Navigation (v1.40) -->
 <!-- HTML shell; styles in styles.css, logic in script.js. Show/hide div nav. Trip Wizard models a full round trip with -->
 <!-- repeatable Stops (Flight(s)->Rental->Hotel->Destination->Rental Return), then a single -->
 <!-- Return Flight leg + Uber Home. Smart Date/Time inputs and calendar, In-Flight Favorites. -->
@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#10161f">
 <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" href="styles.css?v=43">
+<link rel="stylesheet" href="styles.css?v=44">
 </head>
 <body>
 
@@ -306,6 +306,7 @@
       </div>
       <div class="drive-msg" id="driveMsg" style="display:none;"></div>
       <div class="drive-info" id="driveInfo" style="display:none;"></div>
+      <button class="btn mark-btn" id="markBtn" style="display:none;">Mark</button>
     </div>
   </div>
   <div class="dock" id="dashDock" style="margin-top:12px;"><button class="btn primary grow" id="copyAddrBtn">[ Copy Address ]<small>Paste into your GPS app</small></button><button class="btn grow" id="rttBtn" style="display:none;">🧭 Ground RTT<small>Works offline</small></button></div>
@@ -429,10 +430,18 @@
   </div>
 </div>
 
+<!-- Layover walk recorder: results screen (temporary diagnostic) -->
+<div class="walkrec" id="walkRec" style="display:none;">
+  <div class="wr-head"><div class="wr-title">Walk recording</div><button class="btn" id="wrClose">Close</button></div>
+  <div class="wr-sum" id="wrSum"></div>
+  <div class="wr-btns"><button class="btn primary" id="wrCopy">Copy log</button><span class="wr-note" id="wrNote"></span></div>
+  <textarea class="wr-box" id="wrBox" readonly style="display:none;"></textarea>
+  <div class="wr-tbl" id="wrTbl"></div>
+</div>
 <script src="airports.js?v=1"></script>
 <script src="hotel-brands.js?v=2"></script>
 <script src="booking-parser.js?v=2"></script>
-<script src="script.js?v=44"></script>
+<script src="script.js?v=45"></script>
 
 </body>
 </html>
