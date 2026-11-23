@@ -686,7 +686,10 @@ Jon's phone showed 0 while walking. His info line (Build 98) showed that the pho
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Info line shows the peak speeds of the last 30 seconds
+Not yet authorized to build. Jon's v1.39 screenshot (taken standing or stopped): `acc 8 m | gap 2.0 s | fixes 8 | raw 0.46 m/s | cutoff 0.90 m/s | shown 0.0 mph | device speed 0.0 m/s, heading none | from phone | started`. One frame cannot show whether the phone reports speed while walking indoors, since he cannot hold the phone steady and take a screenshot mid-walk.
+- Build: the info line adds `peak 30 s: phone X m/s, average Y m/s` (the highest phone speed and the highest average-position speed in the last 30 seconds). Jon walks about 20 seconds, stops, takes the screenshot, and the peaks show what happened while he moved. The line stays temporary. No change to the speed maths.
+- Verify with the Playwright Layover test (peaks fall back after 30 s); cache-bust and version bump.
 
 ## Build Planner
 
