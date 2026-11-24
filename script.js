@@ -1709,6 +1709,33 @@
     return { moving: m.moving, speed: m.lastSpd, heading: m.lastHdg };
   }
   const KT_PER_MS = 1.943844;
+  /* Smooth compass turning (Ground RTT dial and arrow, Airborne RTT dial): a new angle is reached over 2 seconds, slow start and slow end, the short way round.
+     A new target while still turning continues from the angle on screen (no slow restart, no jump back). The first angle after a reset is set at once. */
+  const TURN_MS = 2000, turns = {};
+  const turnDiff = (a, b) => Math.abs((((a - b) % 360) + 540) % 360 - 180);
+  function turnTo(id, target, apply) {
+    let s = turns[id]; if (!s) s = turns[id] = { cur: null, from: 0, to: 0, t0: 0, raf: 0, moving: false, ease: null, apply };
+    s.apply = apply;
+    if (target == null) { cancelAnimationFrame(s.raf); s.cur = null; s.moving = false; apply(null); return; }
+    if (s.cur == null) { s.cur = target; s.to = target; s.moving = false; apply(target); return; }
+    if (turnDiff(target, s.moving ? s.to : s.cur) < 0.01) return;
+    const delta = (((target - s.cur) % 360) + 540) % 360 - 180;
+    s.from = s.cur; s.to = s.cur + delta; s.t0 = performance.now();
+    s.ease = s.moving ? (p => 1 - (1 - p) * (1 - p)) : (p => 0.5 - 0.5 * Math.cos(Math.PI * p));
+    s.moving = true;
+    const step = now => {
+      const p = Math.max(0, Math.min(1, (now - s.t0) / TURN_MS));
+      s.cur = s.from + (s.to - s.from) * s.ease(p); s.apply(s.cur);
+      if (p < 1) s.raf = requestAnimationFrame(step); else s.moving = false;
+    };
+    cancelAnimationFrame(s.raf); s.raf = requestAnimationFrame(step);
+  }
+  function turnReset(id) { const s = turns[id]; if (s) { cancelAnimationFrame(s.raf); s.cur = null; s.moving = false; } }
+  const dialApply = (dialId, boxId) => a => {
+    const box = document.getElementById(boxId); document.getElementById(dialId).setAttribute('transform', 'rotate(' + (a == null ? 0 : a) + ')');
+    if (a == null) { box.textContent = '---'; return; }
+    const h = Math.round((((-a) % 360) + 360) % 360) % 360; box.textContent = String(h === 0 ? 360 : h).padStart(3, '0');
+  };
   let airTimer = null, airStatusTimer = null, airFix = null, airMotion = newMotion(), airKnots = null, airHdg = null, airDenied = false, airBuilt = false;
   function dialMarkup() {
     let d = '<circle r="90"/>';
@@ -1823,8 +1850,7 @@
     const H = airTapeH();
     document.getElementById('airStrip').style.transform = 'translateY(' + (H / 2 - (900 - v) * (H / 40)) + 'px)';
     const hdg = (st !== 'red' && airHdg != null) ? airHdg : null;
-    document.getElementById('airHdg').textContent = hdg == null ? '---' : String(Math.round(hdg) % 360 === 0 ? 360 : Math.round(hdg) % 360).padStart(3, '0');
-    document.getElementById('airDial').setAttribute('transform', 'rotate(' + (hdg == null ? 0 : -hdg) + ')');
+    turnTo('airDial', hdg == null ? null : -hdg, dialApply('airDial', 'airHdg'));
     const c = document.getElementById('cardAir'); c.dataset.status = st; c.dataset.knots = live ? kt : ''; c.dataset.heading = hdg == null ? '' : Math.round(hdg) % 360;
     renderAirTrip();
   }
@@ -1869,7 +1895,7 @@
   function startAir() {
     buildAir();
     if (airTimer) return;
-    airFix = null; airMotion = newMotion(); airKnots = null; airHdg = null; airDenied = false;
+    airFix = null; airMotion = newMotion(); airKnots = null; airHdg = null; airDenied = false; turnReset('airDial');
     if (!navigator.geolocation) { const m = document.getElementById('airMsg'); m.textContent = 'This device has no GPS.'; m.style.display = 'block'; renderAir(); return; }
     renderAir(); pingAir();
     airTimer = setInterval(pingAir, 3000); airStatusTimer = setInterval(renderAir, 1000);
@@ -2011,13 +2037,12 @@
     box.querySelector('i').className = 'air-dot ' + st; box.querySelector('span').textContent = st === 'green' ? 'GPS LOCK' : st === 'yellow' ? 'GPS STALE' : 'NO GPS';
     cardGround.dataset.status = st;
   }
-  function setDriveRel(r) { document.getElementById('driveArrow').setAttribute('transform', 'rotate(' + r + ')'); }
+  function setDriveRel(r) { turnTo('driveArrow', r, a => document.getElementById('driveArrow').setAttribute('transform', 'rotate(' + (a == null ? 0 : a) + ')')); }
   function renderDrive(fix) {
     driveLastFix = fix;
     const course = driveCourse == null ? 0 : driveCourse;
-    const hdg = driveCourse, h3 = hdg == null ? 0 : Math.round(hdg) % 360;
-    document.getElementById('driveHdg').textContent = hdg == null ? '---' : String(h3 === 0 ? 360 : h3).padStart(3, '0');
-    document.getElementById('driveDial').setAttribute('transform', 'rotate(' + (hdg == null ? 0 : -hdg) + ')');
+    const hdg = driveCourse;
+    turnTo('driveDial', hdg == null ? null : -hdg, dialApply('driveDial', 'driveHdg'));
     cardGround.dataset.course = driveCourse == null ? '' : Math.round(driveCourse);
     const spd = document.getElementById('driveSpeed');
     const ms = (driveSpeed == null || driveSpeed < (driveWalk() ? 0.1 : 0.5)) ? 0 : driveSpeed;
@@ -2083,7 +2108,7 @@
     if (!driveDialBuilt) { document.getElementById('driveDial').innerHTML = dialMarkup(); driveDialBuilt = true; }
     driveDestFull = target.name; fitDriveDest();
     cardGround.dataset.rel = ''; cardGround.dataset.dist = '';
-    renderDrive(null);
+    turnReset('driveArrow'); renderDrive(null);
     if (!navigator.geolocation) { driveMessage('This device has no GPS.'); return; }
     driveMessage('Waiting for GPS…');
     renderDriveStatus();
