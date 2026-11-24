@@ -1338,8 +1338,14 @@
   const GROUND_RTT_TYPES = ['uberOut', 'rental', 'hotel', 'destination', 'rentalReturn', 'uberHome', 'home', 'layover'];
   const COPY_ADDR_TYPES = ['hotel', 'destination', 'home', 'uberHome'];
   let dashAddr = '';
-  /* ---- Distance to Home (Dashboard header): one GPS reading when the Dashboard opens, when the step viewed changes, and when the number is tapped ---- */
-  let homeDistM = null, homeDistState = '', homeDistBusy = false;
+  /* ---- Distance to Home (Dashboard header): one GPS reading when the Dashboard opens, when the step viewed changes, and when the number is tapped.
+     The number, the time it was taken, and the home position it used are saved; while the Dashboard is on screen (and when the app comes back to the front) a new reading is taken once the saved one is 30 minutes old. ---- */
+  let homeDistM = null, homeDistState = '', homeDistBusy = false, homeDistAt = null, homeDistFor = null, homeDistTry = 0;
+  const HOME_DIST_KEY = 'crosswindHomeDist', HOME_DIST_MS = 30 * 60000, HOME_DIST_RETRY_MS = 5 * 60000;
+  try { const s = JSON.parse(localStorage.getItem(HOME_DIST_KEY) || 'null'); if (s && s.v === 1 && isFinite(s.m) && isFinite(s.at) && isFinite(s.lat) && isFinite(s.lon)) { homeDistM = s.m; homeDistAt = s.at; homeDistFor = { lat: s.lat, lon: s.lon }; } } catch (e) {}
+  function homeDistMatches() { return homeDistM != null && homeDistFor != null && homeLat != null && homeLon != null && Math.abs(homeDistFor.lat - homeLat) < 1e-6 && Math.abs(homeDistFor.lon - homeLon) < 1e-6; }
+  function homeDistDrop() { homeDistM = null; homeDistAt = null; homeDistFor = null; try { localStorage.removeItem(HOME_DIST_KEY); } catch (e) {} }
+  function homeDistSave() { try { localStorage.setItem(HOME_DIST_KEY, JSON.stringify({ v: 1, m: homeDistM, at: homeDistAt, lat: homeDistFor.lat, lon: homeDistFor.lon })); } catch (e) {} }
   const HOME_DIST_REASON = { nohome: 'no home address', notlocated: 'home not located', denied: 'location off', nogps: 'no GPS signal' };
   function fmtHomeDist(m) {
     if (currentUnits().dist === 'km') return m < 100 ? Math.round(m) + ' M' : (m < 100000 ? (m / 1000).toFixed(1) : Math.round(m / 1000).toLocaleString('en-US')) + ' KM';
@@ -1348,18 +1354,28 @@
   }
   function renderHomeDist() {
     const el = document.getElementById('homeDistVal'); if (!el) return;
-    el.textContent = homeDistState === 'busy' ? '…' : homeDistState === 'ok' && homeDistM != null ? fmtHomeDist(homeDistM) : (HOME_DIST_REASON[homeDistState] || '—');
+    el.textContent = homeDistState === 'busy' ? (homeDistMatches() ? fmtHomeDist(homeDistM) : '…') : homeDistState === 'ok' && homeDistM != null ? fmtHomeDist(homeDistM) : (HOME_DIST_REASON[homeDistState] || '—');
   }
   function setHomeDist(state) { homeDistState = state; renderHomeDist(); }
   function refreshHomeDist() {
     if (homeDistBusy) return;
-    if (!addrInput.value.trim()) { setHomeDist('nohome'); return; }
-    if (homeLat == null || homeLon == null) { setHomeDist('notlocated'); return; }
-    if (!navigator.geolocation) { setHomeDist('nogps'); return; }
-    homeDistBusy = true; setHomeDist('busy');
-    navigator.geolocation.getCurrentPosition(pos => { homeDistBusy = false; homeDistM = distanceM(pos.coords.latitude, pos.coords.longitude, homeLat, homeLon); setHomeDist('ok'); },
-      err => { homeDistBusy = false; setHomeDist(err && err.code === 1 ? 'denied' : 'nogps'); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
+    if (!addrInput.value.trim()) { homeDistDrop(); setHomeDist('nohome'); return; }
+    if (homeLat == null || homeLon == null) { homeDistDrop(); setHomeDist('notlocated'); return; }
+    if (homeDistM != null && !homeDistMatches()) homeDistDrop(); /* the home position changed: the saved number is for another place */
+    const failed = code => setHomeDist(homeDistMatches() ? 'ok' : (code === 1 ? 'denied' : 'nogps')); /* a failed reading keeps the last good number on screen */
+    if (!navigator.geolocation) { failed(0); return; }
+    homeDistBusy = true; homeDistTry = Date.now(); setHomeDist('busy');
+    navigator.geolocation.getCurrentPosition(pos => { homeDistBusy = false; homeDistM = distanceM(pos.coords.latitude, pos.coords.longitude, homeLat, homeLon); homeDistAt = Date.now(); homeDistFor = { lat: homeLat, lon: homeLon }; homeDistSave(); setHomeDist('ok'); },
+      err => { homeDistBusy = false; failed(err && err.code); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
   }
+  /* every minute while the Dashboard is on screen, and when the app comes back to the front: a new reading once the saved one is 30 minutes old (a failed one is retried after 5 minutes) */
+  function homeDistCheck() {
+    if (document.hidden || !document.getElementById('screenDash').classList.contains('active')) return;
+    const now = Date.now();
+    if (homeDistAt == null ? now - homeDistTry >= HOME_DIST_MS : (now - homeDistAt >= HOME_DIST_MS && now - homeDistTry >= HOME_DIST_RETRY_MS)) refreshHomeDist();
+  }
+  setInterval(homeDistCheck, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) homeDistCheck(); });
   document.getElementById('homeDistBtn').addEventListener('click', refreshHomeDist);
   function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function dv(t) { const s = (t == null ? '' : String(t)).trim(); return s ? esc(s) : '—'; }
