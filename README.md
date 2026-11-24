@@ -704,7 +704,12 @@ Jon parked the Layover speed meter (see the Planner item "Layover speed: parked"
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Ground RTT compass turns smoothly (2 s, eased)
+Not yet authorized to build. Jon: when following the compass for driving, the dial snaps to each new direction. It should turn toward the new heading over 2 seconds, speeding up at the start and slowing down at the end, like a real compass.
+- Build: in the Ground RTT card, the dial (`#driveDial`, `rotate(-heading)`) and the destination arrow (`#driveArrow`, `rotate(relative bearing)`) no longer jump to the new angle. A short animation (`requestAnimationFrame`, since an SVG `transform` attribute cannot use a CSS transition) moves each from where it is now to the new angle in 2 seconds with an ease-in-out curve. It takes the short way round (359 to 1 turns 2 degrees, not 358). If a new heading arrives mid-turn, the turn restarts from the angle on screen, so it never jumps back. The first heading after the card opens (no heading yet) and a reopened card set the angle at once, with no spin.
+- The heading number in the box over the dial follows the dial while it turns (my pick), so it counts through the turn and matches what you see. `data-course` and the other values the tests read keep the target heading.
+- Not changed: the heading and speed maths, the speed tape, Distance, and the Airborne RTT compass (Ground RTT only, unless Jon says to include it).
+- Verify with Playwright (mocked GPS with heading changes): the dial is mid-turn at about 1 s and at the target at 2 s; it takes the short way across 359/0; a heading change mid-turn restarts from the angle on screen; no jump on card open; the full-screen view; screenshots of a mid-turn frame; the usual suites (tests that read the dial angle wait for the 2 s). Cache-bust and version bump.
 
 ## Build Planner
 
