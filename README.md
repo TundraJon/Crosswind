@@ -711,7 +711,14 @@ Jon: the compass snapped to each new direction instead of turning. It should tur
 
 ## Build Queue
 
-_Empty — nothing queued right now._
+### Queue 1: Distance to Home updates itself every 30 minutes
+Not yet authorized to build. Jon: Distance to Home should calculate itself every 30 minutes, so he does not have to remember to tap it. Store the time it was calculated; when the Dashboard is opened again, or has been open for 30 minutes, and the stored time is more than 30 minutes old, take a new reading and show it. While flying it does not need to be exact.
+- Today (Builds 54 to 57): one GPS reading each time the Dashboard opens, each time the step viewed changes, and each tap (`refreshHomeDist()`). The number is kept only in memory.
+- Build (my reading): the distance and the time it was calculated (and the home position it used) are saved in the browser (`localStorage`), so an app restart still shows the last number at once. Dashboard open and a step change no longer take a reading when the number is under 30 minutes old; they show the saved number. When it is 30 minutes or older, they take a new reading. A tap always takes a new reading (kept, as the manual refresh). While the Dashboard is on screen, a check every minute takes a reading when the number reaches 30 minutes old; the same check runs when the app comes back from the background (timers pause there). If the home address changes (a different saved home position), the saved number is dropped and a new reading is taken.
+- If a reading fails (no GPS, location off), the last good number stays on screen instead of the reason, when there is one; with no number yet, the reason shows as today. The reading uses the same call as today (a reading up to 30 s old is allowed).
+- Not changed: the header layout, the units, and the Ground and Airborne RTT.
+- Open point for Jon: my reading drops the reading on every open and step change (it saves battery and a GPS wake-up each time). If he would rather keep one on every open as well, say so.
+- Verify with Playwright (mocked GPS and a faked clock): the saved number shows at once on open with no GPS call when under 30 minutes old; a new reading at 30 minutes (open and the minute check); a tap always reads; a failed reading keeps the last number; changing the home address drops it; units still follow Setup; the app restart case (reload) keeps the number; zero JS errors; the usual suites. Cache-bust and version bump.
 
 ## Build Planner
 
